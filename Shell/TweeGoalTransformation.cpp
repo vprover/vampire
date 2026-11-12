@@ -168,7 +168,7 @@ class Definizator : public BottomUpTermTransformer {
           // (we don't care the definition is not rectified, as long as it's correct)
           // it is correct, because the lhs below is t and not key
           auto equation = Literal::createEquality(true, res, TermList(t), SortHelper::getResultSort(res.term()));
-          Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
+          Inference inference(NonspecificInference0(GoalAffinity::AXIOM,InferenceRule::FUNCTION_DEFINITION));
           Unit* intro;
 
           // unflip equation first if needed to document original orientation for TSTP
@@ -226,7 +226,7 @@ void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
   UnitList::RefIterator uit(prb.units());
   while (uit.hasNext()) {
     Unit* &u = uit.next();
-    if (!u->derivedFromGoal())
+    if (u->goalAffinity() < GoalAffinity::CONJECTURE)
       continue;
 
     ASS(u->isClause());

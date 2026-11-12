@@ -555,8 +555,8 @@ private:
   UnitList::FIFO _units;
   /** stack of unprocessed states */
   Stack<State> _states;
-  /** input type of the last read unit */ // it must be int since -1 can be used as a value
-  UnitInputType _lastInputType;
+  /** goal affinity of the last read unit, as given by its formula role */
+  GoalAffinity _lastGoalAffinity;
   /** the top-level dialect the unit currently being read came from;
    *  CNF and TCF units must end up being clauses, FOF and TCF units must be closed */
   enum class Dialect { CNF, FOF, TCF };

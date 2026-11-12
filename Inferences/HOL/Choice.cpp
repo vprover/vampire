@@ -59,7 +59,7 @@ Clause* Choice::createChoiceAxiom(TermList op, TermList set)
   return Clause::fromLiterals({
     Literal::createEquality(true, t1, HOL::create::bottom(), AtomicSort::boolSort()),
     Literal::createEquality(true, t2, HOL::create::top(), AtomicSort::boolSort())
-  }, NonspecificInference0(UnitInputType::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE));
+  }, NonspecificInference0(GoalAffinity::AXIOM, InferenceRule::HILBERTS_CHOICE_INSTANCE));
 }
 
 struct Choice::AxiomsIterator

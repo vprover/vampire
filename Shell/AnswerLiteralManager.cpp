@@ -109,7 +109,7 @@ bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
 
 Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 {
-  if (unit->isClause() || (unit->inputType()!=UnitInputType::CONJECTURE && unit->inputType()!=UnitInputType::NEGATED_CONJECTURE)) {
+  if (unit->isClause() || (unit->goalAffinity()!=GoalAffinity::CONJECTURE && unit->goalAffinity()!=GoalAffinity::NEGATED_CONJECTURE)) {
     return unit; // do nothing
   }
 
@@ -366,7 +366,7 @@ Clause* AnswerLiteralManager::getResolverClause(unsigned pred)
     args.push(TermList(i, false));
   }
   Literal* lit = Literal::create(pred, arity, true, args.begin());
-  res = Clause::fromIterator(getSingletonIterator(lit),NonspecificInference0(UnitInputType::AXIOM,InferenceRule::ANSWER_LITERAL_RESOLVER));
+  res = Clause::fromIterator(getSingletonIterator(lit),NonspecificInference0(GoalAffinity::AXIOM,InferenceRule::ANSWER_LITERAL_RESOLVER));
 
   _resolverClauses.insert(pred, res);
   return res;
@@ -527,7 +527,7 @@ bool SynthesisALManager::tryGetAnswer(Clause* refutation, Stack<Clause*>& answer
     }
   }
   // just a single literal answer
-  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, FromInput(UnitInputType::AXIOM)));
+  answer.push(Clause::fromLiterals({Literal::create(origLit,answerArgs.begin())}, FromInput(GoalAffinity::AXIOM)));
 
   outputRecursiveFunctions();
 

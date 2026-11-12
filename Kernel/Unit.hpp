@@ -67,12 +67,10 @@ public:
   Inference& inference() { return _inference; }
   const Inference& inference() const { return _inference; }
 
-  /** return the input type of the unit */
-  UnitInputType inputType() const { return _inference.inputType(); }
-  /** set the input type of the unit */
-  void setInputType(UnitInputType it) { _inference.setInputType(it); }
-  /** return true if inputType relates to a goal **/
-  bool derivedFromGoal() const { return _inference.derivedFromGoal(); }
+  /** return the goal affinity of the unit */
+  GoalAffinity goalAffinity() const { return _inference.goalAffinity(); }
+  /** set the goal affinity of the unit */
+  void setGoalAffinity(GoalAffinity a) { _inference.setGoalAffinity(a); }
   /** see isPureTheoryDescendant in Inference.cpp */
   bool isPureTheoryDescendant() const { return _inference.isPureTheoryDescendant(); }
   /** see isTheoryAxiom in Inference.cpp */
@@ -93,7 +91,7 @@ public:
    * however, it pays off to call this anyway, to correctly set any required stats in the inference objects.)
    *
    * Could be extended further if more stats provided by the inference tree should be found
-   * to require some final touches before proof printing. Currently, we care about the InputType, the induction stats, and _isPureTheoryDescendant.
+   * to require some final touches before proof printing. Currently, we care about the goal affinity, the induction stats, and _isPureTheoryDescendant.
    *
    * returns true if the minimized tree traversal observed an INPUT inference (to facilitate a certain sanity check later).
   */

@@ -1186,7 +1186,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     }
     def = new QuantifiedFormula(FORALL, vsfifo.list(), def);
   }
-  Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
+  Unit* definition = new FormulaUnit(def, NonspecificInference0(GoalAffinity::AXIOM,InferenceRule::PREDICATE_DEFINITION));
 
   InferenceStore::instance()->recordIntroducedSymbol(definition, sym);
 

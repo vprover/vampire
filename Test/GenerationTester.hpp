@@ -137,7 +137,7 @@ inline bool WithoutDuplicatesMatcher::matches(Stack<Kernel::Clause*> sRes, Gener
   clauses.dedup();
   Stack<Kernel::Clause*> newRes;
   for (auto& c : clauses) {
-    newRes.push(Clause::fromStack(c, Inference(FromInput(UnitInputType::ASSUMPTION))));
+    newRes.push(Clause::fromStack(c, Inference(FromInput(GoalAffinity::ASSUMPTION))));
   }
 
   return _inner->matches(std::move(newRes), simpl); 

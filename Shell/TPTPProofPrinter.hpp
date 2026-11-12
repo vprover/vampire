@@ -120,7 +120,7 @@ struct InferenceStore::TPTPProofPrinter : InferenceStore::AbstractSATProofPrinte
 protected:
   void printStep(Unit* unit) override;
   void printSATStep(SAT::SATClause* clause) override;
-  const char* getRole(InferenceRule rule, UnitInputType origin);
+  const char* getRole(InferenceRule rule, GoalAffinity origin);
   std::string tptpRuleName(InferenceRule rule);
 
   /* Printable views of the print... members below.

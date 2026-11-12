@@ -100,7 +100,7 @@ void InferenceStore::TPTPProofPrinter::print()
     AbstractSATProofPrinter::print();
   }
 
-const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitInputType origin)
+const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, GoalAffinity origin)
 {
     if (isTheoryAxiomRule(rule)) {
       return Role::AXIOM;
@@ -108,7 +108,7 @@ const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, UnitIn
     switch(rule) {
     case InferenceRule::INPUT:
       // Proofs present hypotheses as axioms.
-      if (origin == UnitInputType::ASSUMPTION) {
+      if (origin == GoalAffinity::ASSUMPTION) {
         return Role::AXIOM;
       }
       return inputRole(origin);
@@ -244,7 +244,7 @@ void InferenceStore::TPTPProofPrinter::printStep(Unit* unit)
   default: ;
   }
 
-  out << proofStep(unitRef(unit), getRole(rule, unit->inputType()), formula(unit), inference(unit));
+  out << proofStep(unitRef(unit), getRole(rule, unit->goalAffinity()), formula(unit), inference(unit));
 }
 
 std::ostream& InferenceStore::TPTPProofPrinter::printInference(std::ostream& out, Unit* unit)
@@ -335,7 +335,7 @@ std::ostream& InferenceStore::TPTPProofPrinter::printSplitting(std::ostream& out
   ASS(unit->isClause());
   InferenceRule rule = unit->inference().rule();
   ASS(rule == InferenceRule::GENERAL_SPLITTING);
-  return out << proofStep(unitRef(unit), getRole(rule, UnitInputType::AXIOM), formula(unit),
+  return out << proofStep(unitRef(unit), getRole(rule, GoalAffinity::AXIOM), formula(unit),
       inferenceAnnotation(tptpRuleName(rule), Output::Nothing{}, premises(unit)));
 }
 
@@ -349,9 +349,9 @@ std::ostream& InferenceStore::TPTPProofPrinter::printGeneralSplittingComponent(s
   auto nameSymbol = env.signature->getPredicate(nameLiteral->functor());
   InferenceRule rule = unit->inference().rule();
 
-  out << proofStep(unitRef(unit), getRole(InferenceRule::CLAUSIFY, UnitInputType::AXIOM), formula(unit),
+  out << proofStep(unitRef(unit), getRole(InferenceRule::CLAUSIFY, GoalAffinity::AXIOM), formula(unit),
       inferenceAnnotation(tptpRuleName(InferenceRule::CLAUSIFY), Output::Nothing{}, definitionRef(unit)));
-  return out << proofStep(definitionRef(unit), getRole(rule, UnitInputType::AXIOM),
+  return out << proofStep(definitionRef(unit), getRole(rule, GoalAffinity::AXIOM),
       splittingDefinition(unit->asClause(), nameLiteral),
       introducedAnnotation(Origin::DEFINITION, newSymbolAnnotation(Origin::DEFINITION, nameSymbol->name()),
           tptpRuleName(rule)));

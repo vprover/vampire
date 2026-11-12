@@ -165,7 +165,7 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   // unflip equation first if needed to document original orientation for TSTP
   Clause* definition;
   Unit* intro;
-  NonspecificInference0 inf(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION);
+  NonspecificInference0 inf(GoalAffinity::AXIOM, InferenceRule::FUNCTION_DEFINITION);
   if (TermList(def) == eq->termArg(0)) {
     definition = Clause::fromLiterals({eq}, inf);
     intro = definition;

@@ -149,7 +149,7 @@ Clause* HOL::create::choiceAxiom()
   return Clause::fromLiterals({
     Literal::createEquality(true, px, bottom(), boolS),
     Literal::createEquality(true, pchoiceT, top(), boolS),
-  }, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::HILBERTS_CHOICE_INSTANCE));
+  }, NonspecificInference0(GoalAffinity::AXIOM,InferenceRule::HILBERTS_CHOICE_INSTANCE));
 }
 
 Clause* HOL::create::functionalExtensionalityAxiom()

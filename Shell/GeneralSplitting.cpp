@@ -243,7 +243,7 @@ bool GeneralSplitting::apply(Clause*& cl, UnitList*& resultStack)
   Literal* nnLit=Literal::create(namingPred, minDeg, false, args.begin());
   otherLits.push(nnLit);
 
-  Clause* mdvCl=Clause::fromStack(mdvLits, NonspecificInference0(cl->inputType(),InferenceRule::GENERAL_SPLITTING_COMPONENT));
+  Clause* mdvCl=Clause::fromStack(mdvLits, NonspecificInference0(cl->goalAffinity(),InferenceRule::GENERAL_SPLITTING_COMPONENT));
   mdvCl->setAge(cl->age());
   UnitList::push(mdvCl, resultStack);
 

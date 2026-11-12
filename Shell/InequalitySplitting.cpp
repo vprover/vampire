@@ -95,7 +95,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
   // static DArray<Literal*> resLits(8);
   RStack<Literal*> resLits;
 
-  UnitInputType inpType = cl->inputType();
+  GoalAffinity affinity = cl->goalAffinity();
   UnitList* premises=0;
 
   for(unsigned i=0; i<firstSplittable; i++) {
@@ -105,7 +105,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
     Literal* lit= (*cl)[i];
     if(i==firstSplittable || isSplittable(lit)) {
       Clause* prem;
-      resLits->push(splitLiteral(lit, inpType , prem));
+      resLits->push(splitLiteral(lit, affinity , prem));
       UnitList::push(prem, premises);
     } else {
       resLits->push(lit);
@@ -133,7 +133,7 @@ Clause* InequalitySplitting::trySplitClause(Clause* cl)
 
 }
 
-Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, Clause*& premise)
+Literal* InequalitySplitting::splitLiteral(Literal* lit, GoalAffinity affinity, Clause*& premise)
 {
   ASS(isSplittable(lit));
 
@@ -183,7 +183,7 @@ Literal* InequalitySplitting::splitLiteral(Literal* lit, UnitInputType inpType, 
 
   RStack<Literal*> resLits;
   auto defCl = Clause::fromLiterals({makeNameLiteral(fun, t, false, vars)}, 
-      NonspecificInference0(inpType,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
+      NonspecificInference0(affinity,InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION));
   _predDefs.push(defCl);
 
   InferenceStore::instance()->recordIntroducedSymbol(defCl, symbol);

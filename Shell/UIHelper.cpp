@@ -151,10 +151,10 @@ void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string
  */
 const char* UIHelper::outputRole(const Unit* unit)
 {
-  if (unit->inputType() == UnitInputType::CONJECTURE && unit->inference().rule() != InferenceRule::INPUT) {
+  if (unit->goalAffinity() == GoalAffinity::CONJECTURE && unit->inference().rule() != InferenceRule::INPUT) {
     return TPTPOutput::Role::NEGATED_CONJECTURE;
   }
-  return TPTPOutput::inputRole(unit->inputType());
+  return TPTPOutput::inputRole(unit->goalAffinity());
 }
 
 
@@ -434,7 +434,7 @@ void UIHelper::outputResult(std::ostream& out)
     /**
      * Making explicit what was previously only done during proof printing.
      *
-     * However, we need to know the correct input type to decide whether to print "Theorem" vs "ContradictoryAxioms" below
+     * However, we need to know the correct goal affinity to decide whether to print "Theorem" vs "ContradictoryAxioms" below
      * (and this is not correctly set in inference by Global subsumtions for heuristic reasons).
      *
      * So it makes sense to call this even if minimizeSatProofs is false.
@@ -447,7 +447,7 @@ void UIHelper::outputResult(std::ostream& out)
 
     if (szsOutputMode()) {
       out << "% SZS status " <<
-        (UIHelper::haveConjecture() ? ( refutation->derivedFromGoal() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
+        (UIHelper::haveConjecture() ? ( (refutation->goalAffinity() >= GoalAffinity::CONJECTURE) ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
 	      << " for " << env.options->problemName << endl;
     }
     if (env.options->proof() != Options::Proof::OFF) {

@@ -40,7 +40,7 @@ using namespace Kernel;
  * following order:
  * <ol><li>by age;</li>
  *     <li>by weight;</li>
- *     <li>by input type;</li>
+ *     <li>by goal affinity;</li>
  *     <li>by number.</li>
  * </ol>
  * The key holds the first two, ClauseQueue::tieLessThan the rest.
@@ -61,7 +61,7 @@ AgeQueue::OrdVal AgeQueue::getOrdVal(Clause* cl) const
  * following order:
  * <ol><li>by weight;</li>
  *     <li>by age;</li>
- *     <li>by input type;</li>
+ *     <li>by goal affinity;</li>
  *     <li>by number.</li>
  * </ol>
  * The key holds the first two, ClauseQueue::tieLessThan the rest.
@@ -379,7 +379,7 @@ bool AWPassiveClauseContainer::allChildrenNecessarilyExceedLimits(Clause* cl, un
   {
     // creating a fake inference to represent our current (pessimistic) estimate potential
     // FromInput - so that there is no Unit ownership issue
-    Inference inf = FromInput(UnitInputType::CONJECTURE); // CONJECTURE, so that derivedFromGoal is estimated as true
+    Inference inf = FromInput(GoalAffinity::CONJECTURE); // CONJECTURE, so that the estimate counts it as goal
     inf.setAge(cl->age() + 1); // clauses inferred from the clause as generating inferences will be over age limit...
 
     int maxSelWeight=0;
@@ -448,9 +448,9 @@ bool AWPassiveClauseContainer::exceedsWeightLimit(unsigned w, unsigned numPositi
    * but it's only relevant with avatar on (and avatar would later compute the splitset of the new clause again)
    * and nonliteralsInClauseWeight on, which is not the default. So keeping the cheap version for now.
    */
-  const bool derivedFromGoal = inference.derivedFromGoal();
+  const bool countsAsGoal = inference.goalAffinity() >= GoalAffinity::CONJECTURE;
   // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
-  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, countsAsGoal, _opt);
   return weightForClauseSelection > _weightSelectionMaxWeight;
 }
 

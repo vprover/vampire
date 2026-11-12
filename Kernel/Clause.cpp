@@ -390,7 +390,7 @@ std::string Clause::toString() const
       result += std::string(",col:") + Int::toString(color());
     }
 
-    if(derivedFromGoal()){
+    if(goalAffinity() >= GoalAffinity::CONJECTURE){
       result += std::string(",goal:1");
     }
     if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
@@ -568,14 +568,14 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     numeralWeight = getNumeralWeight();
   }
 
-  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, Unit::derivedFromGoal(), opt);
+  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, goalAffinity() >= GoalAffinity::CONJECTURE, opt);
 }
 
 /*
  * note: we currently assume in Clause::computeWeightForClauseSelection(opt) that numeralWeight is only used here if
  * the option increasedNumeralWeight() is set to true.
  */
-unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
+unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool countsAsGoal, const Shell::Options& opt)
 {
   static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
   static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
@@ -585,7 +585,7 @@ unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeigh
   if (opt.increasedNumeralWeight()) {
     w = (2 * w + numeralWeight);
   }
-  return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
+  return w * ( !countsAsGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
 }
 
 void Clause::collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc)

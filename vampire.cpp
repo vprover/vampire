@@ -400,7 +400,7 @@ void clausifyMode(Problem* problem, bool theory)
     if (!cl) {
       continue;
     }
-    printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
+    printed_conjecture |= cl->goalAffinity() == GoalAffinity::CONJECTURE || cl->goalAffinity() == GoalAffinity::NEGATED_CONJECTURE;
     std::cout << TPTPPrinter::unit(cl, clauseLanguage, UIHelper::outputRole(cl)) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
@@ -412,7 +412,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
       },
-      FromInput(UnitInputType::NEGATED_CONJECTURE));
+      FromInput(GoalAffinity::NEGATED_CONJECTURE));
     std::cout << TPTPPrinter::unit(c, clauseLanguage, UIHelper::outputRole(c)) << "\n";
   }
 

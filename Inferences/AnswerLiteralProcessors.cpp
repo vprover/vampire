@@ -81,7 +81,7 @@ UndesiredAnswerLiteralRemoval::UndesiredAnswerLiteralRemoval(const std::string& 
       }
     }
 
-    _avoiders = Clause::fromStack(disjuncts,FromInput(UnitInputType::ASSUMPTION));
+    _avoiders = Clause::fromStack(disjuncts,FromInput(GoalAffinity::ASSUMPTION));
 
     return;
   }

@@ -244,7 +244,7 @@ public:
           auto sym = env.signature->getFunction(func.value());
           if (orig_sym->type()->result() == Z::sort()) {
             auto t = TermList(Term::createFromIter(func.value(), range(0, sym->arity()).map([](auto x) { return TermList::var(x); })));
-            auto inf = Inference(NonspecificInference0(UnitInputType::AXIOM,
+            auto inf = Inference(NonspecificInference0(GoalAffinity::AXIOM,
                   InferenceRule::ALASCA_INTEGRALITY_AXIOM));
             auto cl = Clause::fromLiterals({R::eq(true, R::floor(t), t)}, inf);
             UnitList::push(cl, prb.units());

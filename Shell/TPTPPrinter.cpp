@@ -342,14 +342,14 @@ const char* languageName(Language language)
 std::ostream& operator<<(std::ostream& out, Language language)
 { return out << languageName(language); }
 
-const char* inputRole(UnitInputType type)
+const char* inputRole(GoalAffinity type)
 {
   switch (type) {
-  case UnitInputType::ASSUMPTION:
+  case GoalAffinity::ASSUMPTION:
     return Role::HYPOTHESIS;
-  case UnitInputType::CONJECTURE:
+  case GoalAffinity::CONJECTURE:
     return Role::CONJECTURE;
-  case UnitInputType::NEGATED_CONJECTURE:
+  case GoalAffinity::NEGATED_CONJECTURE:
     return Role::NEGATED_CONJECTURE;
   default:
     return Role::AXIOM;

@@ -677,7 +677,7 @@ SATClause* Splitter::buildDPConflictClause(const LiteralStack& unsatCore)
   }
 
   Clause* foConfl = Clause::fromStack(foLits,
-      NonspecificInference0(UnitInputType::AXIOM,InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT));
+      NonspecificInference0(GoalAffinity::AXIOM,InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT));
   UnitList::push(foConfl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
 
   Formula* f = JunctionFormula::generalJunction(OR,resLst);
@@ -1175,7 +1175,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
    */
   SplitLevel posName = (name&~1);
   Unit* def_u;
-  UnitInputType inpType = orig->inputType();
+  GoalAffinity affinity = orig->goalAffinity();
   if (!_defs.find(posName, def_u)) {
     Literal* oplit;
     Literal*const* possibly_flipped_lits = lits;
@@ -1186,12 +1186,12 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
     std::string formula_name = getFormulaStringFromName(posName);
     Clause* temp = Clause::fromIterator(arrayIter(possibly_flipped_lits, size),
-        NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION));
+        NonspecificInference0(affinity,InferenceRule::AVATAR_DEFINITION));
     Formula* def_f = new BinaryFormula(IFF,
                  new NamedFormula(formula_name),
                  Formula::fromClause(temp));
 
-    Inference def_u_i = NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION);
+    Inference def_u_i = NonspecificInference0(affinity,InferenceRule::AVATAR_DEFINITION);
     // def_u_i.setPureTheoryDescendant(orig->isPureTheoryDescendant()); -- don't probapagate PureTheoryDescendant through avatar
     // e.g. when a PureTheoryDescendant ~$less(X1,$sum(X1,1)) | ~$less(X0,X0) splits, the component ~$less(X1,$sum(X1,1)) is not longer a theory lemma
     def_u_i.setInductionDepth(orig->inference().inductionDepth());
@@ -1292,8 +1292,8 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
 }
 
 /**
- * @param orig original clause (one being split) used to determine input type of the component.
- *             Can be zero, in that case the input type is Unit::AXIOM
+ * @param orig original clause (one being split) used to determine goal affinity of the component.
+ *             Can be zero, in that case the goal affinity is GoalAffinity::AXIOM
  * @param comp Component (Record) that we're getting the name for
  * @param compCl The clause that will be used to represent this component - to be filled
  *
@@ -1305,8 +1305,8 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Claus
 }
 
 /**
- * @param orig original clause (one being split) used to determine input type of the component.
- *             Can be zero, in that case the input type is Unit::AXIOM
+ * @param orig original clause (one being split) used to determine goal affinity of the component.
+ *             Can be zero, in that case the goal affinity is GoalAffinity::AXIOM
  * @param size The number of literals in the component
  * @param lits The component to be named (as an array of literals)
  * @param compCl The clause that will be used to represent this component - to be filled

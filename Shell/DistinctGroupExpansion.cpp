@@ -270,7 +270,7 @@ bool DistinctGroupExpansion::expandGroups(UnitList*& units)
             new FormulaUnit(expansion,
               NonspecificInference1(InferenceRule::DISTINCTNESS_AXIOM,premise)) :
             new FormulaUnit(expansion,
-              NonspecificInference0(UnitInputType::AXIOM,InferenceRule::DISTINCTNESS_AXIOM)),
+              NonspecificInference0(GoalAffinity::AXIOM,InferenceRule::DISTINCTNESS_AXIOM)),
           units);
       }
       else {

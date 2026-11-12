@@ -145,7 +145,7 @@ TEST_FUN(complete_proof_step_owns_nested_fragments)
 static std::string printSplittingComponent(Stack<Lit> literals, Literal* nameLiteral)
 {
   auto component = clause(literals,
-      NonspecificInference0(UnitInputType::AXIOM, InferenceRule::GENERAL_SPLITTING_COMPONENT));
+      NonspecificInference0(GoalAffinity::AXIOM, InferenceRule::GENERAL_SPLITTING_COMPONENT));
   auto store = InferenceStore::instance();
   store->recordSplittingNameLiteral(component, nameLiteral);
   auto previousProof = env.options->proof();
@@ -245,14 +245,14 @@ TEST_FUN(default_unit_and_proof_languages_share_environment_flags)
   DECL_DEFAULT_VARS
   DECL_PRED(untyped, {individual})
   DECL_PRED(typed, {AtomicSort::intSort()})
-  auto untypedClause = clause({untyped(x)}, FromInput(UnitInputType::AXIOM));
-  auto typedClause = clause({typed(x)}, FromInput(UnitInputType::AXIOM));
+  auto untypedClause = clause({untyped(x)}, FromInput(GoalAffinity::AXIOM));
+  auto typedClause = clause({typed(x)}, FromInput(GoalAffinity::AXIOM));
   auto arrowSort = AtomicSort::arrowSort(individual, individual);
   DECL_VAR_SORTED(equalLeft, 0, arrowSort)
   DECL_VAR_SORTED(equalRight, 1, arrowSort)
   auto equality = equalLeft == equalRight;
-  auto higherOrderClause = clause({equality}, FromInput(UnitInputType::AXIOM));
-  FormulaUnit formula(atom(untyped(x)), FromInput(UnitInputType::AXIOM));
+  auto higherOrderClause = clause({equality}, FromInput(GoalAffinity::AXIOM));
+  FormulaUnit formula(atom(untyped(x)), FromInput(GoalAffinity::AXIOM));
 
   struct Case { Clause* clause; Language clausal; Language formula; };
   for (const auto& test : {
@@ -276,7 +276,7 @@ TEST_FUN(typed_clause_prefix_sorts_variables_and_spells_out_sorts)
   auto sort = AtomicSort::defaultSort();
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort, sort})
-  auto cl = clause({p(y, x)}, FromInput(UnitInputType::AXIOM));
+  auto cl = clause({p(y, x)}, FromInput(GoalAffinity::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(cl, Language::TCF, Role::AXIOM),
       expectedClause(cl, Language::TCF, "![X0 : $i,X1 : $i] : (p(X1,X0))"));
   ASS_EQ(Shell::TPTPPrinter::toString(cl, Language::CNF, Role::AXIOM),
@@ -285,7 +285,7 @@ TEST_FUN(typed_clause_prefix_sorts_variables_and_spells_out_sorts)
   DECL_PRED(q, {AtomicSort::intSort(), sort})
   // Mixed-sort clause: q(X1:$int,X0:$i).
   // TCF body: ![X0 : $i,X1 : $int] : (q(X1,X0)).
-  auto mixed = clause({q(y, x)}, FromInput(UnitInputType::AXIOM));
+  auto mixed = clause({q(y, x)}, FromInput(GoalAffinity::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(mixed, Language::TCF, Role::AXIOM),
       expectedClause(mixed, Language::TCF, "![X0 : $i,X1 : $int] : (q(X1,X0))"));
 }
@@ -297,10 +297,10 @@ TEST_FUN(typed_clause_prefix_omits_ground_and_empty_quantifiers)
   auto sort = AtomicSort::defaultSort();
   DECL_CONST(a, sort)
   DECL_PRED(p, {sort})
-  auto ground = clause({p(a)}, FromInput(UnitInputType::AXIOM));
+  auto ground = clause({p(a)}, FromInput(GoalAffinity::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(ground, Language::TCF, Role::AXIOM),
       expectedClause(ground, Language::TCF, "(p(a))"));
-  auto empty = clause(Stack<Lit>{}, FromInput(UnitInputType::AXIOM));
+  auto empty = clause(Stack<Lit>{}, FromInput(GoalAffinity::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(empty, Language::TCF, Role::AXIOM),
       expectedClause(empty, Language::TCF, "($false)"));
 }
@@ -313,7 +313,7 @@ TEST_FUN(typed_clause_prefix_puts_type_variables_before_term_variables)
   PredSugar p("p", {SortSugar(TermList::var(101))}, 1);
   SortSugar type(TermList::var(3));
   TermSugar term(TermList::var(0), type);
-  auto cl = clause({p(type, term)}, FromInput(UnitInputType::AXIOM));
+  auto cl = clause({p(type, term)}, FromInput(GoalAffinity::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(cl, Language::TCF, Role::AXIOM),
       expectedClause(cl, Language::TCF, "![X3 : $tType,X0 : X3] : (p(X3,X0))"));
 }
@@ -328,7 +328,7 @@ TEST_FUN(typed_clause_prefix_sorts_multiple_type_variables)
   SortSugar b(TermList::var(2));
   TermSugar x(TermList::var(0), a);
   TermSugar y(TermList::var(1), b);
-  auto cl = clause({p(a, b, x, y)}, FromInput(UnitInputType::AXIOM));
+  auto cl = clause({p(a, b, x, y)}, FromInput(GoalAffinity::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(cl, Language::TCF, Role::AXIOM),
       expectedClause(cl, Language::TCF,
           "![X2 : $tType,X3 : $tType,X0 : X3,X1 : X2] : (p(X3,X2,X0,X1))"));
@@ -343,7 +343,7 @@ TEST_FUN(universal_closure_binds_only_free_variables)
   DECL_PRED(p, {sort, sort})
   DECL_VAR_SORTED(x0, 0, sort)
   auto formula = forall(x0, atom(p(x0, y)));
-  FormulaUnit unit(formula, FromInput(UnitInputType::AXIOM));
+  FormulaUnit unit(formula, FromInput(GoalAffinity::AXIOM));
   std::ostringstream out;
   out << universalClosure(&unit, Language::FOF);
   ASS_EQ(out.str(), "(! [X1] : (! [X0] : p(X0,X1)))");
@@ -357,7 +357,7 @@ TEST_FUN(universal_closure_uses_target_language_for_variable_annotations)
   auto sort = AtomicSort::defaultSort();
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort, sort})
-  auto cl = clause({p(y, x)}, FromInput(UnitInputType::AXIOM));
+  auto cl = clause({p(y, x)}, FromInput(GoalAffinity::AXIOM));
   std::ostringstream fof;
   fof << universalClosure(cl, Language::FOF);
   ASS_EQ(fof.str(), "(! [X0,X1] : (p(X1,X0)))");
@@ -378,7 +378,7 @@ TEST_FUN(typed_quantifiers_share_type_variable_order_across_languages)
   SortSugar b(TermList::var(2));
   TermSugar x(TermList::var(0), a);
   TermSugar y(TermList::var(1), b);
-  auto cl = clause({p(a, b, x, y)}, FromInput(UnitInputType::AXIOM));
+  auto cl = clause({p(a, b, x, y)}, FromInput(GoalAffinity::AXIOM));
   for (auto language : {Language::TFF, Language::THF, Language::TCF}) {
     std::ostringstream out;
     out << QuantifiedVariables(cl, language);
@@ -404,7 +404,7 @@ TEST_FUN(thf_closure_does_not_rebind_lambda_variables)
   auto arrowSort = AtomicSort::arrowSort(sort, sort);
   auto lambda = Term::createLambda(TermList::var(0), VSList::singleton({0, sort}), sort);
   auto equality = Literal::createEquality(true, TermList(lambda), TermList::var(1), arrowSort);
-  FormulaUnit unit(atom(equality), FromInput(UnitInputType::AXIOM));
+  FormulaUnit unit(atom(equality), FromInput(GoalAffinity::AXIOM));
   std::ostringstream out;
   out << QuantifiedVariables(&unit, Language::THF);
   ASS_EQ(out.str(), "X1 : $i > $i");
@@ -485,7 +485,7 @@ TEST_FUN(thf_unit_output_parenthesizes_applications_and_annotates_binders)
   // Proof bodies use Formula::toString; both renderers must preserve application parentheses.
   Formula* formulaPtr = formula;
   ASS_EQ(formulaPtr->toString(/*mightNeedParens=*/true), Shell::TPTPPrinter::toString(formulaPtr));
-  FormulaUnit unit(formulaPtr, FromInput(UnitInputType::AXIOM));
+  FormulaUnit unit(formulaPtr, FromInput(GoalAffinity::AXIOM));
   ASS_EQ(Shell::TPTPPrinter::toString(&unit, Language::THF, Role::AXIOM),
       "thf(u" + std::to_string(unit.number()) + ",axiom,\n    ((f @ x) & p)).\n");
 
@@ -509,7 +509,7 @@ TEST_FUN(formula_stream_handles_deep_nesting_iteratively)
   checkFormulaOutput(formula, expected);
 }
 
-// unit() prints the role plain, whatever the input type: the role is up to namedUnit()'s caller.
+// unit() prints the role plain, whatever the goal affinity: the role is up to namedUnit()'s caller.
 static void checkUnitOutput(const Unit* unit, const std::string& prefix, const std::string& body,
     std::optional<Language> language = std::nullopt)
 {
@@ -528,7 +528,7 @@ static void checkUnitOutput(const Unit* unit, const std::string& prefix, const s
 }
 
 // Like the parser: the stated conjecture is an input unit, and the prover works on a unit
-// derived from it by negation, which inherits the input type CONJECTURE.
+// derived from it by negation, which inherits the goal affinity CONJECTURE.
 static Inference fromNegatedConjecture(Unit* stated)
 { return FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION, stated); }
 
@@ -536,10 +536,10 @@ TEST_FUN(unit_stream_prints_plain_role)
 {
   DECL_PRED(p, {})
   auto pAtom = atom(p());
-  FormulaUnit axiom(pAtom, FromInput(UnitInputType::AXIOM));
+  FormulaUnit axiom(pAtom, FromInput(GoalAffinity::AXIOM));
   checkUnitOutput(&axiom, "fof", "p");
   checkUnitOutput(&axiom, "tff", "p", Language::TFF);
-  FormulaUnit stated(pAtom, FromInput(UnitInputType::CONJECTURE));
+  FormulaUnit stated(pAtom, FromInput(GoalAffinity::CONJECTURE));
   checkUnitOutput(&stated, "fof", "p");
   FormulaUnit negated(~pAtom, fromNegatedConjecture(&stated));
   checkUnitOutput(&negated, "fof", "(~ p)");
@@ -548,7 +548,7 @@ TEST_FUN(unit_stream_prints_plain_role)
 TEST_FUN(unit_stream_uses_given_role)
 {
   DECL_PRED(p, {})
-  FormulaUnit axiom(atom(p()), FromInput(UnitInputType::AXIOM));
+  FormulaUnit axiom(atom(p()), FromInput(GoalAffinity::AXIOM));
   auto expected = "fof(u" + std::to_string(axiom.number()) + ",axiom,\n    p).\n";
   ASS_EQ(Shell::TPTPPrinter::toString(&axiom, Language::FOF, "axiom"), expected);
   std::ostringstream out;
@@ -562,7 +562,7 @@ TEST_FUN(unit_stream_preserves_clause_order)
   // uN is the generated unit name; the ground clause needs no variable prefix.
   DECL_PRED(p, {})
   DECL_PRED(q, {})
-  auto cl = clause({p(), q()}, FromInput(UnitInputType::AXIOM));
+  auto cl = clause({p(), q()}, FromInput(GoalAffinity::AXIOM));
   checkUnitOutput(cl, "cnf", "(p | q)");
   checkUnitOutput(cl, "tcf", "(p | q)", Language::TCF);
 }
@@ -583,20 +583,20 @@ TEST_FUN(named_unit_stream_uses_given_name_and_role)
   DECL_DEFAULT_VARS
   DECL_PRED(p, {sort})
   DECL_PRED(q, {})
-  auto pOrQ = clause({p(x), q()}, FromInput(UnitInputType::AXIOM));
+  auto pOrQ = clause({p(x), q()}, FromInput(GoalAffinity::AXIOM));
   ASS_EQ(printNamedUnit("c", "claim", pOrQ), "tcf(c,claim,\n    ![X0 : $i] : (p(X0) | q)).\n");
 
   // Clause: p(X0), under split levels 3 and 4. With split-level output enabled:
   // tcf(s,claim, ![X0 : $i] : (p(X0) | $splitLevel3 | $splitLevel4)).
   // With it disabled: tcf(s,claim, ![X0 : $i] : (p(X0))).
-  auto split = clause({p(x)}, FromInput(UnitInputType::AXIOM));
+  auto split = clause({p(x)}, FromInput(GoalAffinity::AXIOM));
   split->setSplits(SplitSet::getRange(3, 5));
   ASS_EQ(printNamedUnit("s", "claim", split, true),
       "tcf(s,claim,\n    ![X0 : $i] : (p(X0) | $splitLevel3 | $splitLevel4)).\n");
   ASS_EQ(printNamedUnit("s", "claim", split), "tcf(s,claim,\n    ![X0 : $i] : (p(X0))).\n");
 
-  // The role is the caller's, whatever the input type of the unit.
-  FormulaUnit stated(atom(q()), FromInput(UnitInputType::CONJECTURE));
+  // The role is the caller's, whatever the goal affinity of the unit.
+  FormulaUnit stated(atom(q()), FromInput(GoalAffinity::CONJECTURE));
   FormulaUnit negated(~atom(q()), fromNegatedConjecture(&stated));
   ASS_EQ(printNamedUnit("f", "conjecture", &negated, false, Language::TFF),
       "tff(f,conjecture,\n    (~ q)).\n");

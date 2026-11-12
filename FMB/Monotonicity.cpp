@@ -238,7 +238,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
 
       Term* fX = Term::create(f,arity,vars.begin());
       Literal* pfX = Literal::create1(p,true,TermList(fX));
-      auto fINs = Clause::fromLiterals({ pfX }, FromInput(UnitInputType::AXIOM));
+      auto fINs = Clause::fromLiterals({ pfX }, FromInput(GoalAffinity::AXIOM));
       ClauseList::push(fINs,newAxioms);
       ASS(SortHelper::areSortsValid(fINs));
     }
@@ -248,7 +248,7 @@ void Monotonicity::addSortPredicates(bool withMon, ClauseList*& clauses, const D
     // no need to mark it as used: it occurs in the clause just below, which is appended
     // to the clauses finite model building then counts symbol occurrences in
     Literal* psk = Literal::create1(p,true,TermList(Term::createConstant(skolemConstant)));
-    auto nonEmpty = Clause::fromLiterals({ psk }, FromInput(UnitInputType::AXIOM));
+    auto nonEmpty = Clause::fromLiterals({ psk }, FromInput(GoalAffinity::AXIOM));
     ClauseList::push(nonEmpty,newAxioms);
     ASS(SortHelper::areSortsValid(nonEmpty));
   }

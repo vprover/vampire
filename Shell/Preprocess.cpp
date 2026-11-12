@@ -867,7 +867,7 @@ void Preprocess::clausify(Problem& prb)
 void Preprocess::findAbstractions(UnitList*& units)
 {
   for (const auto& u : iterTraits(UnitList::RefIterator(units))) {
-    if (!u->derivedFromGoal()) {
+    if (u->goalAffinity() < GoalAffinity::CONJECTURE) {
       continue;
     }
 

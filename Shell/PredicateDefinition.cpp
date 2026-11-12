@@ -397,7 +397,7 @@ Clause* PredicateDefinition::replacePurePredicates(Clause* cl)
 
 Unit* PredicateDefinition::replacePurePredicates(Unit* u)
 {
-  if(u->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
+  if(u->goalAffinity() >= GoalAffinity::CONJECTURE && env.options->ignoreConjectureInPreprocessing()){
     return u;
   }
   if(u->isClause()) {
@@ -689,7 +689,7 @@ FormulaUnit* PredicateDefinition::makeImplFromDef(FormulaUnit* def, unsigned pre
 
 void PredicateDefinition::scan(Unit* u)
 {
-  if(!(u->derivedFromGoal() && env.options->ignoreConjectureInPreprocessing())){
+  if(!(u->goalAffinity() >= GoalAffinity::CONJECTURE && env.options->ignoreConjectureInPreprocessing())){
     if(u->isClause()) {
       scan(static_cast<Clause*>(u));
     } else {

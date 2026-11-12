@@ -139,7 +139,7 @@ bool InductionHelper::isInductionClause(Clause* c) {
   static bool unitOnly = env.options->inductionUnitOnly();
   static bool ansLits = (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS || env.options->questionAnswering() == Options::QuestionAnsweringMode::PLAIN);
   return (!unitOnly || c->length()==1 || (c->length() == 2 && ansLits && c->hasAnswerLiteral())) && 
-         (!goal_clauses_only || c->derivedFromGoal()) &&
+         (!goal_clauses_only || c->goalAffinity() >= GoalAffinity::CONJECTURE) &&
          (maxD == 0 || c->inference().inductionDepth() < maxD);
 }
 
