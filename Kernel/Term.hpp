@@ -210,8 +210,7 @@ public:
   /** set the content manually - hazardous, such terms should then only be used as integers */
   void setContent(uint64_t content) { _content = content; }
 
-  // TODO this default value is probably the reason we get too many parentheses everywhere
-  std::string toString(bool topLevel = false) const;
+  std::string toString(bool mightNeedParens = false) const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */
@@ -432,26 +431,23 @@ public:
   {
     friend class Term;
   private:
+    TermList _sort;
     union {
       struct {
-        Formula * condition;
-        TermList sort;
+        Formula* condition;
       } _iteData;
       struct {
         Formula* binding;
-        TermList sort;
       } _letData;
       struct {
-        Formula * formula;
+        Formula* formula;
       } _formulaData;
       struct {
         TermList lambdaExp;
         VSList* _vars;  // variables with their sorts together
-        TermList sort;
         TermList expSort;//TODO is this needed?
       } _lambdaData;
       struct {
-        TermList sort;
         TermList matchedSort;
       } _matchData;
     };
@@ -460,30 +456,13 @@ public:
   public:
     SpecialFunctor specialFunctor() const
     { return getTerm()->specialFunctor(); }
+    TermList getSort() const { return _sort; }
 
     Formula* getITECondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
-    VSList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
-    void setLambdaVars(VSList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
+    VSList*  getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
-    void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
-    void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
-    void setLambdaSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.sort = sort; }
     Formula* getLetBinding() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.binding; }
     TermList getLambdaExpSort() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.expSort; }
-    TermList getSort() const {
-      switch (specialFunctor()) {
-        case SpecialFunctor::ITE:
-          return _iteData.sort;
-        case SpecialFunctor::LET:
-          return _letData.sort;
-        case SpecialFunctor::LAMBDA:
-          return _lambdaData.sort;
-        case SpecialFunctor::MATCH:
-          return _matchData.sort;
-        default:
-          ASSERTION_VIOLATION_REP(specialFunctor());
-      }
-    }
     Formula* getFormula() const { ASS_EQ(specialFunctor(), SpecialFunctor::FORMULA); return _formulaData.formula; }
     TermList getMatchedSort() const { return _matchData.matchedSort; }
   };
@@ -530,7 +509,7 @@ public:
 
   SpecialFunctor specialFunctor() const 
   { return toSpecialFunctor(functor()); }
-  std::string toString(bool topLevel = true) const;
+  std::string toString(bool mightNeedParens = false) const;
   friend std::ostream& operator<<(std::ostream& out, Kernel::Term const& tl);
   static std::string variableToString(unsigned var);
   static std::string variableToString(TermList var);
@@ -941,7 +920,7 @@ public:
   }
 
 protected:
-  std::string prefixToString() const;
+  std::string prefixToString(bool mightNeedParens) const;
 
   unsigned computeDistinctVars() const;
 
@@ -1313,7 +1292,7 @@ public:
   bool isAnswerLiteral() const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::Literal const& tl);
-  std::string toString(bool reverseEquality = false) const;
+  std::string toString(bool reverseEquality = false, bool mightNeedParens = false) const;
 
   const std::string& predicateName() const;
 
