@@ -117,12 +117,8 @@ void CodeTree::MatchInfo::destroy(unsigned bindCnt)
 void CodeTree::MatchInfo::init(ILStruct* ils, const LitInfo* lInfo_, DArray<TermList>& bindingArray)
 {
   lInfo=lInfo_;
-  size_t bindCnt=ils->varCnt;
-  if(bindCnt) {
-    unsigned* perm=ils->globalVarPermutation;
-    for(size_t i=0;i<bindCnt;i++) {
-      bindings()[perm[i]]=bindingArray[i];
-    }
+  for(size_t i=0;i<ils->varCnt;i++) {
+    bindings()[ils->globalVarPermutation[i]]=bindingArray[i];
   }
 }
 
@@ -130,7 +126,7 @@ void CodeTree::MatchInfo::init(ILStruct* ils, const LitInfo* lInfo_, DArray<Term
 CodeTree::ILStruct::ILStruct(const Literal* lit, unsigned varCnt, Stack<unsigned>& gvnStack)
 : varCnt(varCnt), sortedGlobalVarNumbers(0), globalVarPermutation(0), timestamp(0)
 {
-  ASS_EQ(matches.size(), 0); //we don't want any uninitialized pointers in the array
+  ASS(matches.isEmpty()); //we don't want any uninitialized pointers in the array
 
   if(varCnt) {
     size_t gvnSize=sizeof(unsigned)*varCnt;

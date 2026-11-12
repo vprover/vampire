@@ -586,11 +586,7 @@ void ClauseCodeTree::ClauseMatcher::reset()
  */
 Clause* ClauseCodeTree::ClauseMatcher::next(Literal*& resolvedQueryLit)
 {
-  if(lms.isEmpty()) {
-    return 0;
-  }
-
-  for(;;) {
+  while (lms.isNonEmpty()) {
     auto& lm = lms.top();
 
     //get next literal from the literal matcher
@@ -599,11 +595,9 @@ Clause* ClauseCodeTree::ClauseMatcher::next(Literal*& resolvedQueryLit)
     //if there's none, go one level up (or fail if at the top)
     if(!found) {
       leaveLiteral();
-      if(lms.isEmpty()) {
-        return nullptr;
-      }
+      continue;
     }
-    else if(lm->op->isSuccess()) {
+    if(lm->op->isSuccess()) {
       Clause* candidate=lm->op->template getSuccessResult<Clause>();
       RSTAT_MCTR_INC("candidates", lms.size()-1);
       if(checkCandidate(candidate, resolvedQueryLit)) {
@@ -633,6 +627,7 @@ Clause* ClauseCodeTree::ClauseMatcher::next(Literal*& resolvedQueryLit)
       enterLiteral(newLitEntry, seekOnlySuccess);
     }
   }
+  return nullptr;
 }
 
 inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
@@ -664,7 +659,7 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
         matchIndex--;
         MatchInfo* mi=ils->getMatch(matchIndex);
         if(!existsCompatibleMatch(ils, mi, prevILS)) {
-          ils->deleteMatch(matchIndex); //decreases ils->matchCnt
+          ils->deleteMatch(matchIndex);
         }
       }
       if(ils->matches.isEmpty()) {
