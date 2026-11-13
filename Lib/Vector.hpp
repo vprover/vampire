@@ -44,14 +44,14 @@ public:
   /** Return a reference to the n-th element of the vector */
   inline C& operator[] (size_t n)
   {
-    ASS(n < _length);
+    ASS_L(n, _length);
     return _array[n];
   } // operator[]
 
   /** Return a reference to the n-th element of the array */
   inline const C& operator[](size_t n) const
   {
-    ASS(n < _length);
+    ASS_L(n, _length);
     return _array[n];
   }
 
@@ -81,6 +81,31 @@ public:
     array_delete(_array, _length);
     size_t sz=sizeof(Vector) + (_length-1)*sizeof(C);
     DEALLOC_KNOWN(this,sz,"Vector");
+  } // deallocate
+
+  /** allocate a vector of the size @b length */
+  template<typename Allocator>
+  static Vector* allocate(size_t length, Allocator& alloc)
+  {
+    ASS_G(length,0);
+
+    Vector* v = reinterpret_cast<Vector*>(alloc.alloc(length+1));
+    v->_length = length;
+    C* arr = v->_array;
+    // in the case C is a class with an initialiser, apply the constructor of it
+    // to every element of the allocated array
+    array_new<C>(arr,length);
+    return v;
+  } // allocate
+
+  /** deallocate the vector */
+  template<typename Allocator>
+  void deallocate(Allocator& alloc)
+  {
+    // in the case C is a class with an initialiser, apply the destructor of it
+    // to every element of the allocated array
+    array_delete(_array, _length);
+    alloc.free(this, _length+1);
   } // deallocate
 
   bool operator==(const Vector& v) const

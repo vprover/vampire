@@ -857,7 +857,7 @@ CodeTree::~CodeTree()
           top_ops.push(op->alternative());
         }
       }
-      cb->deallocate();
+      cb->deallocate(alloc);
     }
   }
 }
@@ -1069,7 +1069,7 @@ CodeTree::CodeBlock* CodeTree::buildBlock(CodeStack& code, size_t cnt, ILStruct*
   size_t clen=code.length();
   ASS_LE(cnt,clen);
 
-  CodeBlock* res=CodeBlock::allocate(cnt);
+  CodeBlock* res=CodeBlock::allocate(cnt, alloc);
   size_t sOfs=clen-cnt;
   for(size_t i=0;i<cnt;i++) {
     CodeOp& op=code[i+sOfs];
@@ -1350,7 +1350,7 @@ void CodeTree::optimizeMemoryAfterRemoval(Stack<CodeOp*>* firstsInBlocks, CodeOp
         }
       }
     }
-    cb->deallocate(); //from now on we mustn't dereference firstOp
+    cb->deallocate(alloc); //from now on we mustn't dereference firstOp
 
     if(firstsInBlocks->isEmpty()) {
       ASS(!alt || !alt->isSearchStruct());

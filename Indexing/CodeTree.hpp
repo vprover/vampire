@@ -477,7 +477,7 @@ public:
   using LitCompiler = Compiler<true>;
   using TermCompiler = Compiler<false>;
 
-  static CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
+  CodeBlock* buildBlock(CodeStack& code, size_t cnt, ILStruct* prev);
   void incorporate(CodeStack& code);
 
   template<SearchStruct::Kind k>
@@ -499,6 +499,61 @@ public:
   unsigned _maxVarCnt = 1;
 
   CodeBlock* _entryPoint = nullptr;
+
+  // based on Lib::FixedSizeAllocator
+  class FixedSizeArrayAllocator {
+    static constexpr size_t COUNT = 10240;
+    static constexpr size_t SIZE = sizeof(CodeTree::CodeOp);
+    static_assert(SIZE >= sizeof(void *), "need to store void * in the allocation to keep the free list");
+
+    struct Block {
+      char *bytes = nullptr;
+      size_t remaining = 0;
+
+      void *alloc(size_t cnt) {
+        // DBG("allocating ", cnt, " total ", SIZE*cnt);
+        ASS_GE(remaining, SIZE*cnt);
+        remaining -= SIZE*cnt;
+        return static_cast<void *>(bytes + remaining);
+      }
+    };
+
+    Block current;
+    DHMap<unsigned,void **,FnvHash,IdentityHash> free_list;
+
+  public:
+    void *alloc(size_t cnt) {
+      ASS_LE(cnt, COUNT);
+      // first look if there's anything in the free list
+      // TODO take space that fits and save rest
+      auto fptr = free_list.findPtr(cnt);
+      if(fptr && *fptr) {
+        void *recycled = *fptr;
+        *fptr = static_cast<void **>(**fptr);
+        return recycled;
+      }
+
+      // then check if the current block has space
+      if(current.remaining >= SIZE*cnt)
+        return current.alloc(cnt);
+
+      // TODO save wasted space
+
+      // current block full, get a new one
+      current.bytes = static_cast<char *>(::operator new(COUNT * SIZE));
+      current.remaining = COUNT * SIZE;
+      return current.alloc(cnt);
+    }
+
+    void free(void *ptr, size_t cnt) {
+      void **head = static_cast<void **>(ptr);
+      void*** fptr;
+      free_list.getValuePtr(cnt, fptr, nullptr);
+      *head = *fptr;
+      *fptr = head;
+    }
+  };
+  FixedSizeArrayAllocator alloc;
 };
 
 }
