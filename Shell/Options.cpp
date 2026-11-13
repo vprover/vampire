@@ -1924,6 +1924,7 @@ Options::Options ()
     " So 'conjecture' makes only the (negated) conjecture and its descendants goal, 'assumption' adds"
     " what derives from hypotheses, and 'axiom' leaves only distant axioms (those read from TPTP include files)"
     " and their descendants on the non-goal side.",
+    // NOTE that "assumption" is stronger on TPTP than "conjecture" and thus is a candidate for a new default
        .tag = OptionTag::SATURATION})
   , _selection("selection",this,10,
       {.short_name = "s",
