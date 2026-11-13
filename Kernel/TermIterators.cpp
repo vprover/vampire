@@ -147,7 +147,7 @@ void SubtermIterator::right()
 ///                                                                    ///
 //////////////////////////////////////////////////////////////////////////
 
-bool BooleanSubtermIt::hasNext()
+bool BooleanSubtermIterator::hasNext()
 {
   if(!_used){ return true; }
 
@@ -175,32 +175,58 @@ bool BooleanSubtermIt::hasNext()
   return false;
 }
 
-Term* FirstOrderSubtermIterator::next()
+template<bool insideLambdasToo>
+bool FirstOrderSubtermIterator<insideLambdasToo>::hasNext()
+{
+  if constexpr (insideLambdasToo) {
+    while (_stack.isNonEmpty() && TermList(_stack.top()).containsLooseDBIndex()) {
+      next();
+    }
+  }
+  return _stack.isNonEmpty();
+}
+
+template<bool insideLambdasToo>
+Term* FirstOrderSubtermIterator<insideLambdasToo>::next()
 {
   _added = 0;
   auto t = _stack.pop();
   if (t->isLambdaTerm()) {
+    if constexpr (insideLambdasToo) {
+      auto body = t->lambdaBody();
+      if (body.isTerm()) {
+        _added++;
+        _stack.push(body.term());
+      }
+    }
     return t;
   }
 
   auto [head, args] = HOL::getHeadAndArgs(TermList(t));
 
-  for (unsigned i = 0; i < args.size(); i++) {
-    if (args[i].isTerm()) {
+  // the iterator should be only used after beta-eta normalization
+  ASS(!head.isLambdaTerm());
+
+  for (auto arg : args) {
+    if (arg.isTerm()) {
       _added++;
-      _stack.push(args[i].term());
+      _stack.push(arg.term());
     }
   }
   return t;
 }
 
-void FirstOrderSubtermIterator::right()
+template<bool insideLambdasToo>
+void FirstOrderSubtermIterator<insideLambdasToo>::right()
 {
   while (_added > 0) {
     _added--;
     _stack.pop();
   }
 }
+
+template class FirstOrderSubtermIterator<false>;
+template class FirstOrderSubtermIterator<true>;
 
 //////////////////////////////////////////////////////////////////////////
 ///                                                                    ///
