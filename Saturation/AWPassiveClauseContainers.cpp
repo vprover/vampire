@@ -448,9 +448,8 @@ bool AWPassiveClauseContainer::exceedsWeightLimit(unsigned w, unsigned numPositi
    * but it's only relevant with avatar on (and avatar would later compute the splitset of the new clause again)
    * and nonliteralsInClauseWeight on, which is not the default. So keeping the cheap version for now.
    */
-  const bool countsAsGoal = inference.goalAffinity() >= GoalAffinity::CONJECTURE;
   // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
-  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, countsAsGoal, _opt);
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, inference.goalAffinity(), _opt);
   return weightForClauseSelection > _weightSelectionMaxWeight;
 }
 

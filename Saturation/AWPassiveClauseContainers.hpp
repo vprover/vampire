@@ -143,7 +143,7 @@ public:
   bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override
   {
     // the same considerations as in AWPassiveClauseContainer::exceedsWeightLimit
-    return Clause::computeWeightForClauseSelection(w, 0, 0, inference.goalAffinity() >= GoalAffinity::CONJECTURE, _opt) > _curLimit.first;
+    return Clause::computeWeightForClauseSelection(w, 0, 0, inference.goalAffinity(), _opt) > _curLimit.first;
   }
 };
 

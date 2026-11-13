@@ -50,6 +50,8 @@ namespace Kernel
 {
 using namespace Lib;
 
+enum class GoalAffinity : unsigned char;
+
 class Signature;
 
 class Term;

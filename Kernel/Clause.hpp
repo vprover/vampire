@@ -200,7 +200,7 @@ public:
   /*
    * single source of truth for computation of weightForClauseSelection
    */
-  static unsigned computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool countsAsGoal, const Shell::Options& opt);
+  static unsigned computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, GoalAffinity affinity, const Shell::Options& opt);
 
   /** Return the color of a clause */
   Color color() const

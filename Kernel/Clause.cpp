@@ -567,24 +567,22 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     numeralWeight = getNumeralWeight();
   }
 
-  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, goalAffinity() >= GoalAffinity::CONJECTURE, opt);
+  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, goalAffinity(), opt);
 }
 
 /*
  * note: we currently assume in Clause::computeWeightForClauseSelection(opt) that numeralWeight is only used here if
  * the option increasedNumeralWeight() is set to true.
  */
-unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool countsAsGoal, const Shell::Options& opt)
+unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, GoalAffinity affinity, const Shell::Options& opt)
 {
-  static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
-  static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
-
   w += splitWeight;
 
   if (opt.increasedNumeralWeight()) {
     w = (2 * w + numeralWeight);
   }
-  return w * ( !countsAsGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
+  bool countsAsGoal = affinity >= opt.nongoalWeightAffinityThreshold();
+  return w * (countsAsGoal ? opt.nongoalWeightCoefficientDenominator() : opt.nongoalWeightCoefficientNumerator());
 }
 
 void Clause::collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc)

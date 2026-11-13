@@ -37,6 +37,7 @@
 #include "Shell/UIHelper.hpp"
 #include "Shell/Property.hpp"
 
+#include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
@@ -485,6 +486,19 @@ void AbstractOptionValue::output(std::ostream &out, bool linewrap) const
   else {
     out << "\tno description provided!" << std::endl;
   }
+}
+
+Kernel::GoalAffinity Options::toGoalAffinity(GoalAffinityThreshold t)
+{
+  switch (t) {
+  case GoalAffinityThreshold::AXIOM:
+    return Kernel::GoalAffinity::AXIOM;
+  case GoalAffinityThreshold::ASSUMPTION:
+    return Kernel::GoalAffinity::ASSUMPTION;
+  case GoalAffinityThreshold::CONJECTURE:
+    return Kernel::GoalAffinity::CONJECTURE;
+  }
+  ASSERTION_VIOLATION;
 }
 
 struct AbstractOptionValueCompatator{
@@ -1897,8 +1911,20 @@ Options::Options ()
                 })
   , _nonGoalWeightCoefficient("nongoal_weight_coefficient",this,
       {.short_name = "nwc",
-       .description = "coefficient that will multiply the weight of non-conjecture clauses (those marked as 'axiom' in TPTP)",
+       .description = "coefficient that will multiply the weight of non-goal clauses (see nongoal_weight_affinity_threshold for what counts as goal)",
        .tag = OptionTag::SATURATION}) // default 10.0 is hard-wired to the constructor
+  , _nonGoalWeightAffinityThreshold("nongoal_weight_affinity_threshold",this,GoalAffinityThreshold::CONJECTURE,{"axiom","assumption","conjecture"},
+      {.short_name = "nwat",
+       .description = "The goal affinity threshold by which nongoal_weight_coefficient decides what counts as goal."
+    " Every clause has a goal affinity, one of distant axiom < axiom < assumption < conjecture:"
+    " an input unit gets it from its role (e.g. TPTP axiom, hypothesis, conjecture or negated_conjecture),"
+    " a derived clause gets the highest affinity among its parents."
+    " Clauses whose affinity is at least the threshold count as goal; all the others count as non-goal"
+    " and have their weight for clause selection multiplied by nongoal_weight_coefficient."
+    " So 'conjecture' makes only the (negated) conjecture and its descendants goal, 'assumption' adds"
+    " what derives from hypotheses, and 'axiom' leaves only distant axioms (those read from TPTP include files)"
+    " and their descendants on the non-goal side.",
+       .tag = OptionTag::SATURATION})
   , _selection("selection",this,10,
       {.short_name = "s",
        .description = "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
@@ -2652,6 +2678,8 @@ Options::Options ()
     _literalComparisonMode.addProblemConstraint(notJustEquality());
 
     _nonGoalWeightCoefficient.onlyUsefulWith(ProperSaturationAlgorithm());
+    _nonGoalWeightAffinityThreshold.onlyUsefulWith(ProperSaturationAlgorithm());
+    _nonGoalWeightAffinityThreshold.onlyUsefulWith(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
 
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));

@@ -801,6 +801,15 @@ public:
     THEORY = 3
   };
 
+  /** The goal affinities (see Kernel::GoalAffinity) at which a goal-directed heuristic
+   *  can draw its line between goal and non-goal; see toGoalAffinity() */
+  enum class GoalAffinityThreshold : unsigned int {
+    AXIOM = 0,
+    ASSUMPTION = 1,
+    CONJECTURE = 2
+  };
+  static Kernel::GoalAffinity toGoalAffinity(GoalAffinityThreshold t);
+
   enum class TARules : unsigned int {
     OFF = 0,
     INJECTGEN = 1,
@@ -1441,6 +1450,8 @@ public:
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   unsigned nongoalWeightCoefficientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
   unsigned nongoalWeightCoefficientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
+  /** clauses of at least this goal affinity count as goal for nongoal_weight_coefficient */
+  Kernel::GoalAffinity nongoalWeightAffinityThreshold() const { return toGoalAffinity(_nonGoalWeightAffinityThreshold.actualValue); }
   Sos sos() const { return _sos.actualValue; }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
@@ -1950,6 +1961,7 @@ private:
   OptionChoiceValues _tagNames;
 
   NonGoalWeightOptionValue _nonGoalWeightCoefficient;
+  ChoiceOptionValue<GoalAffinityThreshold> _nonGoalWeightAffinityThreshold;
 
   SelectionOptionValue _selection;
 
