@@ -251,7 +251,7 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
       seenInputInference |= isInputRule(inf.rule());
       Inference::Iterator iit = inf.iterator();
       if (inf.hasNext(iit)) {
-        GoalAffinity affinity = GoalAffinity::AXIOM; // we compute a maximum, so start from the smallest element
+        GoalAffinity affinity = MIN_AFFINITY; // we compute a maximum, so start from the smallest element
         bool isPureTheoryDescendant = true; // see also Inference::initMany
         while(inf.hasNext(iit)) {
           Unit* premUnit = inf.next(iit);

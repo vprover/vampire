@@ -39,14 +39,21 @@ namespace Kernel {
  * The values are ordered: besides childAffinity(), Normalisation and ClauseQueue order units by them.
  */
 enum class GoalAffinity : unsigned char {
+  /** reserved for background knowledge, below the axioms of the problem; nothing gets it yet */
+  DISTANT_AXIOM = 0,
   /** TPTP axiom, definition, plain and claim; also Vampire's theory axioms and most of its definitions */
-  AXIOM = 0,
+  AXIOM = 1,
   /** TPTP hypothesis, theorem and lemma; also SMT-LIB assert, define-fun(s-rec) and assert-claim */
-  ASSUMPTION = 1,
+  ASSUMPTION = 2,
   /** TPTP conjecture and question (negated by the parser right away) and negated_conjecture;
    *  also SMT-LIB assert-not, an assert annotated as a goal, and a unit picked by goal guessing */
-  CONJECTURE = 2
+  CONJECTURE = 3
 };
+
+/** the lowest affinity, where a maximum over parents starts */
+inline constexpr GoalAffinity MIN_AFFINITY = GoalAffinity::DISTANT_AXIOM;
+/** the highest affinity */
+inline constexpr GoalAffinity MAX_AFFINITY = GoalAffinity::CONJECTURE;
 
 inline constexpr std::underlying_type_t<GoalAffinity> toNumber(GoalAffinity t) { return static_cast<std::underlying_type_t<GoalAffinity>>(t); }
 
@@ -616,6 +623,8 @@ inline bool isNonSpecificInferenceRule(InferenceRule r) {
 }
 
 std::string goalAffinityName(GoalAffinity type);
+/** prints goalAffinityName() */
+std::ostream& operator<<(std::ostream& out, GoalAffinity type);
 std::string ruleName(InferenceRule rule);
 
 /*

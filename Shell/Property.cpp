@@ -292,7 +292,7 @@ void Property::scan(Clause* clause)
     _pureEquationalClauses ++;
   }
 
-  if (clause->goalAffinity() == GoalAffinity::AXIOM) {
+  if (clause->goalAffinity() <= GoalAffinity::AXIOM) {
     _axiomClauses ++;
     if ( literals == 1) {
       _unitAxioms ++;
@@ -350,7 +350,7 @@ void Property::scan(Clause* clause)
  */
 void Property::scan(FormulaUnit* unit)
 {
-  if (unit->goalAffinity() == GoalAffinity::AXIOM) {
+  if (unit->goalAffinity() <= GoalAffinity::AXIOM) {
     _axiomFormulas ++;
   }
   else {

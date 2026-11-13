@@ -589,8 +589,8 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
  * Add input clause @b cl into the SaturationAlgorithm object
  *
  * The clause @b cl is added into the unprocessed container, unless the
- * set-of-support option is enabled and @b cl has goal affinity equal to
- * @b Clause::AXIOM. In this case, @b cl is put into the active container.
+ * set-of-support option is enabled and @b cl has goal affinity at most
+ * @b GoalAffinity::AXIOM. In this case, @b cl is put into the active container.
  */
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
@@ -599,7 +599,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
   }
 
   bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL;
-  sosForAxioms = sosForAxioms && cl->goalAffinity() == GoalAffinity::AXIOM;
+  sosForAxioms = sosForAxioms && cl->goalAffinity() <= GoalAffinity::AXIOM;
 
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
@@ -649,7 +649,7 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
  */
 void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 {
-  ASS_EQ(toNumber(cl->goalAffinity()),toNumber(GoalAffinity::AXIOM));
+  ASS_LE(cl->goalAffinity(), GoalAffinity::AXIOM);
 
   // we add an extra reference until the clause is added to some container, so that
   // it won't get deleted during some code e.g. in the onNewClause handler

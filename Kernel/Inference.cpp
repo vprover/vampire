@@ -31,7 +31,7 @@ using namespace Kernel;
  */
 GoalAffinity Kernel::childAffinity(GoalAffinity t1, GoalAffinity t2)
 {
-  return static_cast<GoalAffinity>(std::max(toNumber(t1), toNumber(t2)));
+  return std::max(t1, t2);
 }
 
 /**
@@ -257,7 +257,7 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
   }
   // TODO get rid of intermediate string generation by ruleName
   out << ruleName(self._rule);
-  out << "), ga: " << toNumber(self._goalAffinity);
+  out << "), ga: " << self.goalAffinity();
 
   out << ", incl: " << self._included;
   out << ", ptd: " << self._isPureTheoryDescendant;
@@ -315,7 +315,7 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
 
 void Inference::initMany(InferenceRule r, UnitList* premises)
 {
-  initDefault(GoalAffinity::AXIOM /* the minimal element; we later compute maximum over premises*/,r);
+  initDefault(MIN_AFFINITY /* we later compute maximum over premises*/,r);
 
   _kind = Kind::INFERENCE_MANY;
   _ptr1 = premises;
@@ -512,6 +512,8 @@ void Inference::minimizePremises()
 std::string Kernel::goalAffinityName(GoalAffinity type)
 {
   switch (type) {
+    case GoalAffinity::DISTANT_AXIOM:
+      return "distant axiom";
     case GoalAffinity::AXIOM:
       return "axiom";
     case GoalAffinity::ASSUMPTION:
@@ -522,6 +524,9 @@ std::string Kernel::goalAffinityName(GoalAffinity type)
       return "unknown";
   }
 }
+
+std::ostream& Kernel::operator<<(std::ostream& out, GoalAffinity type)
+{ return out << goalAffinityName(type); }
 
 /**
  * Return the rule name, such as "binary_resolution".

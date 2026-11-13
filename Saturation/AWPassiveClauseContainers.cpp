@@ -379,7 +379,7 @@ bool AWPassiveClauseContainer::allChildrenNecessarilyExceedLimits(Clause* cl, un
   {
     // creating a fake inference to represent our current (pessimistic) estimate potential
     // FromInput - so that there is no Unit ownership issue
-    Inference inf = FromInput(GoalAffinity::CONJECTURE); // CONJECTURE, so that the estimate counts it as goal
+    Inference inf = FromInput(MAX_AFFINITY); // the highest affinity, so that the estimate counts it as goal
     inf.setAge(cl->age() + 1); // clauses inferred from the clause as generating inferences will be over age limit...
 
     int maxSelWeight=0;

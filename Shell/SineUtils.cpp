@@ -389,7 +389,7 @@ bool SineSelector::perform(UnitList*& units)
   while (uit2.hasNext()) {
     numberUnitsLeftOut++;
     Unit* u=uit2.next();
-    bool performSelection= _onIncluded ? u->included() : ((u->goalAffinity()==GoalAffinity::AXIOM)
+    bool performSelection= _onIncluded ? u->included() : ((u->goalAffinity()<=GoalAffinity::AXIOM)
                             || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->goalAffinity()==GoalAffinity::ASSUMPTION));
     if (performSelection) { // register the unit for later
       updateDefRelation(u);
@@ -634,7 +634,7 @@ void SineTheorySelector::perform(UnitList*& units)
   UnitList::Iterator uit2(units);
   while (uit2.hasNext()) {
     Unit* u=uit2.next();
-    bool performSelection= sineOnIncluded ? u->included() : ((u->goalAffinity()==GoalAffinity::AXIOM)
+    bool performSelection= sineOnIncluded ? u->included() : ((u->goalAffinity()<=GoalAffinity::AXIOM)
                    || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->goalAffinity()==GoalAffinity::ASSUMPTION));
 
     if (performSelection) {

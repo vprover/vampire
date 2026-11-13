@@ -155,7 +155,7 @@ void Statistics::print(std::ostream& out)
   if (statpair[TOTAL_CNT]) { groups.top().addEntry(name, statpair[TOTAL_CNT], statpair[INPROOF_CNT]); }
 
     IPGROUP("INPUT");
-    for (unsigned i : range(toNumber(GoalAffinity::AXIOM),toNumber(GoalAffinity::CONJECTURE)+1)) {
+    for (unsigned i : range(toNumber(MIN_AFFINITY),toNumber(MAX_AFFINITY)+1)) {
       IPENTRY(capitalize(goalAffinityName(static_cast<GoalAffinity>(i))), inputAffinityCnts[i]);
     }
 
