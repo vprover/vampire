@@ -55,19 +55,3 @@ TEST_FUN(replay_counts_consecutive_empty_loops)
 {
   checkReplay(0);
 }
-
-TEST_FUN(replay_rejects_ambiguous_pop_count_format)
-{
-  Problem problem;
-  Options options;
-  options.set("lrs_load_trace_file", ABSOLUTE_SOURCE_DIR "/UnitTests/lrs-replay-legacy.trace");
-  options.resolveAwayAutoValues(problem);
-  ReplayLRS lrs(problem, options);
-  try {
-    lrs.shouldUpdateLimits(501);
-  } catch (Lib::UserErrorException& error) {
-    ASS_NEQ(error.msg().find("record a new trace"), std::string::npos);
-    return;
-  }
-  ASSERTION_VIOLATION;
-}

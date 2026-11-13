@@ -57,9 +57,9 @@ private:
 
   /** Trace of limit-update decisions, for reproducing an LRS run exactly.
    * Opened lazily on first use from -lrs_save_trace_file / -lrs_load_trace_file.
-   * Format 2 starts with "VAMPIRE_LRS_TRACE 2", followed by records
-   * "<unprocessed loop number> <estimate returned>". Pop counts cannot distinguish
-   * updates delayed by the maintenance budget across loops with no pops. */
+   * Each record is "<unprocessed loop number> <estimate returned>".
+   * Pop counts cannot distinguish updates delayed by the maintenance budget
+   * across loops with no pops. */
   std::unique_ptr<std::ofstream> _saveTrace;
   std::unique_ptr<std::ifstream> _loadTrace;
   bool _traceOpened = false;

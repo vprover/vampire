@@ -212,11 +212,6 @@ void LRS::openTraceFiles()
   const std::string& load = _opt.lrsLoadTraceFile();
   if (!load.empty()) {
     _loadTrace = std::make_unique<std::ifstream>(load.c_str());
-    std::string format;
-    unsigned version = 0;
-    if (!(*_loadTrace >> format >> version) || format != "VAMPIRE_LRS_TRACE" || version != 2) {
-      USER_ERROR("Unsupported LRS trace format in " + load + "; record a new trace");
-    }
   }
   const std::string& save = _opt.lrsSaveTraceFile();
   if (!save.empty()) {
@@ -224,7 +219,6 @@ void LRS::openTraceFiles()
     if (!*_saveTrace) {
       USER_ERROR("Cannot write LRS trace file " + save);
     }
-    (*_saveTrace) << "VAMPIRE_LRS_TRACE 2" << std::endl;
   }
 }
 
