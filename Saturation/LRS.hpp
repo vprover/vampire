@@ -43,6 +43,8 @@ protected:
 private:
   /** Unprocessed pops seen since the last limit update. */
   unsigned _leftoverPops = 0;
+  /** Every afterUnprocessedLoop call, including calls with no pops. */
+  unsigned long long _unprocessedLoops = 0;
 
   /** Running cost of limit maintenance, against which the -lmb budget is checked.
    * Kept in both units because which one matters depends on which limit binds;
@@ -55,9 +57,9 @@ private:
 
   /** Trace of limit-update decisions, for reproducing an LRS run exactly.
    * Opened lazily on first use from -lrs_save_trace_file / -lrs_load_trace_file.
-   * Each record is "<pops accumulated when the update fired> <estimate returned>":
-   * the decision has to be recorded as well as its result, because the cadence
-   * consults the clock and so is not reproducible on its own. */
+   * Each record is "<unprocessed loop number> <estimate returned>".
+   * Pop counts cannot distinguish updates delayed by the maintenance budget
+   * across loops with no pops. */
   std::unique_ptr<std::ofstream> _saveTrace;
   std::unique_ptr<std::ifstream> _loadTrace;
   bool _traceOpened = false;
@@ -67,10 +69,8 @@ private:
    * hand back for the update it describes. */
   bool _haveNextRecord = false;
   bool _traceExhausted = false;
-  unsigned _nextRecordPops = 0;
+  unsigned long long _nextRecordLoop = 0;
   long long _nextRecordResult = -1;
-  /** Pops that triggered the update currently being made, for _saveTrace. */
-  unsigned _popsAtFire = 0;
   bool replaying() const { return _loadTrace != nullptr; }
   bool readNextRecord();
 };
