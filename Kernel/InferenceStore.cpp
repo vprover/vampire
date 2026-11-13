@@ -158,7 +158,7 @@ protected:
 
       out <<"["<<ruleName(rule);
 
-      if (rule==InferenceRule::INPUT) {
+      if (isInputRule(rule)) {
         ASS(!parents.hasNext()); //input clauses don't have parents
         std::string name;
         std::filesystem::path path;
@@ -365,6 +365,7 @@ protected:
   {
     switch(rule) {
     case InferenceRule::INPUT:
+    case InferenceRule::INPUT_CONJECTURE:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case InferenceRule::INEQUALITY_SPLITTING:
     case InferenceRule::SKOLEMIZE:
@@ -1031,6 +1032,7 @@ protected:
   {
     switch(rule) {
     case InferenceRule::INPUT:
+    case InferenceRule::INPUT_CONJECTURE:
     case InferenceRule::INEQUALITY_SPLITTING_NAME_INTRODUCTION:
     case InferenceRule::INEQUALITY_SPLITTING:
     case InferenceRule::SKOLEMIZE:
@@ -1123,7 +1125,7 @@ void InferenceStore::outputUnsatCore(std::ostream& out, Unit* refutation)
     Unit* u = todo.pop();
     visited.insert(u->number());
 
-    if(u->inference().rule() ==  InferenceRule::INPUT){
+    if(isInputRule(u->inference().rule())){
       if(!u->isClause()){
         if(u->getFormula()->hasLabel()){
           std::string label =  u->getFormula()->getLabel();

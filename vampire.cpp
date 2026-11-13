@@ -261,7 +261,7 @@ void outputMode(Problem* problem)
       ALWAYS(parents.hasNext());
       u = parents.next();
       ASS(!parents.hasNext());
-      ASS(u->inference().rule() == InferenceRule::INPUT);
+      ASS(u->inference().rule() == InferenceRule::INPUT_CONJECTURE);
     }
     std::cout << TPTPPrinter::unit(u, language, UIHelper::outputRole(u)) << "\n";
   }
@@ -400,7 +400,7 @@ void clausifyMode(Problem* problem, bool theory)
     if (!cl) {
       continue;
     }
-    printed_conjecture |= cl->goalAffinity() == GoalAffinity::CONJECTURE || cl->goalAffinity() == GoalAffinity::NEGATED_CONJECTURE;
+    printed_conjecture |= cl->goalAffinity() >= GoalAffinity::CONJECTURE;
     std::cout << TPTPPrinter::unit(cl, clauseLanguage, UIHelper::outputRole(cl)) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
@@ -412,7 +412,7 @@ void clausifyMode(Problem* problem, bool theory)
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
       },
-      FromInput(GoalAffinity::NEGATED_CONJECTURE));
+      FromInput(GoalAffinity::CONJECTURE));
     std::cout << TPTPPrinter::unit(c, clauseLanguage, UIHelper::outputRole(c)) << "\n";
   }
 

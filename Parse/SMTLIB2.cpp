@@ -2793,7 +2793,7 @@ void SMTLIB2::readAssert(LExpr* body)
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(res.isGoal ? GoalAffinity::NEGATED_CONJECTURE : GoalAffinity::ASSUMPTION));
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(res.isGoal ? GoalAffinity::CONJECTURE : GoalAffinity::ASSUMPTION));
   _formulas.pushBack(fu);
 }
 
@@ -2821,7 +2821,7 @@ void SMTLIB2::readAssertNot(LExpr* body)
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(GoalAffinity::CONJECTURE));
+  FormulaUnit* fu = new FormulaUnit(fla, InputConjecture());
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION, fu));
   _formulas.pushBack(fu);
@@ -2861,7 +2861,7 @@ void SMTLIB2::readAssertSynth(LExpr* forall, LExpr* exist, LExpr* body)
 
   fla = new QuantifiedFormula(Connective::EXISTS, evarSorts, fla);
   fla = new QuantifiedFormula(Connective::FORALL, fvarSorts, fla);
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(GoalAffinity::CONJECTURE));
+  FormulaUnit* fu = new FormulaUnit(fla, InputConjecture());
   fu = new FormulaUnit(new NegatedFormula(fla),
                        FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION, fu));
   _formulas.pushBack(fu);

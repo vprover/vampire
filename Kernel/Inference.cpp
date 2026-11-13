@@ -348,6 +348,10 @@ Inference::Inference(const FromInput& fi) {
   init0(fi.affinity,InferenceRule::INPUT);
 }
 
+Inference::Inference(const InputConjecture&) {
+  init0(GoalAffinity::CONJECTURE,InferenceRule::INPUT_CONJECTURE);
+}
+
 Inference::Inference(const TheoryAxiom& ta) {
   init0(GoalAffinity::AXIOM,ta.rule);
   ASS_REP(isTheoryAxiom(), ruleName(ta.rule));
@@ -514,8 +518,6 @@ std::string Kernel::goalAffinityName(GoalAffinity type)
       return "assumption";
     case GoalAffinity::CONJECTURE:
       return "conjecture";
-    case GoalAffinity::NEGATED_CONJECTURE:
-      return "negated conjecture";
   default:
       return "unknown";
   }
@@ -530,6 +532,8 @@ std::string Kernel::ruleName(InferenceRule rule)
   switch (rule) {
   case InferenceRule::INPUT:
     return "input";
+  case InferenceRule::INPUT_CONJECTURE:
+    return "input_conjecture";
   case InferenceRule::CONJECTURE_NEGATION:
     return "conjecture_negation";
   case InferenceRule::ANSWER_LITERAL_INJECTION:

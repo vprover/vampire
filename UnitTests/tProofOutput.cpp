@@ -539,7 +539,7 @@ TEST_FUN(unit_stream_prints_plain_role)
   FormulaUnit axiom(pAtom, FromInput(GoalAffinity::AXIOM));
   checkUnitOutput(&axiom, "fof", "p");
   checkUnitOutput(&axiom, "tff", "p", Language::TFF);
-  FormulaUnit stated(pAtom, FromInput(GoalAffinity::CONJECTURE));
+  FormulaUnit stated(pAtom, InputConjecture());
   checkUnitOutput(&stated, "fof", "p");
   FormulaUnit negated(~pAtom, fromNegatedConjecture(&stated));
   checkUnitOutput(&negated, "fof", "(~ p)");
@@ -596,7 +596,7 @@ TEST_FUN(named_unit_stream_uses_given_name_and_role)
   ASS_EQ(printNamedUnit("s", "claim", split), "tcf(s,claim,\n    ![X0 : $i] : (p(X0))).\n");
 
   // The role is the caller's, whatever the goal affinity of the unit.
-  FormulaUnit stated(atom(q()), FromInput(GoalAffinity::CONJECTURE));
+  FormulaUnit stated(atom(q()), InputConjecture());
   FormulaUnit negated(~atom(q()), fromNegatedConjecture(&stated));
   ASS_EQ(printNamedUnit("f", "conjecture", &negated, false, Language::TFF),
       "tff(f,conjecture,\n    (~ q)).\n");

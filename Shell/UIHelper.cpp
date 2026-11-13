@@ -146,15 +146,24 @@ void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string
 }
 
 /**
- * The TPTP role of @b unit in the output modes: its input role, except that a unit
- * derived from the conjecture stems from the negated conjecture.
+ * The TPTP role of @b unit in the output modes, decided by its goal affinity.
+ *
+ * The parsers negate a stated conjecture right away (see InferenceRule::INPUT_CONJECTURE),
+ * so any other unit at the conjecture level is a negated conjecture or derived from one.
  */
 const char* UIHelper::outputRole(const Unit* unit)
 {
-  if (unit->goalAffinity() == GoalAffinity::CONJECTURE && unit->inference().rule() != InferenceRule::INPUT) {
-    return TPTPOutput::Role::NEGATED_CONJECTURE;
+  if (unit->inference().rule() == InferenceRule::INPUT_CONJECTURE) {
+    return TPTPOutput::Role::CONJECTURE;
   }
-  return TPTPOutput::inputRole(unit->goalAffinity());
+  switch (unit->goalAffinity()) {
+  case GoalAffinity::ASSUMPTION:
+    return TPTPOutput::Role::HYPOTHESIS;
+  case GoalAffinity::CONJECTURE:
+    return TPTPOutput::Role::NEGATED_CONJECTURE;
+  default:
+    return TPTPOutput::Role::AXIOM;
+  }
 }
 
 

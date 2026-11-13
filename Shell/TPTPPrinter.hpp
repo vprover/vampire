@@ -40,9 +40,6 @@ using namespace Kernel;
 /** TPTP syntax shared by TPTPPrinter and the proof printers. */
 namespace TPTPOutput {
 
-/** The role a unit of the given goal affinity had in the input. */
-const char* inputRole(GoalAffinity type);
-
 /** The TPTP symbol of a connective, with the spacing used between operands. */
 const char* connectiveSymbol(Connective connective);
 

@@ -100,18 +100,20 @@ void InferenceStore::TPTPProofPrinter::print()
     AbstractSATProofPrinter::print();
   }
 
-const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, GoalAffinity origin)
+const char* InferenceStore::TPTPProofPrinter::getRole(InferenceRule rule, Unit* unit)
 {
     if (isTheoryAxiomRule(rule)) {
       return Role::AXIOM;
     }
     switch(rule) {
     case InferenceRule::INPUT:
-      // Proofs present hypotheses as axioms.
-      if (origin == GoalAffinity::ASSUMPTION) {
-        return Role::AXIOM;
+      if (unit->goalAffinity() >= GoalAffinity::CONJECTURE) {
+        return Role::NEGATED_CONJECTURE;
       }
-      return inputRole(origin);
+      // Proofs present hypotheses as axioms.
+      return Role::AXIOM;
+    case InferenceRule::INPUT_CONJECTURE:
+      return Role::CONJECTURE;
     case InferenceRule::CONJECTURE_NEGATION:
       return Role::NEGATED_CONJECTURE;
     case InferenceRule::AVATAR_DEFINITION:
@@ -244,13 +246,13 @@ void InferenceStore::TPTPProofPrinter::printStep(Unit* unit)
   default: ;
   }
 
-  out << proofStep(unitRef(unit), getRole(rule, unit->goalAffinity()), formula(unit), inference(unit));
+  out << proofStep(unitRef(unit), getRole(rule, unit), formula(unit), inference(unit));
 }
 
 std::ostream& InferenceStore::TPTPProofPrinter::printInference(std::ostream& out, Unit* unit)
 {
   InferenceRule rule = unit->inference().rule();
-  if (rule == InferenceRule::INPUT) {
+  if (isInputRule(rule)) {
     std::string axiomName;
     std::filesystem::path axiomPath;
     if (!Parse::TPTP::findAxiomName(unit, axiomName, axiomPath)) {
@@ -335,7 +337,7 @@ std::ostream& InferenceStore::TPTPProofPrinter::printSplitting(std::ostream& out
   ASS(unit->isClause());
   InferenceRule rule = unit->inference().rule();
   ASS(rule == InferenceRule::GENERAL_SPLITTING);
-  return out << proofStep(unitRef(unit), getRole(rule, GoalAffinity::AXIOM), formula(unit),
+  return out << proofStep(unitRef(unit), Role::PLAIN, formula(unit),
       inferenceAnnotation(tptpRuleName(rule), Output::Nothing{}, premises(unit)));
 }
 
@@ -348,10 +350,11 @@ std::ostream& InferenceStore::TPTPProofPrinter::printGeneralSplittingComponent(s
   Literal* nameLiteral = _is->_splittingNameLiterals.get(unit->number());
   auto nameSymbol = env.signature->getPredicate(nameLiteral->functor());
   InferenceRule rule = unit->inference().rule();
+  ASS(rule == InferenceRule::GENERAL_SPLITTING_COMPONENT);
 
-  out << proofStep(unitRef(unit), getRole(InferenceRule::CLAUSIFY, GoalAffinity::AXIOM), formula(unit),
+  out << proofStep(unitRef(unit), Role::PLAIN, formula(unit),
       inferenceAnnotation(tptpRuleName(InferenceRule::CLAUSIFY), Output::Nothing{}, definitionRef(unit)));
-  return out << proofStep(definitionRef(unit), getRole(rule, GoalAffinity::AXIOM),
+  return out << proofStep(definitionRef(unit), Role::DEFINITION,
       splittingDefinition(unit->asClause(), nameLiteral),
       introducedAnnotation(Origin::DEFINITION, newSymbolAnnotation(Origin::DEFINITION, nameSymbol->name()),
           tptpRuleName(rule)));

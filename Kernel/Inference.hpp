@@ -43,10 +43,9 @@ enum class GoalAffinity : unsigned char {
   AXIOM = 0,
   /** TPTP hypothesis, theorem and lemma; also SMT-LIB assert, define-fun(s-rec) and assert-claim */
   ASSUMPTION = 1,
-  /** TPTP conjecture and question (negated by the parser right away); also SMT-LIB assert-not */
-  CONJECTURE = 2,
-  /** TPTP negated_conjecture; also an SMT-LIB assert annotated as a goal, and a unit picked by goal guessing */
-  NEGATED_CONJECTURE = 3
+  /** TPTP conjecture and question (negated by the parser right away) and negated_conjecture;
+   *  also SMT-LIB assert-not, an assert annotated as a goal, and a unit picked by goal guessing */
+  CONJECTURE = 2
 };
 
 inline constexpr std::underlying_type_t<GoalAffinity> toNumber(GoalAffinity t) { return static_cast<std::underlying_type_t<GoalAffinity>>(t); }
@@ -109,6 +108,9 @@ GoalAffinity childAffinity(UnitList* units);
 enum class InferenceRule : unsigned char {
   /** input formula or clause */
   INPUT,
+  /** a conjecture as stated in the input; the parsers negate it right away (see CONJECTURE_NEGATION),
+   *  so such a unit only ever occurs as the premise of its negation, never in the problem itself */
+  INPUT_CONJECTURE,
 
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL
    * (preprocessing/normalisation) FORMULA TRANSFORMATION SHOULD BELONG
@@ -598,6 +600,11 @@ inline bool isGeneratingInferenceRule(InferenceRule r) {
       toNumber(r) < toNumber(InferenceRule::GENERIC_GENERATING_INFERENCE_LAST));
 }
 
+/** true for the rules of input units, which have no premises */
+inline bool isInputRule(InferenceRule r) {
+  return r == InferenceRule::INPUT || r == InferenceRule::INPUT_CONJECTURE;
+}
+
 inline bool isTheoryAxiomRule(InferenceRule r) {
   return (toNumber(r) > toNumber(InferenceRule::GENERIC_THEORY_AXIOM) &&
       toNumber(r) < toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST));
@@ -620,6 +627,9 @@ struct FromInput {
   FromInput(GoalAffinity a) : affinity(a) {}
   GoalAffinity affinity;
 };
+
+/** a conjecture as stated in the input, see InferenceRule::INPUT_CONJECTURE */
+struct InputConjecture {};
 
 struct TheoryAxiom {
   TheoryAxiom(InferenceRule r) : rule(r) {}
@@ -762,6 +772,8 @@ private:
 public:
   /* FromInput inferences are automatically InferenceRule::INPUT. */
   Inference(const FromInput& fi);
+  /* InputConjecture inferences are InferenceRule::INPUT_CONJECTURE with goal affinity CONJECTURE. */
+  Inference(const InputConjecture&);
 
   /* Theory axioms automatically have goal affinity AXIOM.
    * and the corresponding rule should satisfy isTheoryAxiomRule

@@ -561,6 +561,9 @@ private:
    *  CNF and TCF units must end up being clauses, FOF and TCF units must be closed */
   enum class Dialect { CNF, FOF, TCF };
   Dialect _lastDialect;
+  /** true if the last read unit is a conjecture (or a question), which tag() negates;
+   *  a negated_conjecture has the same goal affinity but is taken as it is */
+  bool _isConjecture = false;
   /** true if the last read unit is a question */
   bool _isQuestion = false;
   /** true if the last read unit is a claim, see processClaimFormula() */

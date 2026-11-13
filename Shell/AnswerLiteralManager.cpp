@@ -109,7 +109,7 @@ bool AnswerLiteralManager::addAnswerLiterals(UnitList*& units)
 
 Unit* AnswerLiteralManager::tryAddingAnswerLiteral(Unit* unit)
 {
-  if (unit->isClause() || (unit->goalAffinity()!=GoalAffinity::CONJECTURE && unit->goalAffinity()!=GoalAffinity::NEGATED_CONJECTURE)) {
+  if (unit->isClause() || unit->goalAffinity() < GoalAffinity::CONJECTURE) {
     return unit; // do nothing
   }
 

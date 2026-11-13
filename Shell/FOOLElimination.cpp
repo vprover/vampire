@@ -56,8 +56,7 @@ bool FOOLElimination::needsElimination(FormulaUnit* unit)
       case Options::CNFOnTheFly::EAGER:
         break;
       case Options::CNFOnTheFly::CONJ_EAGER:
-        if (unit->goalAffinity() != GoalAffinity::NEGATED_CONJECTURE &&
-            unit->goalAffinity() != GoalAffinity::CONJECTURE) {
+        if (unit->goalAffinity() < GoalAffinity::CONJECTURE) {
           return true;
         }
         break;
@@ -158,9 +157,7 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   SortHelper::collectVariableSorts(formula, _varSorts);
 
-  bool isConjecture =
-    unit->goalAffinity() == GoalAffinity::NEGATED_CONJECTURE ||
-    unit->goalAffinity() == GoalAffinity::CONJECTURE;
+  bool isConjecture = unit->goalAffinity() >= GoalAffinity::CONJECTURE;
 
   // The old implementation (combinator implementation) had a check !_polymorphic
   // I've removed it here, but if we start seeing issues on polymorphic problems, that

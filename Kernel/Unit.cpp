@@ -248,7 +248,7 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
     std::tie(current,collecting) = todo.pop();
     if (collecting) {
       Inference& inf = current->inference();
-      seenInputInference |= (inf.rule() == InferenceRule::INPUT);
+      seenInputInference |= isInputRule(inf.rule());
       Inference::Iterator iit = inf.iterator();
       if (inf.hasNext(iit)) {
         GoalAffinity affinity = GoalAffinity::AXIOM; // we compute a maximum, so start from the smallest element

@@ -361,6 +361,7 @@ void TPTP::parseImpl(State initialState)
 
 void TPTP::parseInputType(const std::string& tp)
 {
+  _isConjecture = false;
   _isQuestion = false;
   _isClaim = false;
   if(_modelDefinition){
@@ -371,14 +372,16 @@ void TPTP::parseInputType(const std::string& tp)
     _lastGoalAffinity = GoalAffinity::AXIOM;
   }
   else if (tp == "conjecture") {
+    _isConjecture = true;
     _lastGoalAffinity = GoalAffinity::CONJECTURE;
   }
   else if (tp == "question") {
+    _isConjecture = true;
     _isQuestion = true;
     _lastGoalAffinity = GoalAffinity::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _lastGoalAffinity = GoalAffinity::NEGATED_CONJECTURE;
+    _lastGoalAffinity = GoalAffinity::CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
     _lastGoalAffinity = GoalAffinity::ASSUMPTION;
@@ -3949,7 +3952,7 @@ void TPTP::endFof()
     _curQuestionVarNames.reset();
     return;
   }
-  if (_lastGoalAffinity == GoalAffinity::CONJECTURE) {
+  if (_isConjecture) {
     // count the conjecture only now, once the unit is known not to be
     // filtered out by an include() formula selection
     // (containsConjecture() decides between SZS Theorem and Unsatisfiable)
@@ -3963,7 +3966,8 @@ void TPTP::endFof()
 
   Unit *unit, *original;
   if (!mustBeClause) { // fof() or tff()
-    original = unit = new FormulaUnit(f,FromInput(_lastGoalAffinity));
+    original = unit = new FormulaUnit(f,
+        _isConjecture ? Inference(InputConjecture()) : Inference(FromInput(_lastGoalAffinity)));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf() or tcf()
@@ -4049,24 +4053,17 @@ void TPTP::endFof()
     unit->inference().markIncluded();
   }
 
-  switch (_lastGoalAffinity) {
-  case GoalAffinity::CONJECTURE:
+  if (_isConjecture) {
     // negating a clause does not give a clause
     if(mustBeClause) USER_ERROR("conjecture is not allowed in ",
         _lastDialect == Dialect::CNF ? "cnf" : "tcf");
-    {
-      ASS_EQ(freeVariables(f),VList::empty())
-      f = new NegatedFormula(f);
-      unit = new FormulaUnit(f,
-			     FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION,unit));
-      if (_isQuestion) {
-        _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
-      }
+    ASS_EQ(freeVariables(f),VList::empty())
+    f = new NegatedFormula(f);
+    unit = new FormulaUnit(f,
+			   FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION,unit));
+    if (_isQuestion) {
+      _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
     }
-    break;
-
-  default:
-    break;
   }
   if (_isClaim) {
     unit = processClaimFormula(unit,f,nm);

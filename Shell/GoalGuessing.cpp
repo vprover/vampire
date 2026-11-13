@@ -133,7 +133,7 @@ bool GoalGuessing::apply(UnitList*& units)
 
     if(_checkPosition){
       if(u->number() == Unit::getLastParsingNumber()){
-        u->inference().setGoalAffinity(GoalAffinity::NEGATED_CONJECTURE);
+        u->inference().setGoalAffinity(GoalAffinity::CONJECTURE);
         modified=true;
       }
     }
@@ -159,7 +159,7 @@ bool GoalGuessing::apply(Clause* cl)
   unsigned clen = cl->length();
   for(unsigned i=0; i<clen; i++) {
     if(apply((*cl)[i])){
-      cl->inference().setGoalAffinity(GoalAffinity::NEGATED_CONJECTURE);
+      cl->inference().setGoalAffinity(GoalAffinity::CONJECTURE);
       return true;
     }
   }
@@ -172,7 +172,7 @@ bool GoalGuessing::apply(FormulaUnit* fu)
   // negated universal quantification (the two are mutually exclusive)
   if(_checkTop && (fu->formula()->connective() == EXISTS ||
       (fu->formula()->connective() == NOT && fu->formula()->uarg()->connective() == FORALL))){
-    fu->inference().setGoalAffinity(GoalAffinity::NEGATED_CONJECTURE);
+    fu->inference().setGoalAffinity(GoalAffinity::CONJECTURE);
     return true;
   }
 
@@ -180,7 +180,7 @@ bool GoalGuessing::apply(FormulaUnit* fu)
   while (sfit.hasNext()) {
     Formula* sf = sfit.next();
     if (sf->connective() == LITERAL && apply(sf->literal())){
-      fu->inference().setGoalAffinity(GoalAffinity::NEGATED_CONJECTURE);
+      fu->inference().setGoalAffinity(GoalAffinity::CONJECTURE);
       return true;
     }
   }

@@ -79,9 +79,8 @@ public:
   static void outputInterferences(std::ostream& out, const Problem&);
 
   /**
- * The TPTP role of @b unit in the output modes: its input role, except that a unit
- * derived from the conjecture stems from the negated conjecture.
- */
+   * The TPTP role of @b unit in the output modes, by its goal affinity.
+   */
   static const char* outputRole(const Unit* unit);
 
   /**

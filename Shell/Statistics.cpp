@@ -155,7 +155,7 @@ void Statistics::print(std::ostream& out)
   if (statpair[TOTAL_CNT]) { groups.top().addEntry(name, statpair[TOTAL_CNT], statpair[INPROOF_CNT]); }
 
     IPGROUP("INPUT");
-    for (unsigned i : range(toNumber(GoalAffinity::AXIOM),toNumber(GoalAffinity::NEGATED_CONJECTURE)+1)) {
+    for (unsigned i : range(toNumber(GoalAffinity::AXIOM),toNumber(GoalAffinity::CONJECTURE)+1)) {
       IPENTRY(capitalize(goalAffinityName(static_cast<GoalAffinity>(i))), inputAffinityCnts[i]);
     }
 
@@ -352,7 +352,7 @@ void Statistics::print(std::ostream& out)
       formulas[idx]++;
     }
     auto rule = u->inference().rule();
-    if (rule == InferenceRule::INPUT) {
+    if (isInputRule(rule)) {
       inputAffinityCnts[toNumber(u->goalAffinity())][idx]++;
       if (u->isClause()) {
         inputClauses[idx]++;
