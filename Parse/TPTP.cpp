@@ -369,7 +369,9 @@ void TPTP::parseInputType(const std::string& tp)
     _lastGoalAffinity = GoalAffinity::AXIOM;
   }
   else if (tp == "axiom" || tp == "plain" || tp == "definition") {
-    _lastGoalAffinity = GoalAffinity::AXIOM;
+    // an axiom from an include() file is background knowledge, further from the goal than
+    // the axioms of the problem file itself
+    _lastGoalAffinity = restoreFiles.empty() ? GoalAffinity::AXIOM : GoalAffinity::DISTANT_AXIOM;
   }
   else if (tp == "conjecture") {
     _isConjecture = true;
@@ -4049,10 +4051,6 @@ void TPTP::endFof()
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
-  if (!restoreFiles.empty()) {
-    unit->inference().markIncluded();
-  }
-
   if (_isConjecture) {
     // negating a clause does not give a clause
     if(mustBeClause) USER_ERROR("conjecture is not allowed in ",

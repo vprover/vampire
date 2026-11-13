@@ -77,8 +77,6 @@ public:
   bool isTheoryAxiom() const { return _inference.isTheoryAxiom(); }
 
   unsigned char getSineLevel() const { return _inference.getSineLevel(); }
-  /** true if the unit is read from a TPTP included file  */
-  bool included() const { return _inference.included(); }
 
   /** This is just a more convenient (but also less efficient) way
    * for accessing the unit's parents than using its inferefence's iterator. */

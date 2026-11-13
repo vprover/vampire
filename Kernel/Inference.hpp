@@ -39,9 +39,11 @@ namespace Kernel {
  * The values are ordered: besides childAffinity(), Normalisation and ClauseQueue order units by them.
  */
 enum class GoalAffinity : unsigned char {
-  /** reserved for background knowledge, below the axioms of the problem; nothing gets it yet */
+  /** background knowledge, below the axioms of the problem: TPTP axiom, definition and plain
+   *  from an include() file */
   DISTANT_AXIOM = 0,
-  /** TPTP axiom, definition, plain and claim; also Vampire's theory axioms and most of its definitions */
+  /** TPTP axiom, definition, plain (from the problem file itself) and claim;
+   *  also Vampire's theory axioms and most of its definitions */
   AXIOM = 1,
   /** TPTP hypothesis, theorem and lemma; also SMT-LIB assert, define-fun(s-rec) and assert-claim */
   ASSUMPTION = 2,
@@ -766,7 +768,6 @@ private:
   void initDefault(GoalAffinity affinity, InferenceRule r) {
     _goalAffinity = affinity;
     _rule = r;
-    _included = false;
     _inductionDepth = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
     _splits = nullptr;
@@ -790,10 +791,7 @@ public:
    **/
   Inference(const TheoryAxiom& ta);
 
-  /* A formula transformation inference automatically propagates the _included flag from the parent to the child
-     (later during clausal proof search, currently, this is not done anymore)*/
   Inference(const FormulaClauseTransformation& ft);
-  // _included propagated from the first premise here
   Inference(const FormulaClauseTransformationMany& ft);
 
   /* A generating inference automatically computes age as 1 + the maximum over the parents' age */
@@ -933,11 +931,6 @@ public:
     return isTheoryAxiomRule(_rule);
   }
 
-  /** Mark the corresponding unit as read from a TPTP included file  */
-  void markIncluded() { _included = 1; }
-  /** true if the unit is read from a TPTP included file  */
-  bool included() const { return _included; }
-
   /*
    * Returns true if the unit belonging to this inference is a pure theory descendant.
    *
@@ -1006,13 +999,10 @@ private:
 
   GoalAffinity _goalAffinity : 2;
 
-  /** true if the unit is read from a TPTP included file  */
-  bool _included : 1;
-
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant : 1;
   /** Induction depth **/
-  unsigned _inductionDepth : 10;
+  unsigned _inductionDepth : 11;
 
 }; // class Inference
 

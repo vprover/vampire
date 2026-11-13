@@ -259,7 +259,6 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
   out << ruleName(self._rule);
   out << "), ga: " << self.goalAffinity();
 
-  out << ", incl: " << self._included;
   out << ", ptd: " << self._isPureTheoryDescendant;
   out << ", sl: " << self._sineLevel;
   out << ", age: " << self._age;
@@ -361,8 +360,6 @@ Inference::Inference(const FormulaClauseTransformation& ft) {
   init1(ft.rule,ft.premise);
 
   ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
-
-  _included = ft.premise->included();
 }
 
 Inference::Inference(const FormulaClauseTransformationMany& ft) {
@@ -370,8 +367,6 @@ Inference::Inference(const FormulaClauseTransformationMany& ft) {
 
   ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
   ASS_NEQ(ft.premises,UnitList::empty());
-
-  _included = ft.premises->head()->included();
 }
 
 Inference::Inference(const GeneratingInference1& gi) {
