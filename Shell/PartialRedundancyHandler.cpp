@@ -284,7 +284,7 @@ private:
   {
   public:
     void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      Matcher::init(tree_, tree_.getEntryPoint(), 0, 0, firstsInBlocks_);
+      Matcher::init(tree_, tree_.getEntryPoint(), LitInfoOccupation(), 0, 0, firstsInBlocks_);
       ft=ft_;
       tp=0;
       op=entry;

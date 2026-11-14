@@ -72,13 +72,14 @@ private:
   struct LiteralMatcher
   : public Matcher</*removing*/false,false>
   {
-    void init(const CodeTree& tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess=false);
+    void init(const CodeTree& tree, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, bool seekOnlySuccess, LitInfoOccupation occupied);
     bool next();
     bool doEagerMatching();
 
     inline bool eagerlyMatched() const { return _eagerlyMatched; }
 
     inline ILStruct* getILS() { ASS(matched()); return op->getILS(); }
+    inline const ILStruct* getILS() const { ASS(matched()); return op->getILS(); }
 
     USE_ALLOCATOR(LiteralMatcher);
 
@@ -105,6 +106,7 @@ public:
     USE_ALLOCATOR(ClauseMatcher);
 
   private:
+    LitInfoOccupation occupiedPositions();
     void enterLiteral(CodeOp* entry, bool seekOnlySuccess);
     void leaveLiteral();
     bool canEnterLiteral(CodeOp* op);

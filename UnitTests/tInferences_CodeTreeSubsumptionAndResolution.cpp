@@ -131,6 +131,17 @@ TEST_SIMPLIFICATION(pos_sub_test08,
     .expected({ /* nothing */ })
 )
 
+TEST_SIMPLIFICATION(pos_sub_test09,
+  tester()
+    .simplifyWith({
+      clause({ f(x) == g(y), x == e }),
+      clause({ f(x) == g(y), y == e })
+    })
+    .toSimplify({ clause({ g(d) == f(c), e == d }) })
+    .expected({ /* subsumed */ })
+    .justifications({ clause({ f(x) == g(y), y == e }) })
+)
+
 // negative subsumptions
 
 TEST_SIMPLIFICATION(neg_sub_test01,
@@ -224,6 +235,17 @@ TEST_SIMPLIFICATION(pos_sub_res_test05,
     .simplifyWith({ clause({ ~p(f(x1)), q(x1) }) })
     .toSimplify({ clause({ ~p2(x2, x5), q(x2), p(f(x2)), ~q(g(x5)) }) })
     .expected({ clause({ ~p2(x2, x5), q(x2), ~q(g(x5)) }) })
+)
+
+TEST_SIMPLIFICATION(pos_sub_res_test06,
+  tester()
+    .simplifyWith({
+      clause({ f(x) == g(y), x == e }),
+      clause({ f(x) == g(y), y == e })
+    })
+    .toSimplify({ clause({ g(d) == f(c), ~(e == d), r(c) }) })
+    .expected({ clause({ g(d) == f(c), r(c) }) })
+    .justifications({ clause({ f(x) == g(y), y == e }) })
 )
 
 // negative subsumption resolutions

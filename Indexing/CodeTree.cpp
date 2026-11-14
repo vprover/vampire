@@ -294,6 +294,15 @@ CodeTree::MatchInfo*& CodeTree::ILStruct::getMatch(unsigned matchIndex)
   return matches[matchIndex];
 }
 
+const CodeTree::MatchInfo* CodeTree::ILStruct::getMatch(unsigned matchIndex) const
+{
+  ASS(!finished);
+  ASS_L(matchIndex, matchCnt);
+  ASS(matches[matchIndex]);
+
+  return matches[matchIndex];
+}
+
 CodeTree::CodeOp CodeTree::CodeOp::getLitEnd(ILStruct* ils)
 {
   CodeOp res;
@@ -570,7 +579,7 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
         } else {
           //yield successes only in the first round (we don't want to yield the
           //same thing for each query literal)
-          if(curLInfo==0) {
+          if(curLInfo==firstLInfo) {
             return true;
           }
           else {
@@ -626,10 +635,11 @@ bool CodeTree::Matcher<removing, checkRange>::execute()
 }
 
 template<bool removing, bool checkRange>
-void CodeTree::Matcher<removing, checkRange>::init(const CodeTree& tree_, CodeOp* entry_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
+void CodeTree::Matcher<removing, checkRange>::init(const CodeTree& tree_, CodeOp* entry_, LitInfoOccupation occupied_, LitInfo* linfos_, size_t linfoCnt_, Stack<CodeOp*>* firstsInBlocks_)
 {
   tree=&tree_;
   entry=entry_;
+  occupied = occupied_;
 
   linfos=linfos_;
   linfoCnt=linfoCnt_;
@@ -643,6 +653,7 @@ void CodeTree::Matcher<removing, checkRange>::init(const CodeTree& tree_, CodeOp
   fresh=true;
   _matched=false;
   curLInfo=0;
+  firstLInfo=0;
 
   bindings.ensure(tree->_maxVarCnt);
   btStack.reset();
@@ -677,6 +688,9 @@ bool CodeTree::Matcher<removing, checkRange>::prepareLiteral()
 {
   if constexpr (removing) {
     RemovingBase::firstsInBlocks->truncate(RemovingBase::initFIBDepth);
+  }
+  while (curLInfo < linfoCnt && occupied.isOccupied(linfos[curLInfo])) {
+    curLInfo++;
   }
   if(curLInfo>=linfoCnt) {
     return false;
