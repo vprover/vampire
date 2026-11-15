@@ -518,29 +518,29 @@ public:
     };
 
     Block current;
-    DHMap<unsigned,void **,FnvHash,IdentityHash> free_list;
+    std::array<void**, numBlocks> free_list = {};
 
   public:
     void *alloc(size_t cnt) {
+      ASS_G(cnt,0);
       ASS_LE(cnt, numBlocks);
       size_t size = cnt + (cnt%SIZE); // align
       // first look if there's anything in the free list
       // TODO take space that fits and save rest
-      auto fptr = free_list.findPtr(size);
-      if(fptr && *fptr) {
-        void *recycled = *fptr;
-        *fptr = static_cast<void **>(**fptr);
+      auto fptr = free_list[size-1];
+      if(fptr) {
+        void* recycled = fptr;
+        fptr = static_cast<void**>(*fptr);
         return recycled;
       }
 
       if (current.remaining < size) {
-        if (current.bytes) {
+        if (current.bytes && current.remaining > 0) {
           ASS_EQ(current.remaining%SIZE, 0);
-          void **head = static_cast<void **>(static_cast<void *>(current.bytes));
-          void*** fptr;
-          free_list.getValuePtr(current.remaining, fptr, nullptr);
-          *head = *fptr;
-          *fptr = head;
+          void** head = static_cast<void**>(static_cast<void*>(current.bytes));
+          auto fptr = free_list[current.remaining-1];
+          *head = fptr;
+          fptr = head;
         }
 
         // current block full, get a new one
@@ -551,13 +551,13 @@ public:
       return current.alloc(size);
     }
 
-    void free(void *ptr, size_t cnt) {
+    void free(void* ptr, size_t cnt) {
+      ASS_G(cnt,0);
       size_t size = cnt + (cnt%SIZE); // align
-      void **head = static_cast<void **>(ptr);
-      void*** fptr;
-      free_list.getValuePtr(size, fptr, nullptr);
-      *head = *fptr;
-      *fptr = head;
+      auto head = static_cast<void**>(ptr);
+      auto fptr = free_list[size-1];
+      *head = fptr;
+      fptr = head;
     }
   };
   FixedSizeArrayAllocator<10240> alloc;
