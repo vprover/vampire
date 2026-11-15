@@ -503,8 +503,7 @@ public:
   // based on Lib::FixedSizeAllocator
   class FixedSizeArrayAllocator {
     static constexpr size_t COUNT = 10240;
-    static constexpr size_t SIZE = sizeof(CodeTree::CodeOp);
-    static_assert(SIZE >= sizeof(void *), "need to store void * in the allocation to keep the free list");
+    static constexpr size_t SIZE = sizeof(void*);
 
     struct Block {
       char *bytes = nullptr;
@@ -512,8 +511,8 @@ public:
 
       void *alloc(size_t cnt) {
         // DBG("allocating ", cnt, " total ", SIZE*cnt);
-        ASS_GE(remaining, SIZE*cnt);
-        remaining -= SIZE*cnt;
+        ASS_GE(remaining, cnt);
+        remaining -= cnt;
         return static_cast<void *>(bytes + remaining);
       }
     };
@@ -524,31 +523,32 @@ public:
   public:
     void *alloc(size_t cnt) {
       ASS_LE(cnt, COUNT);
+      size_t size = cnt + (cnt%SIZE); // align
       // first look if there's anything in the free list
       // TODO take space that fits and save rest
-      auto fptr = free_list.findPtr(cnt);
+      auto fptr = free_list.findPtr(size);
       if(fptr && *fptr) {
         void *recycled = *fptr;
         *fptr = static_cast<void **>(**fptr);
         return recycled;
       }
 
-      // then check if the current block has space
-      if(current.remaining >= SIZE*cnt)
-        return current.alloc(cnt);
+      if (current.remaining < size) {
+        // TODO save wasted space
 
-      // TODO save wasted space
+        // current block full, get a new one
+        current.bytes = static_cast<char *>(::operator new(COUNT * SIZE));
+        current.remaining = COUNT * SIZE;
+      }
 
-      // current block full, get a new one
-      current.bytes = static_cast<char *>(::operator new(COUNT * SIZE));
-      current.remaining = COUNT * SIZE;
-      return current.alloc(cnt);
+      return current.alloc(size);
     }
 
     void free(void *ptr, size_t cnt) {
+      size_t size = cnt + (cnt%SIZE); // align
       void **head = static_cast<void **>(ptr);
       void*** fptr;
-      free_list.getValuePtr(cnt, fptr, nullptr);
+      free_list.getValuePtr(size, fptr, nullptr);
       *head = *fptr;
       *fptr = head;
     }

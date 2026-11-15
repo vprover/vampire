@@ -89,7 +89,8 @@ public:
   {
     ASS_G(length,0);
 
-    Vector* v = reinterpret_cast<Vector*>(alloc.alloc(length+1));
+    size_t sz=sizeof(Vector) + (length-1)*sizeof(C);
+    Vector* v = reinterpret_cast<Vector*>(alloc.alloc(sz));
     v->_length = length;
     C* arr = v->_array;
     // in the case C is a class with an initialiser, apply the constructor of it
@@ -105,7 +106,8 @@ public:
     // in the case C is a class with an initialiser, apply the destructor of it
     // to every element of the allocated array
     array_delete(_array, _length);
-    alloc.free(this, _length+1);
+    size_t sz=sizeof(Vector) + (_length-1)*sizeof(C);
+    alloc.free(this, sz);
   } // deallocate
 
   bool operator==(const Vector& v) const
