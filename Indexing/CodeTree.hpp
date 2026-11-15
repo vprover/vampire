@@ -501,8 +501,8 @@ public:
   CodeBlock* _entryPoint = nullptr;
 
   // based on Lib::FixedSizeAllocator
+  template<size_t numBlocks>
   class FixedSizeArrayAllocator {
-    static constexpr size_t COUNT = 10240;
     static constexpr size_t SIZE = sizeof(void*);
 
     struct Block {
@@ -522,7 +522,7 @@ public:
 
   public:
     void *alloc(size_t cnt) {
-      ASS_LE(cnt, COUNT);
+      ASS_LE(cnt, numBlocks);
       size_t size = cnt + (cnt%SIZE); // align
       // first look if there's anything in the free list
       // TODO take space that fits and save rest
@@ -534,11 +534,18 @@ public:
       }
 
       if (current.remaining < size) {
-        // TODO save wasted space
+        if (current.bytes) {
+          ASS_EQ(current.remaining%SIZE, 0);
+          void **head = static_cast<void **>(static_cast<void *>(current.bytes));
+          void*** fptr;
+          free_list.getValuePtr(current.remaining, fptr, nullptr);
+          *head = *fptr;
+          *fptr = head;
+        }
 
         // current block full, get a new one
-        current.bytes = static_cast<char *>(::operator new(COUNT * SIZE));
-        current.remaining = COUNT * SIZE;
+        current.bytes = static_cast<char *>(::operator new(numBlocks * SIZE));
+        current.remaining = numBlocks * SIZE;
       }
 
       return current.alloc(size);
@@ -553,7 +560,7 @@ public:
       *fptr = head;
     }
   };
-  FixedSizeArrayAllocator alloc;
+  FixedSizeArrayAllocator<10240> alloc;
 };
 
 }
