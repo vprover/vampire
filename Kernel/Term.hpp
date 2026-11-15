@@ -445,7 +445,6 @@ public:
       struct {
         TermList lambdaExp;
         VSList* _vars;  // variables with their sorts together
-        TermList expSort;//TODO is this needed?
       } _lambdaData;
       struct {
         TermList matchedSort;
@@ -462,7 +461,8 @@ public:
     VSList*  getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
     Formula* getLetBinding() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.binding; }
-    TermList getLambdaExpSort() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.expSort; }
+    /** the sort of the lambda body, recovered by stripping one arrow per bound variable from the lambda's sort */
+    TermList getLambdaExpSort() const;
     Formula* getFormula() const { ASS_EQ(specialFunctor(), SpecialFunctor::FORMULA); return _formulaData.formula; }
     TermList getMatchedSort() const { return _matchData.matchedSort; }
   };

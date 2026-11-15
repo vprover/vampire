@@ -1158,7 +1158,6 @@ Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   s->makeSymbol(toNormalFunctor(SpecialFunctor::LAMBDA), 0);
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
   s->getSpecialData()->_lambdaData._vars = vars;
-  s->getSpecialData()->_lambdaData.expSort = expSort;
   Stack<TermList> revSorts;
   VSList::Iterator vit(vars);
   while(vit.hasNext()){
@@ -1170,6 +1169,16 @@ Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   }
   s->getSpecialData()->_sort = lambdaTmSort;
   return s;
+}
+
+TermList Term::SpecialTermData::getLambdaExpSort() const
+{
+  ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA);
+  TermList sort = _sort;
+  for (VSList* vs = _lambdaData._vars; vs; vs = vs->tail()) {
+    sort = sort.result();
+  }
+  return sort;
 }
 
 Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList *elements) {
