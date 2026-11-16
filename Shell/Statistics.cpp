@@ -134,10 +134,9 @@ void Statistics::print(std::ostream& out)
     };
     struct Group {
       Group(string name, bool infGroup = false) : name(name), infGroup(infGroup) {}
+      // the callers (ENTRY, IPENTRY) check the counts themselves, see the INPUT group for why
       void addEntry(string name, unsigned total, unsigned inproof = 0) {
         ASS(infGroup || inproof == 0);
-        ASS(total);
-        ASS_GE(total, inproof);
         entries.emplace(name, Int::toString(total), Int::toString(inproof));
       }
 
@@ -156,7 +155,15 @@ void Statistics::print(std::ostream& out)
 
     IPGROUP("INPUT");
     for (unsigned i : range(toNumber(MIN_AFFINITY),toNumber(MAX_AFFINITY)+1)) {
-      IPENTRY(capitalize(goalAffinityName(static_cast<GoalAffinity>(i))), inputAffinityCnts[i]);
+      // Not IPENTRY: an affinity may have more units in the proof than in total. The total counts a unit
+      // with the affinity it had when created, the proof count with the one it has at the end, and goal
+      // guessing raises affinities in between (a guessed goal is an axiom in the total, a conjecture in
+      // the proof). The sums over all affinities still agree; "Input clauses" and "Input formulas" below
+      // check that.
+      const auto& cnts = inputAffinityCnts[i];
+      if (cnts[TOTAL_CNT] || cnts[INPROOF_CNT]) {
+        groups.top().addEntry(capitalize(goalAffinityName(static_cast<GoalAffinity>(i))), cnts[TOTAL_CNT], cnts[INPROOF_CNT]);
+      }
     }
 
     auto outputInfGroup = [&](string name, InferenceRule first, InferenceRule last) {
