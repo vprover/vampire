@@ -13,6 +13,9 @@
  */
 
 #include <functional>
+#include <algorithm>
+#include <sstream>
+#include "Shell/InferenceRecorder.hpp"
 
 #include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
@@ -271,7 +274,58 @@ std::ostream& InferenceStore::TPTPProofPrinter::printInference(std::ostream& out
     // Without introduced symbols we have to claim that the axiom comes from a theory.
     return out << introducedAnnotation(Origin::THEORY, tptpRuleName(rule), Output::Nothing{});
   }
-  return out << inferenceAnnotation(tptpRuleName(rule), status(unit), premises(unit));
+  return out << inferenceAnnotation(tptpRuleName(rule), annotations(unit), premises(unit));
+}
+
+std::ostream& InferenceStore::TPTPProofPrinter::printAnnotations(std::ostream& out, Unit* unit)
+{
+  if (!env.options->replay() || !unit->isClause()) { return printStatus(out, unit); }
+  switch (unit->inference().rule()) {
+  case InferenceRule::RESOLUTION:
+  case InferenceRule::CONSTRAINED_RESOLUTION:
+  case InferenceRule::SUPERPOSITION:
+  case InferenceRule::CONSTRAINED_SUPERPOSITION:
+  case InferenceRule::FACTORING:
+  case InferenceRule::FORWARD_DEMODULATION:
+    break;
+  default:
+    return printStatus(out, unit);
+  }
+  if (!_replayer) {
+    // Proof search retains the ordering used by its inference engines.
+    if (!_is->ordering) { return printStatus(out, unit); }
+    _replayer = std::make_unique<Shell::InferenceReplayer>();
+    _replayer->makeInferenceEngine(_is->ordering);
+  }
+  _replayer->replayInference(unit);
+  const auto* info = Shell::InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+  if (!info) { return printStatus(out, unit); }
+  std::ostringstream status;
+  printStatus(status, unit);
+  if (!status.str().empty()) { out << status.str() << ','; }
+  out << "unifier([";
+  for (unsigned bank = 0; bank < info->premises.size(); ++bank) {
+    if (bank) { out << ','; }
+    out << "subs(" << unitRef(info->premises[bank]) << ",[";
+    std::vector<unsigned> variables;
+    auto iterator = info->premises[bank]->getVariableIterator();
+    while (iterator.hasNext()) { variables.push_back(iterator.next()); }
+    std::sort(variables.begin(), variables.end());
+    bool first = true;
+    for (unsigned variable : variables) {
+      TermList term = info->substitutionForBanksSub[bank].apply(variable);
+      if (term == TermList::var(variable)) { continue; }
+      if (!first) { out << ','; }
+      first = false;
+      out << "b(X" << variable << ',';
+      // Generic annotations require higher-order expressions to be embedded.
+      if (env.higherOrder() && !term.isVar()) { out << "$thf(" << term << ')'; }
+      else { out << term; }
+      out << ')';
+    }
+    out << "])";
+  }
+  return out << "])";
 }
 
 std::ostream& InferenceStore::TPTPProofPrinter::printStatus(std::ostream& out, Unit* unit)

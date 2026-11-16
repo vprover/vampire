@@ -52,6 +52,7 @@ set(UNIT_TESTS
     UnitTests/tDynamicHeap.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tHash.cpp
+    UnitTests/tInferenceReplay.cpp
     UnitTests/tIndexManager.cpp
     UnitTests/tInferences_AnswerLiteralProcessors.cpp
     UnitTests/tInferences_ArithmeticSubtermGeneralization.cpp
@@ -710,6 +711,10 @@ set(SOURCES
     Shell/GeneralSplitting.cpp
     Shell/GeneralSplitting.hpp
     Shell/GoalGuessing.cpp
+    Shell/InferenceRecorder.cpp
+    Shell/InferenceRecorder.hpp
+    Shell/InferenceReplay.cpp
+    Shell/InferenceReplay.hpp
     Shell/GoalGuessing.hpp
     Shell/InequalitySplitting.cpp
     Shell/InequalitySplitting.hpp

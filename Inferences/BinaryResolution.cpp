@@ -34,6 +34,7 @@
 
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "BinaryResolution.hpp"
 #define DEBUG_RESOLUTION(lvl, ...) if (lvl < 0) { DBG("resolution: ", __VA_ARGS__) }
@@ -205,7 +206,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (nConstraints == 0 && parRedHandler) {
+  if (nConstraints == 0 && parRedHandler && !env.reconstruction) {
     if (!parRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
       return 0;
     }
@@ -230,6 +231,13 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
   }
 
+  if (env.reconstruction) {
+    using Recorder = Shell::InferenceRecorder;
+    ResultApplicator querySubst(*subs, false);
+    ResultApplicator resultSubst(*subs, true);
+    Recorder::instance()->resolution(cl, queryCl, resultCl, {&querySubst, &resultSubst},
+                                     queryLit, resultLit, nConstraints);
+  }
   return cl;
 
 }

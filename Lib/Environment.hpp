@@ -50,6 +50,10 @@ public:
 
   ProofExtra proofExtra;
 
+  //Flag that indicates wheter an inference should record
+  //what it does for proof reconstruction purposes
+  bool reconstruction = false;
+
   /** Time remaining until the end of the time-limit in milliseconds */
   int remainingTime() const;
   /** set to true when coloring is used for symbol elimination or interpolation */

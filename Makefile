@@ -355,6 +355,8 @@ VS_OBJ = Shell/AnswerLiteralManager.o\
          Shell/FunctionDefinition.o\
          Shell/FunctionDefinitionHandler.o\
          Shell/GeneralSplitting.o\
+         Shell/InferenceRecorder.o\
+         Shell/InferenceReplay.o\
          Shell/GoalGuessing.o\
          Shell/InequalitySplitting.o\
          Shell/InterpolantMinimizer.o\

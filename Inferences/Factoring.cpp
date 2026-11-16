@@ -24,6 +24,8 @@
 #include "Kernel/RobSubstitution.hpp"
 #include "Kernel/Ordering.hpp"
 
+#include "Shell/InferenceRecorder.hpp"
+
 #include "Saturation/SaturationAlgorithm.hpp"
 
 #include "Factoring.hpp"
@@ -99,8 +101,15 @@ public:
     }
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
-    if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    if(env.options->proofExtra() == Options::ProofExtra::FULL){
       env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
+    }
+    if(env.reconstruction){
+      using Recorder = Shell::InferenceRecorder;
+      BankApplicator applicator(subst, 0);
+      Recorder::instance()->factoring(cl, _cl, {&applicator}, l2);
+    }
+
     return cl;
   }
 private:

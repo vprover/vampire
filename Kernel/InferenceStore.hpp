@@ -26,6 +26,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Inference.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/Signature.hpp"
 
 namespace Kernel {
@@ -36,6 +37,8 @@ class InferenceStore
 {
 public:
   static InferenceStore* instance();
+
+  OrderingSP ordering;
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, const Signature::Symbol* sym);
