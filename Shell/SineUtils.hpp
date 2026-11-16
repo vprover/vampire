@@ -103,60 +103,6 @@ private:
 };
 
 
-/**
- * Class that can perform the SInE axiom selection for multiple problems
- * sharing the same set of theory axioms
- *
- * First init the selection structure by @b initSelectionStructure() and
- * then select axioms for a particular problem by @b addSelectedAxioms()
- */
-class SineTheorySelector
-: public SineBase
-{
-public:
-  SineTheorySelector(const Options& opt);
-
-  void initSelectionStructure(UnitList* units);
-  void perform(UnitList*& units);
-private:
-
-  /** The integer tolerance value is the float option value multiplied by 10 and
-   * truncated
-   *
-   * Therefore, if the @b maxTolerance member is equal to 50, the maximum supported
-   * tolerance is 5. */
-  static const unsigned short maxTolerance=50;
-  static const unsigned short strictTolerance=10;
-
-  void handlePossibleSignatureChange();
-
-  void updateDefRelation(Unit* u);
-
-  unsigned _genThreshold;
-
-  struct DEntry
-  {
-    DEntry(unsigned short minTolerance, Unit* unit) : minTolerance(minTolerance), unit(unit) {}
-
-    unsigned short minTolerance;
-    Unit* unit;
-  };
-  typedef List<DEntry> DEntryList;
-
-  /** Stored the D-relation */
-  DArray<DEntryList*> _def;
-
-  /**
-   * Stored formulas that don't contain any symbols
-   *
-   * These formulas are always selected.
-   */
-  Stack<Unit*> _unitsWithoutSymbols;
-
-  const Options& _opt;
-};
-
-
 }
 
 #endif /* __SineUtils__ */
