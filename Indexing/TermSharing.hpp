@@ -17,6 +17,7 @@
 #ifndef __TermSharing__
 #define __TermSharing__
 
+#include "Lib/Allocator.hpp"
 #include "Lib/Set.hpp"
 #include "Kernel/Term.hpp"
 
@@ -99,6 +100,8 @@ private:
   Set<Literal*, TermSharing, Equal> _literals;
   /** The set storing all sorts */
   Set<AtomicSort*, TermSharing, Equal> _sorts;
+
+  FixedSizeArrayAllocator<1024> _alloc;
 
   bool _poly;
   bool _wellSortednessCheckingDisabled;

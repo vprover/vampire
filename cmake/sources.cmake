@@ -41,6 +41,7 @@ set(UNIT_TESTS
     UnitTests/tALASCA_TermFactoring.cpp
     UnitTests/tALASCA_VariableElimination.cpp
     UnitTests/tALASCA_VIRAS.cpp
+    UnitTests/tAllocator.cpp
     UnitTests/tArithCompare.cpp
     UnitTests/tBinaryHeap.cpp
     UnitTests/tBottomUpEvaluation.cpp

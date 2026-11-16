@@ -20,6 +20,7 @@
 #ifndef __Allocator__
 #define __Allocator__
 
+#include <array>
 #include <cstddef>
 #include <new>
 
@@ -133,6 +134,72 @@ public:
     void **head = static_cast<void **>(ptr);
     *head = free_list;
     free_list = head;
+  }
+};
+
+// based on Lib::FixedSizeAllocator
+template<size_t numBlocks>
+class FixedSizeArrayAllocator {
+  static constexpr size_t SIZE = sizeof(void*);
+
+  struct Block {
+    char *bytes = nullptr;
+    size_t remaining = 0;
+
+    void *alloc(size_t cnt) {
+      // DBG("allocating ", cnt, " total ", SIZE*cnt);
+      ASS_GE(remaining, cnt);
+      remaining -= cnt;
+      return static_cast<void *>(bytes + remaining);
+    }
+  };
+
+  Block current;
+  std::array<void**, numBlocks> free_list = {};
+
+public:
+  void *alloc(size_t cnt) {
+    ASS_G(cnt,0);
+    size_t size = cnt + (cnt%SIZE); // align
+    if (size > numBlocks * SIZE) {
+      return ::operator new(size);
+    }
+    // first look if there's anything in the free list
+    // TODO take space that fits and save rest
+    auto fptr = free_list[(size/SIZE)-1];
+    if(fptr) {
+      void* recycled = fptr;
+      fptr = static_cast<void**>(*fptr);
+      return recycled;
+    }
+
+    if (current.remaining < size) {
+      if (current.bytes && current.remaining > 0) {
+        ASS_EQ(current.remaining%SIZE, 0);
+        void** head = static_cast<void**>(static_cast<void*>(current.bytes));
+        auto fptr = free_list[current.remaining-1];
+        *head = fptr;
+        fptr = head;
+      }
+
+      // current block full, get a new one
+      current.bytes = static_cast<char *>(::operator new(numBlocks * SIZE));
+      current.remaining = numBlocks * SIZE;
+    }
+
+    return current.alloc(size);
+  }
+
+  void free(void* ptr, size_t cnt) {
+    ASS_G(cnt,0);
+    size_t size = cnt + (cnt%SIZE); // align
+    if (size > numBlocks * SIZE) {
+      return ::operator delete(ptr);
+    }
+    auto head = static_cast<void**>(ptr);
+    auto fptr = free_list[(size/SIZE)-1];
+    *head = fptr;
+    fptr = head;
   }
 };
 
@@ -289,6 +356,8 @@ inline void free(void *pointer, size_t size) {
 #define USE_ALLOCATOR(C) USE_GLOBAL_SMALL_OBJECT_ALLOCATOR(C)
 #define ALLOC_KNOWN(size, className) Lib::alloc(size)
 #define DEALLOC_KNOWN(ptr, size, className) Lib::free(ptr, size)
+#define ALLOC_KNOWN2(size, className, allocator) allocator.alloc(size)
+#define DEALLOC_KNOWN2(ptr, size, className, allocator) allocator.free(ptr, size)
 
 // TODO dubious: probably a compiler lint these days?
 /**

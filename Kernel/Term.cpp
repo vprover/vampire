@@ -55,7 +55,7 @@ void* Term::operator new(size_t,unsigned arity, size_t preData)
   ASS_EQ(preData%sizeof(size_t), 0);
 
   size_t sz = bytesRequiredFor(arity+1)+preData;
-  void* mem = ALLOC_KNOWN(sz,"Term");
+  void* mem = ALLOC_KNOWN2(sz,"Term",env.sharing->_alloc);
   mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)+preData);
   return (Term*)mem;
 } // Term::operator new
@@ -76,7 +76,7 @@ void Term::destroy ()
   size_t sz = bytesRequiredFor(_arity+1)+getPreDataSize();
   void* mem = this;
   mem = reinterpret_cast<void*>(reinterpret_cast<char*>(mem)-getPreDataSize());
-  DEALLOC_KNOWN(mem,sz,"Term");
+  DEALLOC_KNOWN2(mem,sz,"Term",env.sharing->_alloc);
 } // Term::destroy
 
 /**
