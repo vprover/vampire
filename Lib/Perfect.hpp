@@ -61,8 +61,8 @@ public:
           })) 
     { }
 
-  /** copy constructor. Constant time. */
-  Perfect(Perfect const& t) : _id(t._id), _ptr(t._ptr) {  }
+  /** copy constructor. Constant time. Defaulted so that Perfect is trivially copyable. */
+  Perfect(Perfect const& t) = default;
 
   /** default constructor. for this T must be default-constructible itself. */
   Perfect() : Perfect(T()) {}
