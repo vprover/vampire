@@ -54,7 +54,7 @@ using namespace Kernel;
  */
 SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
-  return max(env.signature->predicates()*3-1, 
+  return max(env.signature->predicates()*3-1,
          max(env.signature->functions()*3, env.signature->typeCons()*3));
 }
 
@@ -131,7 +131,7 @@ void SineSymbolExtractor::addSymIds(Literal* lit,DHSet<SymId, FnvHash, IdentityH
         ids.insert(t->functor() * 3 + 2);
       } else {
         ids.insert(t->functor() * 3 + 1);
-      }      
+      }
     }
   }
 } // addSymIds
@@ -258,7 +258,7 @@ void SineBase::initGeneralityFunction(UnitList* units)
 }
 
 SineSelector::SineSelector(const Options& opt)
-: _onIncluded(opt.sineSelection()==Options::SineSelection::INCLUDED),
+: _threshold(opt.sineAffinityThreshold()),
   _genThreshold(opt.sineGeneralityThreshold()),
   _tolerance(opt.sineTolerance()),
   _depthLimit(opt.sineDepth()),
@@ -267,8 +267,8 @@ SineSelector::SineSelector(const Options& opt)
   init();
 }
 
-SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold, bool justForSineLevels)
-: _onIncluded(onIncluded),
+SineSelector::SineSelector(float tolerance, unsigned depthLimit, unsigned genThreshold, bool justForSineLevels)
+: _threshold(GoalAffinity::ASSUMPTION), // hardwired to the default of sine_affinity_threshold, for now
   _genThreshold(genThreshold),
   _tolerance(tolerance),
   _depthLimit(depthLimit),
@@ -389,8 +389,7 @@ bool SineSelector::perform(UnitList*& units)
   while (uit2.hasNext()) {
     numberUnitsLeftOut++;
     Unit* u=uit2.next();
-    // axioms from include() files are DISTANT_AXIOM, and so is whatever preprocessing derived from them alone
-    bool performSelection= _onIncluded ? u->goalAffinity()==GoalAffinity::DISTANT_AXIOM : u->goalAffinity()<=GoalAffinity::AXIOM;
+    bool performSelection = u->goalAffinity() < _threshold;
     if (performSelection) { // register the unit for later
       updateDefRelation(u);
     }
@@ -418,7 +417,7 @@ bool SineSelector::perform(UnitList*& units)
     if (!u) {
       //next selected formulas will be one step further from the original formulas
       depth++;
-      
+
       if (_depthLimit && depth==_depthLimit) {
 	break;
       }

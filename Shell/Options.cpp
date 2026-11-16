@@ -1615,9 +1615,22 @@ Options::Options ()
       {.short_name = "s2agt",
        .description = "Like sine_generality_threshold but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection.",
        .tag = OptionTag::SATURATION})
-  , _sineSelection("sine_selection",this,SineSelection::OFF,{"axioms","included","off"},
+  , _sineSelection("sine_selection",this,SineSelection::OFF,{"off","on"},
       {.short_name = "ss",
-       .description = "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation.",
+       .description = "SInE axiom selection. The units whose goal affinity is at least sine_affinity_threshold are initially selected,"
+    " and the SInE selection is performed on the units below it (by default, on the axioms).",
+       .tag = OptionTag::PREPROCESSING})
+  , _sineAffinityThreshold("sine_affinity_threshold",this,GoalAffinityThreshold::ASSUMPTION,{"axiom","assumption","conjecture"},
+      {.short_name = "ssat",
+       .description = "The goal affinity threshold by which sine_selection decides what to select from."
+    " Every unit has a goal affinity, one of distant axiom < axiom < assumption < conjecture:"
+    " an input unit gets it from its role (e.g. TPTP axiom, hypothesis, conjecture or negated_conjecture),"
+    " a derived unit gets the highest affinity among its parents."
+    " Units whose affinity is at least the threshold are the seeds of the selection and always kept;"
+    " the selection is performed on the units strictly below the threshold."
+    " So 'assumption' selects among the axioms (affinity at most axiom), 'conjecture' also among what derives"
+    " from hypotheses, and 'axiom' only among distant axioms, i.e. those read from TPTP include files"
+    " (the behaviour of the original SInE implementation).",
        .tag = OptionTag::PREPROCESSING})
   , _sineTolerance("sine_tolerance",this,1.0,
       {.short_name = "st",
@@ -1647,8 +1660,8 @@ Options::Options ()
     " Every clause has a goal affinity, one of distant axiom < axiom < assumption < conjecture:"
     " an input unit gets it from its role (e.g. TPTP axiom, hypothesis, conjecture or negated_conjecture),"
     " a derived clause gets the highest affinity among its parents."
-    " Input clauses whose affinity is below the threshold go to the set of support."
-    " So 'assumption' sets aside the axioms, 'conjecture' also what derives from hypotheses,"
+    " Input clauses whose affinity is strictly below the threshold go to the set of support."
+    " So 'assumption' sets aside the axioms (affinity at most axiom), 'conjecture' also what derives from hypotheses,"
     " and 'axiom' only distant axioms (those read from TPTP include files) and their descendants.",
        .tag = OptionTag::PREPROCESSING})
   , _sosTheoryLimit("sos_theory_limit",this,0,
@@ -2240,6 +2253,7 @@ Options::Options ()
     _sineTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f) ));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineTolerance.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
+    _sineAffinityThreshold.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
 
     _naming.addProblemConstraint(hasFormulas());
     _naming.addHardConstraint(lessThan(32768));

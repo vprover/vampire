@@ -732,9 +732,8 @@ public:
   };
 
   enum class SineSelection : unsigned int {
-    AXIOMS = 0,
-    INCLUDED = 1,
-    OFF = 2
+    OFF = 0,
+    ON = 1
   };
 
   enum class Proof : unsigned int {
@@ -1505,6 +1504,8 @@ public:
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
   unsigned sineToAgeGeneralityThreshold() const { return _sineToAgeGeneralityThreshold.actualValue; }
   SineSelection sineSelection() const { return _sineSelection.actualValue; }
+  /** SInE selects among the units below this goal affinity; the others are its seeds */
+  Kernel::GoalAffinity sineAffinityThreshold() const { return toGoalAffinity(_sineAffinityThreshold.actualValue); }
   float sineTolerance() const { return _sineTolerance.actualValue; }
   float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
 
@@ -1908,6 +1909,7 @@ private:
   UnsignedOptionValue _sineGeneralityThreshold;
   UnsignedOptionValue _sineToAgeGeneralityThreshold;
   ChoiceOptionValue<SineSelection> _sineSelection;
+  ChoiceOptionValue<GoalAffinityThreshold> _sineAffinityThreshold;
   FloatOptionValue _sineTolerance;
   FloatOptionValue _sineToAgeTolerance;
   ChoiceOptionValue<Sos> _sos;

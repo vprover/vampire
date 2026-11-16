@@ -55,7 +55,8 @@ pel!=off > peltl ~uf 0.9,5.0
 tgt!=off > tsa ~cat on:4,off:1
 
 # sine_selection
-intent=unsat > ss ~cat off:1182,included:135,axioms:392
+intent=unsat > ss ~cat off:1182,on:527
+ss=on > ssat ~cat axiom:135,assumption:300,conjecture:92
 
 # sine_depth
 intent=unsat ss!=off > sd ~cat 0:45,1:13,2:12,3:5,4:4,5:4,7:3,10:2,12:1,15:1

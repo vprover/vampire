@@ -66,7 +66,7 @@ class SineSelector
 {
 public:
   SineSelector(const Options& opt);
-  SineSelector(bool onIncluded, float tolerance, unsigned depthLimit,
+  SineSelector(float tolerance, unsigned depthLimit,
       unsigned genThreshold=0, bool justForSineLevels=false);
 
   bool perform(UnitList*& units); // returns true iff removed something
@@ -83,7 +83,8 @@ private:
 
   void updateDefRelation(Unit* u);
 
-  bool _onIncluded;
+  /** the units below this goal affinity are subject to selection, the others are the seeds */
+  GoalAffinity _threshold;
   bool _strict;
   unsigned _genThreshold;
   float _tolerance;
