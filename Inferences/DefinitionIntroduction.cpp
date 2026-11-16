@@ -198,8 +198,8 @@ void DefinitionIntroduction<higherOrder>::process(Term *t) {
 
 template<bool higherOrder>
 void DefinitionIntroduction<higherOrder>::process(Clause *cl) {
-  // don't process our own clauses
-  if(cl->inference().rule() == InferenceRule::FUNCTION_DEFINITION)
+  // don't process our own clauses (nor Twee's), also when stored reoriented
+  if(cl->originalInference().rule() == InferenceRule::FUNCTION_DEFINITION)
     return;
 
   // this can happen with e.g. induction or CNFOnTheFly introducing new symbols
