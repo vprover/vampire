@@ -4031,14 +4031,8 @@ void TPTP::endFof()
         USER_ERROR("input formula not in CNF: " + f->toString());
       }
     }
-    if(needsFlipDocumenting) {
-      FormulaUnit *fu = new FormulaUnit(f, FromInput(_lastGoalAffinity));
-      original = fu;
-      FormulaClauseTransformation transform(InferenceRule::REORIENT_EQUATIONS, fu);
-      unit = Clause::fromStack(lits, transform);
-    }
-    else
-      original = unit = Clause::fromStack(lits, FromInput(_lastGoalAffinity));
+    unit = Clause::fromStackKeepingOrientation(lits, FromInput(_lastGoalAffinity),
+        needsFlipDocumenting ? f : nullptr, original);
     unit->setInheritedColor(_currentColor);
   }
 
