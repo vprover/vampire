@@ -828,7 +828,7 @@ void SMTLIB2::readDefineFun(const std::string& name, LExpr* iArgs, LExpr* oSort,
     env.signature->protectPredicate(symbIdx);
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(GoalAffinity::ASSUMPTION));
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(GoalAffinity::AXIOM));
 
   _formulas.pushBack(fu);
 }
@@ -921,7 +921,7 @@ void SMTLIB2::readDefineFunsRec(LExpr* declsExpr, LExpr* defsExpr)
       env.signature->protectPredicate(symbIdx);
     }
 
-    FormulaUnit* fu = new FormulaUnit(fla, FromInput(GoalAffinity::ASSUMPTION));
+    FormulaUnit* fu = new FormulaUnit(fla, FromInput(GoalAffinity::AXIOM));
     _formulas.pushBack(fu);
 
     _lookups.pop();
@@ -2793,7 +2793,7 @@ void SMTLIB2::readAssert(LExpr* body)
     USER_ERROR_EXPR("Asserted expression of non-boolean sort "+body->toString());
   }
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(res.isGoal ? GoalAffinity::CONJECTURE : GoalAffinity::ASSUMPTION));
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(res.isGoal ? GoalAffinity::CONJECTURE : GoalAffinity::AXIOM));
   _formulas.pushBack(fu);
 }
 
@@ -2808,7 +2808,7 @@ void SMTLIB2::readAssertClaim(LExpr* body)
 
   static unsigned claim_id = 0;
 
-  FormulaUnit* fu = new FormulaUnit(fla, FromInput(GoalAffinity::ASSUMPTION));
+  FormulaUnit* fu = new FormulaUnit(fla, FromInput(GoalAffinity::AXIOM));
   _formulas.pushBack(TPTP::processClaimFormula(fu,fla,"claim"+Int::toString(claim_id++)));
 }
 

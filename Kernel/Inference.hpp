@@ -43,9 +43,10 @@ enum class GoalAffinity : unsigned char {
    *  from an include() file */
   DISTANT_AXIOM = 0,
   /** TPTP axiom, definition, plain (from the problem file itself) and claim;
+   *  SMT-LIB assert, define-fun(s-rec) and assert-claim;
    *  also Vampire's theory axioms and most of its definitions */
   AXIOM = 1,
-  /** TPTP hypothesis, theorem and lemma; also SMT-LIB assert, define-fun(s-rec) and assert-claim */
+  /** TPTP hypothesis, theorem and lemma */
   ASSUMPTION = 2,
   /** TPTP conjecture and question (negated by the parser right away) and negated_conjecture;
    *  also SMT-LIB assert-not, an assert annotated as a goal, and a unit picked by goal guessing */
