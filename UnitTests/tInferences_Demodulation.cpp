@@ -34,6 +34,9 @@ using namespace Test;
   DECL_POLY_CONST(h, 1, alpha)                                                                                \
   DECL_FUNC(f, {s, s}, s)                                                                                     \
   DECL_FUNC(g, {s}, s)                                                                                        \
+  DECL_CONST(f_, arrow({s, s}, s))                                                                            \
+  DECL_CONST(g_, arrow(s, s))                                                                                 \
+  DECL_DE_BRUIJN_INDEX(db0, 0, s)                                                                             \
   DECL_CONST(a, s)                                                                                            \
   DECL_CONST(b, s)                                                                                            \
   DECL_CONST(c, s2)                                                                                           \
@@ -237,6 +240,54 @@ TEST_SIMPLIFICATION(test22,
     .toSimplify({ clause({ f(a,b) != a }) })
     .expected({ clause({ a != a }) })
     .options({ { "term_ordering", "lpo" }, { "demodulation_redundancy_check", "ordering" } });
+)
+
+inline auto testerHOL() {
+  env.setHigherOrder(true);
+  return FwdBwdSimplification::TestCase<ForwardDemodulation<true>, BackwardDemodulation<true>>()
+    .options({ { "term_ordering", "lpo" } }); // use LPO as KBO fails due to caching things in terms
+}
+
+// demodulation inside lambdas when no term with free DB index is bound
+TEST_SIMPLIFICATION(test_hol1,
+  testerHOL()
+    .simplifyWith({ clause({ ap(f_, {x,y}) == x }) })
+    .toSimplify({ clause({ lam(s, ap(f_, {a,b})) == g_ }) })
+    .expected({ clause({ lam(s, a) == g_ }) })
+)
+
+// demodulation inside lambdas with free DB index bound does not happen
+TEST_SIMPLIFICATION(test_hol2,
+  testerHOL()
+    .simplifyWith({ clause({ ap(f_, {x,y}) == x }) })
+    .toSimplify({ clause({ lam(s, ap(f_, {db0,b})) == g_ }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ });
+)
+
+// demodulation inside lambdas inside term with free DB index
+TEST_SIMPLIFICATION(test_hol3,
+  testerHOL()
+    .simplifyWith({ clause({ ap(f_, {a,b}) == a }) })
+    .toSimplify({ clause({ lam(s, ap(g_, ap(f_, {db0, ap(f_, {a,b})}))) == g_ }) })
+    .expected({ clause({ lam(s, ap(g_, ap(f_, {db0, a}))) == g_ }) })
+)
+
+// demodulation into lambda happens with bound DB index
+TEST_SIMPLIFICATION(test_hol4,
+  testerHOL()
+    .simplifyWith({ clause({ lam(s, db0) == g_ }) })
+    .toSimplify({ clause({ lam(s, db0) != ap(f_, a) }) })
+    .expected({ clause({ g_ != ap(f_, a) }) })
+)
+
+// demodulation into lambda does not happen with bound DB index
+TEST_SIMPLIFICATION(test_hol5,
+  testerHOL()
+    .simplifyWith({ clause({ lam(s, x.sort(s)) == g_ }) })
+    .toSimplify({ clause({ lam(s, db0) != ap(f_, a) }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ });
 )
 
 }
