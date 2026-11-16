@@ -588,9 +588,10 @@ void SaturationAlgorithm::passiveRemovedHandler(Clause* cl)
 /**
  * Add input clause @b cl into the SaturationAlgorithm object
  *
- * The clause @b cl is added into the unprocessed container, unless the
- * set-of-support option is enabled and @b cl has goal affinity at most
- * @b GoalAffinity::AXIOM. In this case, @b cl is put into the active container.
+ * The clause @b cl is added into the unprocessed container, unless it belongs
+ * to the set of support (with sos=on, it is below sos_affinity_threshold;
+ * with sos=theory, it is a pure theory descendant). In this case, @b cl is put
+ * into the active container.
  */
 void SaturationAlgorithm::addInputClause(Clause* cl)
 {
@@ -598,8 +599,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     _symEl->onInputClause(cl);
   }
 
-  bool sosForAxioms = _opt.sos() == Options::Sos::ON || _opt.sos() == Options::Sos::ALL;
-  sosForAxioms = sosForAxioms && cl->goalAffinity() <= GoalAffinity::AXIOM;
+  bool sosForAxioms = _opt.sos() == Options::Sos::ON && cl->goalAffinity() < _opt.sosAffinityThreshold();
 
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
@@ -633,7 +633,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
  */
 LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
 {
-  if (_opt.sos() == Options::Sos::ALL || _opt.sos() == Options::Sos::THEORY) {
+  if (_opt.sosTotalSelection()) {
     if (!_sosLiteralSelector) {
       _sosLiteralSelector = new TotalLiteralSelector(getOrdering(), getOptions());
     }
@@ -649,7 +649,7 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
  */
 void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 {
-  ASS_LE(cl->goalAffinity(), GoalAffinity::AXIOM);
+  ASS(cl->isPureTheoryDescendant() || cl->goalAffinity() < _opt.sosAffinityThreshold());
 
   // we add an extra reference until the clause is added to some container, so that
   // it won't get deleted during some code e.g. in the onNewClause handler
@@ -735,8 +735,8 @@ Clause *SaturationAlgorithm::doImmediateSimplification(Clause* cl0)
 {
   TIME_TRACE("immediate simplification");
 
-  static bool sosTheoryLimit = _opt.sos() == Options::Sos::THEORY;
-  static unsigned sosTheoryLimitAge = _opt.sosTheoryLimit();
+  bool sosTheoryLimit = _opt.sos() == Options::Sos::THEORY;
+  unsigned sosTheoryLimitAge = _opt.sosTheoryLimit();
   static ClauseStack repStack;
   repStack.reset();
 

@@ -1631,11 +1631,25 @@ Options::Options ()
        .description = "Like sine_tolerance but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection."
     " Has special value of -1.0, but otherwise must be greater or equal 1.0.",
        .tag = OptionTag::SATURATION})
-  , _sos("sos",this,Sos::OFF,{"all","off","on","theory"},
+  , _sos("sos",this,Sos::OFF,{"off","on","theory"},
       {.short_name = "sos",
-       .description = "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them."
-    " If all, select all literals of set-of-support clauses, otherwise use the default literal selector. If theory then only apply to theory"
-    " axioms introduced by vampire (all literals are selected).",
+       .description = "Set of support strategy. The set-of-support clauses are put directly among active clauses, without performing any inferences between them."
+    " If on, these are the input clauses below sos_affinity_threshold (by default, those not derived from hypotheses or the conjecture)."
+    " If theory, these are the input clauses derived from theory axioms introduced by vampire only (see also sos_theory_limit).",
+       .tag = OptionTag::PREPROCESSING})
+  , _sosTotalSelection("sos_total_selection",this,false,
+      {.short_name = "sosts",
+       .description = "Select all literals of set-of-support clauses, instead of using the default literal selector.",
+       .tag = OptionTag::PREPROCESSING})
+  , _sosAffinityThreshold("sos_affinity_threshold",this,GoalAffinityThreshold::ASSUMPTION,{"axiom","assumption","conjecture"},
+      {.short_name = "sosat",
+       .description = "The goal affinity threshold by which sos=on decides what goes to the set of support."
+    " Every clause has a goal affinity, one of distant axiom < axiom < assumption < conjecture:"
+    " an input unit gets it from its role (e.g. TPTP axiom, hypothesis, conjecture or negated_conjecture),"
+    " a derived clause gets the highest affinity among its parents."
+    " Input clauses whose affinity is below the threshold go to the set of support."
+    " So 'assumption' sets aside the axioms, 'conjecture' also what derives from hypotheses,"
+    " and 'axiom' only distant axioms (those read from TPTP include files) and their descendants.",
        .tag = OptionTag::PREPROCESSING})
   , _sosTheoryLimit("sos_theory_limit",this,0,
       {.short_name = "sstl",
@@ -2266,6 +2280,8 @@ Options::Options ()
     _sos.onlyUsefulWith(ProperSaturationAlgorithm());
 
     _sosTheoryLimit.onlyUsefulWith(_sos.is(equal(Sos::THEORY)));
+    _sosTotalSelection.onlyUsefulWith(_sos.is(notEqual(Sos::OFF)));
+    _sosAffinityThreshold.onlyUsefulWith(_sos.is(equal(Sos::ON)));
 
     _fmbStartSize.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
 

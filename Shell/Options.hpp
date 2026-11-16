@@ -795,10 +795,9 @@ public:
   };
 
   enum class Sos : unsigned int{
-    ALL = 0,
-    OFF = 1,
-    ON = 2,
-    THEORY = 3
+    OFF = 0,
+    ON = 1,
+    THEORY = 2
   };
 
   /** The goal affinities (see Kernel::GoalAffinity) at which a goal-directed heuristic
@@ -1453,6 +1452,9 @@ public:
   /** clauses of at least this goal affinity count as goal for nongoal_weight_coefficient */
   Kernel::GoalAffinity nongoalWeightAffinityThreshold() const { return toGoalAffinity(_nonGoalWeightAffinityThreshold.actualValue); }
   Sos sos() const { return _sos.actualValue; }
+  bool sosTotalSelection() const { return _sosTotalSelection.actualValue; }
+  /** with sos=on, clauses below this goal affinity go to the set of support */
+  Kernel::GoalAffinity sosAffinityThreshold() const { return toGoalAffinity(_sosAffinityThreshold.actualValue); }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
 
@@ -1909,6 +1911,8 @@ private:
   FloatOptionValue _sineTolerance;
   FloatOptionValue _sineToAgeTolerance;
   ChoiceOptionValue<Sos> _sos;
+  BoolOptionValue _sosTotalSelection;
+  ChoiceOptionValue<GoalAffinityThreshold> _sosAffinityThreshold;
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;

@@ -50,7 +50,10 @@ pel!=off > peltl ~uf 0.9,5.0
 > tgt ~cat off:10,ground:6,full:5
 
 # set_of_support
-> sos ~cat off:80,on:17,all:10,theory:10
+> sos ~cat off:80,on:27,theory:10
+sos=on > sosts ~cat off:17,on:10
+sos=theory > sosts ~cat on:1
+sos=on > sosat ~cat assumption:3,conjecture:1,axiom:1
 
 # sos_theory_limit
 sos=theory > sstl ~cat 0:10,1:1,2:1,3:1

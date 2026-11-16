@@ -25,7 +25,9 @@ $ins=OTHER > ins ~sgd 0.4,2
 > tgt ~cat off:10,ground:6,full:5
 
 # set_of_support
-> sos ~cat off:80,on:17,all:10
+> sos ~cat off:80,on:27
+sos=on > sosts ~cat off:17,on:10
+sos=on > sosat ~cat assumption:3,conjecture:1,axiom:1
 
 # sine_selection
 > ss ~cat off:1182,included:135,axioms:392

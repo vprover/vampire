@@ -74,7 +74,9 @@ intent=unsat ep!=off > sa ~cat lrs:600,discount:572,otter:236
 intent=sat > sa ~cat fmb:22,otter:60,discount:28
 
 # set_of_support
-intent=unsat sa!=fmb > sos ~cat off:80,on:17,all:10
+intent=unsat sa!=fmb > sos ~cat off:80,on:27
+sos=on > sosts ~cat off:17,on:10
+sos=on > sosat ~cat assumption:3,conjecture:1,axiom:1
 
 # lrs_first_time_check
 > $lftc ~cat N:5,Y:1
