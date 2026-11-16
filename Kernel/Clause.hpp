@@ -384,6 +384,7 @@ protected:
 #if VDEBUG
   static bool _auxInUse;
 #endif
+  static FixedSizeArrayAllocator<1024> kAlloc;
 }; // class Clause
 
 std::ostream& operator<<(std::ostream& out, Clause::Store const& clause);

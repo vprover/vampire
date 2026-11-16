@@ -50,6 +50,7 @@ size_t Clause::_auxCurrTimestamp = 0;
 #if VDEBUG
 bool Clause::_auxInUse = false;
 #endif
+FixedSizeArrayAllocator<1024> Clause::kAlloc = {};
 
 /** New clause */
 Clause::Clause(Literal* const* lits, unsigned length, Inference inf)
@@ -84,14 +85,15 @@ void* Clause::operator new(size_t sz, unsigned lits)
 
   RSTAT_CTR_INC("clauses created");
 
-  return ALLOC_KNOWN(bytesRequiredFor(lits),"Clause");
+  // std::cout << "Clause " << bytesRequiredFor(lits) << std::endl;
+  return ALLOC_KNOWN2(bytesRequiredFor(lits),"Clause",kAlloc);
 }
 
 void Clause::operator delete(void* ptr,unsigned length)
 {
   RSTAT_CTR_INC("clauses deleted by delete operator");
 
-  DEALLOC_KNOWN(ptr, bytesRequiredFor(length),"Clause");
+  DEALLOC_KNOWN2(ptr, bytesRequiredFor(length),"Clause",kAlloc);
 }
 
 void Clause::destroyExceptInferenceObject()
@@ -104,7 +106,7 @@ void Clause::destroyExceptInferenceObject()
 
   RSTAT_CTR_INC("clauses deleted");
 
-  DEALLOC_KNOWN(this, bytesRequiredFor(_length),"Clause");
+  DEALLOC_KNOWN2(this, bytesRequiredFor(_length),"Clause",kAlloc);
 }
 
 
