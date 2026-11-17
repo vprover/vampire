@@ -16,9 +16,6 @@
 #ifndef __LIB_COPRODUCT__H__
 #define __LIB_COPRODUCT__H__
 
-#include <type_traits>
-#define MACRO_EXPANSION true
-
 #include "Debug/Assertion.hpp"
 #include "Lib/Hash.hpp"
 #include "Lib/Comparison.hpp"
@@ -28,87 +25,15 @@
 #include "Lib/Option.hpp"
 #include <functional>
 #include <type_traits>
-#include <vector>
 #include <tuple>
+#include <variant>
 #include <vector>
 
 namespace Lib {
 
 namespace TL = TypeList;
 
-template <class... As>
-class Coproduct;
-
-/* a type level function that maps a List<F, A> to the result std::invoke_result_t<F,A> */
-struct ApplyFuncToArg
-{
-  template<class Pair>
-  using apply = std::invoke_result_t<TL::Get<0, Pair>, TL::Get<1, Pair>>;
-};
-
-
-#define USE_SWITCH 0
-
-#if USE_SWITCH
-
-template<unsigned maxExcl> struct SwitchImpl{};
-
-#define SWITCH_CONT_0
-#define SWITCH_CONT_1  SWITCH_CONT_0  case 0:  return f(Constant<0>{});
-#define SWITCH_CONT_2  SWITCH_CONT_1  case 1:  return f(Constant<1>{});
-#define SWITCH_CONT_3  SWITCH_CONT_2  case 2:  return f(Constant<2>{});
-#define SWITCH_CONT_4  SWITCH_CONT_3  case 3:  return f(Constant<3>{});
-#define SWITCH_CONT_5  SWITCH_CONT_4  case 4:  return f(Constant<4>{});
-#define SWITCH_CONT_6  SWITCH_CONT_5  case 5:  return f(Constant<5>{});
-#define SWITCH_CONT_7  SWITCH_CONT_6  case 6:  return f(Constant<6>{});
-#define SWITCH_CONT_8  SWITCH_CONT_7  case 7:  return f(Constant<7>{});
-#define SWITCH_CONT_9  SWITCH_CONT_8  case 8:  return f(Constant<8>{});
-#define SWITCH_CONT_10 SWITCH_CONT_9  case 9:  return f(Constant<9>{});
-#define SWITCH_CONT_11 SWITCH_CONT_10 case 10: return f(Constant<10>{});
-#define SWITCH_CONT_12 SWITCH_CONT_11 case 11: return f(Constant<11>{});
-#define SWITCH_CONT_13 SWITCH_CONT_12 case 12: return f(Constant<12>{});
-#define SWITCH_CONT_14 SWITCH_CONT_13 case 13: return f(Constant<13>{});
-#define SWITCH_CONT_15 SWITCH_CONT_14 case 14: return f(Constant<14>{});
-#define SWITCH_CONT_16 SWITCH_CONT_15 case 15: return f(Constant<15>{});
-
-#define DECL_SWITCH_STRUCT(N)                                                             \
-  template<>                                                                              \
-  struct SwitchImpl<N> {                                                                  \
-    template<class F>                                                                     \
-    static auto apply(unsigned tag, F f) -> decltype(auto) {                              \
-      if (tag < N) {                                                                      \
-        switch (tag) {                                                                    \
-          SWITCH_CONT_ ## N                                                               \
-        }                                                                                 \
-      }                                                                                   \
-      ASSERTION_VIOLATION                                                                 \
-    }                                                                                     \
-  };                                                                                      \
-
-DECL_SWITCH_STRUCT(1)
-DECL_SWITCH_STRUCT(2)
-DECL_SWITCH_STRUCT(3)
-DECL_SWITCH_STRUCT(4)
-DECL_SWITCH_STRUCT(5)
-DECL_SWITCH_STRUCT(6)
-DECL_SWITCH_STRUCT(7)
-DECL_SWITCH_STRUCT(8)
-DECL_SWITCH_STRUCT(9)
-DECL_SWITCH_STRUCT(10)
-DECL_SWITCH_STRUCT(11)
-DECL_SWITCH_STRUCT(12)
-DECL_SWITCH_STRUCT(13)
-DECL_SWITCH_STRUCT(14)
-DECL_SWITCH_STRUCT(15)
-DECL_SWITCH_STRUCT(16)
-
-
-template<unsigned N, class F> 
-ResultOf<F, Constant<0>> switchN(unsigned tag, F fun)
-{ return SwitchImpl<N>::apply(tag, std::move(fun)); }
-
-#else // !USE_SWITCH
-
+/* calls f(Constant<tag>{}) for a runtime I <= tag <= N; compiles to a jump table or branches */
 template<unsigned I, unsigned N>
 struct SwitchImpl
 {
@@ -132,376 +57,46 @@ struct SwitchImpl<N, N> {
   }
 };
 
-
-template<unsigned N, class F> 
-inline ResultOf<F, Constant<0>> switchN(unsigned tag, F fun)
-{ return SwitchImpl<0, N - 1>::apply(tag, std::move(fun)); }
-
-#endif  // if(USE_SWITCH) else
-
-
-constexpr unsigned neededBits(unsigned i)
-{ return i <= 1       ? 0
-       : (i & 1) == 1 ? neededBits(i + 1)
-                      : 1 + neededBits(i >> 1); }
-
-constexpr unsigned bitMask(unsigned i)
-{ return ~(unsigned(-1) << neededBits(i)); }
-
-
-template<class... As>
-class Coproduct;
-
-/** This namespace contains helper classes and functions to implement the coproduct */
-namespace CoproductImpl {
-
-  template<class... As>
-  class RawCoproduct;
-
-  namespace TrivialOperations {
-
-    template<class Op, class T> using trivial     = typename Op::template trivial<T>;
-    template<class Op, class T> using DefaultImpl = typename Op::template DefaultImpl<T>;
-
-    template<class A> struct RawCoproductTypes;
-
-    template<class... As>
-    struct RawCoproductTypes<RawCoproduct<As...>>
-    { using type = TL::List<As...>; };
-
-    template<template<class> class W, class A>
-    struct RawCoproductTypes<W<A>>
-    { using type = typename RawCoproductTypes<A>::type; };
-
-    template<class Union> using Ts       = typename RawCoproductTypes<Union>::type;
-
-    template<class Op, class ToWrap>
-    using DefaultImplIfNeeded =
-      std::conditional_t<TL::All<Op::template trivial , Ts<ToWrap>>::val,                 ToWrap ,
-      std::conditional_t<TL::All<Op::template possible, Ts<ToWrap>>::val, DefaultImpl<Op, ToWrap>,
-                                                                             ToWrap >>;
-
-    struct Nothing {};
-
-    template<class Op, class Ts>
-    using DisableIfNeeded =
-      std::conditional_t<TL::All<Op::template trivial, Ts>::val, Nothing, typename Op::Disable>;
-
-    struct Destr {
-
-      template<class A> using possible = std::is_destructible<A>;
-      template<class A> using trivial  = std::is_trivially_destructible<A>;
-
-      struct Disable { Disable() {}; ~Disable() {} };
-
-      template<class T>
-      struct DefaultImpl : public T {
-        DefaultImpl() : T() {}
-        ~DefaultImpl()
-        {
-          this->switchN([&](auto N) {
-              using A = TL::Get<N.value, typename T::Ts>;
-              this->template castAt<N.value>().~A();
-          });
-        }
-      };
-    };
-
-#define MK_CONS(ConsClass, REF, MOVE, move_OR_copy, OTHER_REF)                            \
-    struct ConsClass {                                                                    \
-                                                                                          \
-      template<class A> using possible                                                    \
-        = std::is_          ## move_OR_copy ## _constructible<A>;                         \
-      template<class A> using trivial                                                     \
-       = std::is_trivially_ ## move_OR_copy ## _constructible<A>;                         \
-                                                                                          \
-      struct Disable { Disable() {}; Disable(Disable REF) = delete; };                    \
-                                                                                          \
-      template<class T>                                                                   \
-      struct DefaultImpl : public T {                                                     \
-        DefaultImpl() : T() {}                                                            \
-        ~DefaultImpl() = default;                                                         \
-        DefaultImpl(DefaultImpl OTHER_REF other) = default;                               \
-        DefaultImpl(DefaultImpl       REF other)                                          \
-          : T()                                                                           \
-        {                                                                                 \
-          this->assignTag(other.tag());                                                   \
-          this->switchN([&](auto N) {                                                     \
-              using A = TL::Get<N.value, typename T::Ts>;                                 \
-              ::new(&this->template castAt<N.value>())                                    \
-                A(MOVE(other.template castAt<N.value>()));                                \
-          });                                                                             \
-        }                                                                                 \
-                                                                                          \
-        DefaultImpl& operator=(DefaultImpl OTHER_REF other) = default;                    \
-        DefaultImpl& operator=(DefaultImpl       REF other)                               \
-        {                                                                                 \
-          if (this == &other) return *this;                                               \
-          this->switchN([&](auto N) {                                                     \
-              using A = TL::Get<N.value, typename T::Ts>;                                 \
-              this->template castAt<N.value>().~A();                                      \
-          });                                                                             \
-          ::new(this) DefaultImpl(MOVE(other));                                           \
-          return *this;                                                                   \
-        }                                                                                 \
-      };                                                                                  \
-    };
-
-
-  MK_CONS(CopyCons, const&,          , copy,     &&)
-  MK_CONS(MoveCons,     &&, std::move, move, const&)
-
-
-  }
-
-
-  /**
-   * Storage holding exactly one of As..., as a union rather than a byte buffer: a union
-   * tells the compiler that these types share the memory, so reading the live alternative
-   * is an ordinary member access at the right type and alias analysis stays correct.
-   * Do not go back to a `char[]` read through a cast -- that is undefined, and GCC
-   * miscompiled it here under -flto.
-   *
-   * Nothing is constructed or destroyed in the storage: Coproduct placement-news the live
-   * alternative and destroys it explicitly (see TrivialOperations). The destructor must
-   * still be *trivial* whenever every alternative is trivially destructible, or Coproduct
-   * loses its own triviality -- hence the two specialisations.
-   */
-  template<bool AllTriviallyDestructible, class... As>
-  union VariantStorage;
-
-  template<> union VariantStorage<true > {};
-  template<> union VariantStorage<false> {};
-
-  template<class A, class... As>
-  union VariantStorage<true, A, As...> {
-    A head;
-    VariantStorage<true, As...> tail;
-    VariantStorage() {} // leaves every alternative dead
-  };
-
-  template<class A, class... As>
-  union VariantStorage<false, A, As...> {
-    A head;
-    VariantStorage<false, As...> tail;
-    VariantStorage() {} // leaves every alternative dead
-    ~VariantStorage() {}
-  };
-
-  /** Reference to the idx-th alternative of a VariantStorage; constness follows the
-   *  storage. Coproduct constructs through this same path, so the alternative read is
-   *  the one that was constructed. */
-  template<unsigned idx>
-  struct StorageAt {
-    template<class S>
-    static auto& get(S& self) { return StorageAt<idx - 1>::get(self.tail); }
-  };
-
-  template<>
-  struct StorageAt<0> {
-    template<class S>
-    static auto& get(S& self) { return self.head; }
-  };
-
-  template<class... As>
-  class RawCoproduct {
-
-    template<class> friend struct TrivialOperations::CopyCons::DefaultImpl;
-    template<class> friend struct TrivialOperations::MoveCons::DefaultImpl;
-    template<class> friend struct TrivialOperations::Destr::DefaultImpl;
-    template<class... Bs> friend class Lib::Coproduct;
-
-    /** a type-level list of all types of this Coproduct */
-    using Ts = TL::List<As...>;
-
-    /** the number of alternatives */
-    static constexpr unsigned size = TL::Size<Ts>::val;
-
-    static constexpr unsigned nTags =
-#if VDEBUG
-                                size + 1;
-#else //!VDEBUG
-                                size;
-#endif // VDEBUG
-    static constexpr unsigned bitMask = ::bitMask(nTags);
-
-    static_assert(nTags == 0 || nTags - 1 == ((nTags - 1) & bitMask), "bug in function neededBits");
-
-    /** trivial destructibility has to be inherited by the storage; see VariantStorage */
-    static constexpr bool allTriviallyDestructible
-      = TL::All<std::is_trivially_destructible, Ts>::val;
-
-    using Storage = VariantStorage<allTriviallyDestructible, As...>;
-    unsigned _tag: neededBits(nTags);
-    Storage _content;
-
-
-    TrivialOperations::DisableIfNeeded<TrivialOperations::CopyCons, Ts> _copyCons;
-    TrivialOperations::DisableIfNeeded<TrivialOperations::MoveCons, Ts> _moveCons;
-    TrivialOperations::DisableIfNeeded<TrivialOperations::Destr   , Ts> _destr;
-
-#define __COPRODUCT_CONTENT_INIT 0
-
-#if VDEBUG
-    RawCoproduct()
-      : _tag(size)
-    {
-#if __COPRODUCT_CONTENT_INIT 
-      auto* bytes = reinterpret_cast<unsigned char*>(&_content);
-      for (unsigned i = 0; i < sizeof(Storage); i++) {
-        bytes[i] = 0xFF;
-      }
-#endif // __COPRODUCT_CONTENT_INIT
-    }
-#else // !VDEBUG
-    RawCoproduct() = default;
-#endif // VDEBUG
-
-    IGNORE_MAYBE_UNINITIALIZED(
-    template<class F>
-    ResultOf<F, Constant<0>> switchN(F f) const
-    { return Lib::switchN<size>(_tag, std::move(f)); }
-    )
-
-#define CONST_POLYMORPIHIC(CONST)                                                         \
-    template<unsigned idx>                                                                \
-    TL::Get<idx, Ts> CONST& castAt() CONST                                                \
-    {                                                                                     \
-      static_assert(idx < size, "variant index out of bounds");                           \
-      return StorageAt<idx>::get(_content);                                               \
-    }                                                                                     \
-                                                                                          \
-
-    CONST_POLYMORPIHIC(const)
-    CONST_POLYMORPIHIC(     )
-#undef CONST_POLYMORPIHIC
-
-    unsigned tag() const
-    {
-      ASS_REP(_tag < size, "access to uninitialized Coproduct")
-      return _tag;
-    }
-
-    template<unsigned tag>
-    void assignTag()
-    {
-      static_assert(tag < size, "tag out of bounds");
-      static_assert((tag & bitMask) == tag, "unexpected lib author error");
-      _tag = tag;
-    }
-
-    void assignTag(unsigned tag)
-    {
-      ASS_REP(tag < size, "tag out of bounds");
-      ASS_REP((tag & bitMask) == tag, "unexpected lib author error");
-      _tag = tag;
-    }
-  };
-
-  template<class A>
-  class RawCoproduct<A> {
-
-    template<class> friend struct TrivialOperations::CopyCons::DefaultImpl;
-    template<class> friend struct TrivialOperations::MoveCons::DefaultImpl;
-    template<class> friend struct TrivialOperations::Destr::DefaultImpl;
-
-    template<class... Bs> friend class Lib::Coproduct;
-
-    /** a type-level list of all types of this Coproduct */
-    using Ts = TL::List<A>;
-
-    /** the number of alternatives */
-    static constexpr unsigned size = 1;
-    A _content;
-
-    template<unsigned tag>
-    void assignTag()
-    { static_assert(tag == 0, "tag out of bounds"); }
-
-    void assignTag(unsigned tag)
-    { ASS_REP(tag == 0, "tag out of bounds"); }
-
-
-    template<class F>
-    ResultOf<F, Constant<0>> switchN(F f) const
-    { return f(Constant<0>{}); }
-
-    constexpr unsigned tag() const { return 0; }
-  };
-
-
-  template<class... As>
-  using RawWithDefaultImpls =
-     TrivialOperations::DefaultImplIfNeeded<TrivialOperations::CopyCons,
-     TrivialOperations::DefaultImplIfNeeded<TrivialOperations::MoveCons,
-     TrivialOperations::DefaultImplIfNeeded<TrivialOperations::Destr,
-       RawCoproduct<As...>
-      >>>;
-
-  static_assert( std::is_trivially_copyable<RawCoproduct<int, int>>::value, "test 01");
-  static_assert(!std::is_trivially_copyable<std::vector<int>>::value, "test 02");
-  static_assert(!TL::All<std::is_trivially_copyable, TL::List<std::vector<int>, int>>::val, "test 03");
-  static_assert(!std::is_trivially_copyable<RawCoproduct<std::vector<int>, int>>::value, "test 04");
-
-  static_assert( std::is_trivially_destructible<RawCoproduct<int, int>>::value, "test 01");
-  static_assert(!std::is_trivially_destructible<std::vector<int>>::value, "test 02");
-  static_assert(!TL::All<std::is_trivially_destructible, TL::List<std::vector<int>, int>>::val, "test 03");
-  static_assert(!std::is_trivially_destructible<RawCoproduct<std::vector<int>, int>>::value, "test 04");
-
-
-} // namespace CoproductImpl
-
-
-
-template<unsigned i, class A>
-class Variant {
-  A _self;
-  template<class...>
-  friend class Coproduct;
-public:
-  Variant(A a) : _self(move_if_value<A>(a)) {}
-};
-
-template<unsigned i, class A>
-Variant<i, A> variant(A a)
-{ return Variant<i, A>(move_if_value<A>(a)); };
-
-
-
-
 /**
  * The actual Coproduct class.
  * A coproduct, also called Sum type, is a union of types, tagged with indices. It can be constructed with
  * either of the type/index pairs, and in this implementation the index can be left away if all types in this
  * coproduct are distinct.
  *
- * It is implemented as a tagged union.
+ * Thin wrapper around std::variant. Prefer std::variant in new code.
  *
  * \see UnitTests/tCoproduct.cpp for usage
  */
 template <class... As>
 class Coproduct
 {
-  CoproductImpl::RawWithDefaultImpls<As...> _inner;
-
+  std::variant<As...> _inner;
 
   /** a type-level list of all types of this Coproduct */
   using Ts = TL::List<As...>;
 
   /** the number of alternatives */
-  static constexpr unsigned size = TL::Size<Ts>::val;
+  static constexpr unsigned size = sizeof...(As);
 
-  /** unsafe default constructor, content will be uninit */
-  // TODO allow uninit constructor if all alternatives are uninit constructible
-  Coproduct() {}
+  /** calls f(Constant<tag()>{}) */
+  template<class F>
+  ResultOf<F, Constant<0>> switchN(F f) const
+  { return SwitchImpl<0, size - 1>::apply(tag(), std::move(f)); }
+
+  /** constructs the alternative idx in place */
+  template<size_t idx, class... Args>
+  explicit Coproduct(std::in_place_index_t<idx> i, Args&&... args)
+    : _inner(i, std::forward<Args>(args)...) {}
 
 public:
 
-  inline unsigned tag() const { return _inner.tag(); }
-
-  Coproduct fromTail(Coproduct<As...> tail) 
-  { return Coproduct(std::move(tail)); }
-
+  inline unsigned tag() const
+  {
+    // also excludes valueless_by_exception(); in release builds this lets the compiler
+    // drop the bounds check on the last alternative when dispatching
+    ALWAYS(_inner.index() < size)
+    return _inner.index();
+  }
 
   /** Returns whether this coproduct is the variant idx */
   template<unsigned idx> bool is() const
@@ -516,14 +111,14 @@ public:
    */
   template <class B> bool is() const
   { return is<TL::IdxOf<B, Ts>::val>(); }
-                                                                                          \
+
   /**
    * constructs a new Coproduct with the variant idx.
    * \pre B must occur exactly once in As...
    */
   template<class B, std::enable_if_t<TL::Contains<B, Ts>::val, int> = 0>
   explicit Coproduct(B b)
-    : Coproduct(Variant<TL::IdxOf<B, Ts>::val, B>(move_if_value<B>(b)))
+    : Coproduct(std::in_place_index<TL::IdxOf<B, Ts>::val>, move_if_value<B>(b))
   { }
 
 #define REF_POLYMORPIHIC(REF, MOVE)                                                       \
@@ -538,7 +133,7 @@ public:
   template <class... F>                                                                   \
   inline ResultOf<TL::Get<0, TL::List<F...>>, TL::Get<0, Ts> REF> match(F... fs) REF {    \
     auto fs_ = std::tie(fs...);                                                           \
-    return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
+    return switchN([&](auto N) -> decltype(auto) {                                        \
         auto& f = std::get<N.value>(fs_);                                                 \
         return f(unwrap<N.value>());                                                      \
     });                                                                                   \
@@ -553,8 +148,8 @@ public:
    */                                                                                     \
   template <class F>                                                                      \
   inline auto apply(F f) REF -> decltype(auto) {                                          \
-    return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
-        return f((TL::Get<N.value, Ts> REF)MOVE(unwrap<N.value>()));                      \
+    return switchN([&](auto N) -> decltype(auto) {                                        \
+        return f(MOVE(unwrap<N.value>()));                                                \
     });                                                                                   \
   }                                                                                       \
   /**                                                                                     \
@@ -563,17 +158,15 @@ public:
    */                                                                                     \
   template <class F>                                                                      \
   inline auto applyCo(F f) REF -> decltype(auto) {                                        \
-    using Out = TL::Into<Coproduct, TL::Map<ApplyFuncToArg,                               \
-          TL::Zip<TL::Repeat<TL::Size<Ts>::val, F>, TL::List<As REF...>>>>;               \
-    return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
-        return Out::template variant<N.value>(                                            \
-            f((TL::Get<N.value, Ts> REF)MOVE(unwrap<N.value>())));                        \
+    using Out = Coproduct<std::invoke_result_t<F, As REF>...>;                            \
+    return switchN([&](auto N) -> decltype(auto) {                                        \
+        return Out::template variant<N.value>(f(MOVE(unwrap<N.value>())));               \
     });                                                                                   \
   }                                                                                       \
                                                                                           \
   template <class F>                                                                      \
   auto applyWithIdx(F f) REF -> decltype(auto) {                                          \
-    return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
+    return switchN([&](auto N) -> decltype(auto) {                                        \
         return f(MOVE(unwrap<N.value>()), N);                                             \
     });                                                                                   \
   }                                                                                       \
@@ -585,9 +178,8 @@ public:
   template <class... F>                                                                   \
   auto map(F... fs) REF {                                                                 \
     auto fs_ = std::tie(fs...);                                                           \
-    using Fs = TL::List<F...>;                                                            \
-    using Out = TL::Into<Coproduct, TL::Map<ApplyFuncToArg, TL::Zip<Fs, Ts>>>;            \
-    return _inner.switchN([&](auto N) -> decltype(auto) {                                 \
+    using Out = Coproduct<std::invoke_result_t<F, As>...>;                                \
+    return switchN([&](auto N) -> decltype(auto) {                                        \
         auto& f = std::get<N.value>(fs_);                                                 \
         return Out::template variant<N.value>(f(unwrap<N.value>()));                      \
     });                                                                                   \
@@ -613,7 +205,9 @@ public:
   inline TL::Get<idx, Ts> REF unwrap() REF {                                              \
     static_assert(idx < size, "out of bounds");                                           \
     ASS_EQ(idx, tag());                                                                   \
-    return MOVE(_inner.template castAt<idx>());                                           \
+    /* tells the compiler get_if cannot fail, so there is no runtime check */             \
+    ALWAYS(_inner.index() == idx)                                                         \
+    return MOVE(*std::get_if<idx>(&_inner));                                              \
   }                                                                                       \
                                                                                           \
   /**                                                                                     \
@@ -644,6 +238,7 @@ public:
 #undef REF_POLYMORPIHIC
 
   // TODO trivial one
+  // (C++20 derives operator!= from this)
   friend bool operator==(const Coproduct &lhs, const Coproduct &rhs)
   {
     return lhs.tag() == rhs.tag()
@@ -652,29 +247,13 @@ public:
       });
   }
 
-  // TODO trivial one
-  friend bool operator!=(const Coproduct &lhs, const Coproduct &rhs)
-  { return !(lhs == rhs); }
-
-  template <unsigned idx, class B>
-  Coproduct(Variant<idx, B> value)
-  {
-    static_assert(TL::Contains<B, Ts>::val, "not a variant of Coproduct");
-    static_assert(idx < size, "variant index out of bounds");
-    static_assert(std::is_same<B, TL::Get<idx, Ts>>::value, "illegal index for variant");
-
-    _inner.template assignTag<idx>();
-    // through castAt<idx>(), so the alternative constructed is the one read back
-    ::new(&_inner.template castAt<idx>()) B(move_if_value<B>(value._self));
-  }
-
   /**
    * constructs a new Coproduct with the variant idx. The argument type must match
    * `idx`th type of this * corpoduct's variants types (As...).
    */
   template <unsigned idx>
   static Coproduct variant(TL::Get<idx, Ts> value)
-  { return Coproduct(Variant<idx, TL::Get<idx, Ts>>(move_if_value<TL::Get<idx, Ts>>(value))); }
+  { return Coproduct(std::in_place_index<idx>, move_if_value<TL::Get<idx, Ts>>(value)); }
 
   friend std::ostream &operator<<(std::ostream &out, const Coproduct &self)
   { return self.apply([&](auto const& x)  -> std::ostream&
@@ -687,7 +266,7 @@ public:
     auto& lhs = *this;
     return  lexCompare(DefaultComparator::compare(lhs.tag(), rhs.tag()),
         [&](){
-          return lhs._inner.switchN([&](auto N){
+          return lhs.switchN([&](auto N){
               return DefaultComparator::compare(
                   lhs.template unwrap<N.value>(),
                   rhs.template unwrap<N.value>());
@@ -700,6 +279,11 @@ public:
 
   inline Coproduct clone() const { return apply([](auto& x){ return Coproduct(x.clone()); }); }
 }; // class Coproduct<As...>
+
+static_assert( std::is_trivially_copyable<Coproduct<int, int>>::value, "trivially copyable alternatives must give a trivially copyable Coproduct");
+static_assert(!std::is_trivially_copyable<Coproduct<std::vector<int>, int>>::value, "non-trivially copyable alternatives must not");
+static_assert( std::is_trivially_destructible<Coproduct<int, int>>::value, "trivially destructible alternatives must give a trivially destructible Coproduct");
+static_assert(!std::is_trivially_destructible<Coproduct<std::vector<int>, int>>::value, "non-trivially destructible alternatives must not");
 
 // Combine the tag with the active alternative's hash, one functor per alternative.
 template<class... ElementHashes>
@@ -725,31 +309,5 @@ template<class... Ts> struct std::hash<Lib::Coproduct<Ts...>>
         self.apply([](auto const& x){ return std::hash<std::remove_const_t<std::remove_reference_t<decltype(x)>>>{}(x); }));
   }
 };
-template<class... As> struct SelectOutput;
-
-template<class Cons> struct SelectOutput<Cons> { using type = Coproduct<std::invoke_result_t<Cons>>; };
-
-template<class Cond, class Cons, class... Rest>
-struct SelectOutput<Cond, Cons, Rest...> {
-  using type = TypeList::Into<Coproduct, 
-     TypeList::Concat< TypeList::List<std::invoke_result_t<Cons>>
-                     , typename SelectOutput<Rest...>::type::Ts 
-                     >>;
-};
-
-template<class Cons>
-auto select(Cons cons) -> Coproduct<decltype(cons())>
-{ return Coproduct<decltype(cons())>::template variant<0>(cons()); }
-
-template<class Cond, class Cons, class... Rest>
-auto select(Cond cond, Cons cons, Rest... rest) ->  SelectOutput<Cond, Cons, Rest...>
-{
-  return cond() ? SelectOutput<Cond, Cons, Rest...>::template variant<0>(cons())
-                : SelectOutput<Cond, Cons, Rest...>::fromTail(select(std::move(rest)...));
-}
-
-
-
 
 #endif // __LIB_COPRODUCT__H__
-
