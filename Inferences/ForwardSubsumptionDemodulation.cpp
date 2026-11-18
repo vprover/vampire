@@ -305,8 +305,8 @@ bool ForwardSubsumptionDemodulation<higherOrder>::perform(Clause* cl, Clause*& r
           // (if we're fine with moving the ordering implementation into headers,
           //  we can do this without code duplication and no performance penalty for the currently supported common case.)
 
-          TermList t0S = binder.applyWithUnboundVariableOffsetTo(t0, cl_maxVar+1, false);
-          TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1, false);
+          TermList t0S = binder.applyWithUnboundVariableOffsetTo(t0, cl_maxVar+1);
+          TermList t1S = binder.applyWithUnboundVariableOffsetTo(t1, cl_maxVar+1);
           Ordering::Result eqArgOrderS = ordering.compare(t0S, t1S);
           if (eqArgOrder == Ordering::INCOMPARABLE && eqArgOrderS != Ordering::INCOMPARABLE) {
             RSTAT_CTR_INC("FSD, ordered after partial substitution");

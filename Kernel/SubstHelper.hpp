@@ -116,13 +116,12 @@ public:
    * The specified substitution must be an identity on variables
    * bound inside the formula.
    *
-   * This function can handle special terms. Terms that have special
-   * terms as subterms will not be shared even if @b noSharing==false.
+   * This function can handle special terms.
    */
   template<class Applicator>
-  static TermList apply(TermList t, Applicator& applicator, bool noSharing=false)
+  static TermList apply(TermList t, Applicator& applicator)
   {
-    return applyImpl<false,Applicator>(t, applicator, noSharing);
+    return applyImpl<false,Applicator>(t, applicator);
   }
 
   /**
@@ -133,13 +132,12 @@ public:
    * The specified substitution must be an identity on variables
    * bound inside the formula.
    *
-   * This function can handle special terms. Terms that have special
-   * terms as subterms will not be shared even if @b noSharing==false.
+   * This function can handle special terms.
    */
   template<class Applicator>
-  static Term* apply(Term* t, Applicator& applicator, bool noSharing=false)
+  static Term* apply(Term* t, Applicator& applicator)
   {
-    return applyImpl<false,Applicator>(t, applicator, noSharing);
+    return applyImpl<false,Applicator>(t, applicator);
   }
 
   /**
@@ -150,8 +148,7 @@ public:
    * The specified substitution must be an identity on variables
    * bound inside the formula.
    *
-   * This function can handle special terms. Terms that have special
-   * terms as subterms will not be shared even if @b noSharing==false.
+   * This function can handle special terms.
    */
   template<class Applicator>
   static Literal* apply(Literal* lit, Applicator& applicator)
@@ -182,9 +179,8 @@ public:
   template<class Applicator>
   static Formula* apply(Formula* f, Applicator& applicator)
   {
-    return applyImpl<false>(f, applicator, false);
+    return applyImpl<false>(f, applicator);
   }
-
 
   /**
    * Apply a substitution to a literal. The substitution is
@@ -193,30 +189,20 @@ public:
    * TermList applyToSpecVar(unsigned specVar).
    */
   template<class Applicator>
-  static TermList applySV(TermList t, Applicator& applicator, bool noSharing=false)
+  static TermList applySV(TermList t, Applicator& applicator)
   {
-    return applyImpl<true,Applicator>(t, applicator, noSharing);
-  }
-  template<class Applicator>
-  static Term* applySV(Term* t, Applicator& applicator, bool noSharing=false)
-  {
-    return applyImpl<true,Applicator>(t, applicator, noSharing);
-  }
-  template<class Applicator>
-  static Literal* applySV(Literal* lit, Applicator& applicator)
-  {
-    return static_cast<Literal*>(applySV(static_cast<Term*>(lit),applicator));
+    return applyImpl<true,Applicator>(t, applicator);
   }
 
 private:
   template<bool ProcessSpecVars, class Applicator>
-  static Term* applyImpl(Term* t, Applicator& applicator, bool noSharing=false);
+  static Term* applyImpl(Term* t, Applicator& applicator);
   template<bool ProcessSpecVars, class Applicator>
-  static TermList applyImpl(TermList t, Applicator& applicator, bool noSharing=false);
+  static TermList applyImpl(TermList t, Applicator& applicator);
   template<bool ProcessSpecVars, class Applicator>
-  static Formula* applyImpl(Formula* f, Applicator& applicator, bool noSharing);
+  static Formula* applyImpl(Formula* f, Applicator& applicator);
   template<bool ProcessSpecVars, class Applicator>
-  static FormulaList* applyImpl(FormulaList* f, Applicator& applicator, bool noSharing);
+  static FormulaList* applyImpl(FormulaList* f, Applicator& applicator);
 
   /**
    * Return true iff the @b terms array does not contain any term that cannot be shared
@@ -262,9 +248,8 @@ struct SpecVarHandler<false>
  * TermList apply(unsigned var) and, if ProcessSpecVars
  * is set to true, also TermList applyToSpecVar(unsigned specVar).
  *
- * If @b trm can be shared and @b noSharing parameter
- * is false, all newly created terms will be inserted into
- * the sharing structure. Otherwise they will not be shared.
+ * If @b trm can be shared, all newly created terms will be
+ * inserted into the sharing structure.
  *
  * The specified substitution must be an identity on variables
  * bound inside the formula.
@@ -272,7 +257,7 @@ struct SpecVarHandler<false>
  * This function can handle special terms.
  */
 template<bool ProcessSpecVars, class Applicator>
-TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSharing)
+TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator)
 {
   using namespace SubstHelper_Aux;
 
@@ -284,7 +269,7 @@ TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSha
   }
   else {
     ASS(trm.isTerm());
-    return TermList(applyImpl<ProcessSpecVars>(trm.term(), applicator, noSharing));
+    return TermList(applyImpl<ProcessSpecVars>(trm.term(), applicator));
   }
 }
 
@@ -295,9 +280,8 @@ TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSha
  * TermList apply(unsigned var) and, if ProcessSpecVars
  * is set to true, also TermList applyToSpecVar(unsigned specVar).
  *
- * If @b trm can be shared and @b noSharing parameter
- * is false, all newly created terms will be inserted into
- * the sharing structure. Otherwise they will not be shared.
+ * If @b trm can be shared, all newly created terms will be
+ * inserted into the sharing structure.
  *
  * The specified substitution must be an identity on variables
  * bound inside the formula.
@@ -306,7 +290,7 @@ TermList SubstHelper::applyImpl(TermList trm, Applicator& applicator, bool noSha
  * This function can handle the substitution of sorts.
  */
 template<bool ProcessSpecVars, class Applicator>
-Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
+Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator)
 {
   using namespace SubstHelper_Aux;
 
@@ -315,21 +299,21 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     switch(trm->specialFunctor()) {
     case SpecialFunctor::ITE:
       return Term::createITE(
-    applyImpl<ProcessSpecVars>(sd->getITECondition(), applicator, noSharing),
-    applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
-    applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator, noSharing),
-    applyImpl<ProcessSpecVars>(sd->getSort(), applicator, noSharing)
+    applyImpl<ProcessSpecVars>(sd->getITECondition(), applicator),
+    applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator),
+    applyImpl<ProcessSpecVars>(*trm->nthArgument(1), applicator),
+    applyImpl<ProcessSpecVars>(sd->getSort(), applicator)
     );
     case SpecialFunctor::LET:
       // TODO what about sd->getSort()?
       return Term::createLet(
-        applyImpl<ProcessSpecVars>(sd->getLetBinding(), applicator, noSharing),
-        applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator, noSharing),
+        applyImpl<ProcessSpecVars>(sd->getLetBinding(), applicator),
+        applyImpl<ProcessSpecVars>(*trm->nthArgument(0), applicator),
         sd->getSort()
       );
     case SpecialFunctor::FORMULA:
       return Term::createFormula(
-      applyImpl<ProcessSpecVars>(sd->getFormula(), applicator, noSharing)
+      applyImpl<ProcessSpecVars>(sd->getFormula(), applicator)
       );
     case SpecialFunctor::LAMBDA:
       // TODO in principle this should not be so difficult to handle
@@ -337,7 +321,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     case SpecialFunctor::MATCH: {
       DArray<TermList> terms(trm->arity());
       for (unsigned i = 0; i < trm->arity(); i++) {
-        terms[i] = applyImpl<ProcessSpecVars>(*trm->nthArgument(i), applicator, noSharing);
+        terms[i] = applyImpl<ProcessSpecVars>(*trm->nthArgument(i), applicator);
       }
       return Term::createMatch(sd->getSort(), sd->getMatchedSort(), trm->arity(), terms.begin());
     }
@@ -371,18 +355,11 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
       //&top()-2, etc...
       TermList* argLst = args.end() - orig->arity();
 
-      bool shouldShare=!noSharing && canBeShared(argLst, orig->arity());
-
       Term* newTrm;
-      if(shouldShare) {
-        if(orig->isSort()){
-          newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
-        } else {
-          newTrm=Term::create(orig,argLst);
-        }
-      }
-      else {
-        newTrm=Term::createNonShared(orig,argLst);
+      if(orig->isSort()){
+        newTrm=AtomicSort::create(static_cast<AtomicSort*>(orig), argLst);
+      } else {
+        newTrm=Term::create(orig,argLst);
       }
       args.truncate(args.length() - orig->arity());
       args.push(TermList(newTrm));
@@ -417,7 +394,7 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     Term* t = tl.term();
     if(t->isSpecial()) {
       //we handle specal terms at the top level of this function
-      args.push(TermList(applyImpl<ProcessSpecVars>(t, applicator, noSharing)));
+      args.push(TermList(applyImpl<ProcessSpecVars>(t, applicator)));
       continue;
     }
     terms.push(t);
@@ -440,22 +417,12 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
     TermList* argLst = args.end() - trm->arity();
     ASS_EQ(args.size(), trm->arity());
     if(trm->isLiteral()) {
-      ASS(!noSharing);
       Literal* lit = static_cast<Literal*>(trm);
       result=Literal::create(lit,argLst);
     } else if(trm->isSort()){
-      if(!noSharing){
-        result=AtomicSort::create(static_cast<AtomicSort*>(trm),argLst);
-      } else {
-        result=AtomicSort::createNonShared(static_cast<AtomicSort*>(trm),argLst);
-      }
+      result=AtomicSort::create(static_cast<AtomicSort*>(trm),argLst);
     } else {
-      bool shouldShare=!noSharing && canBeShared(argLst, trm->arity());
-      if(shouldShare) {
-        result=Term::create(trm,argLst);
-      } else {
-        result=Term::createNonShared(trm,argLst);
-      }
+      result=Term::create(trm,argLst);
     }
   }
 
@@ -468,9 +435,8 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
  * TermList apply(unsigned var) and, if ProcessSpecVars
  * is set to true, also TermList applyToSpecVar(unsigned specVar).
  *
- * If @b trm can be shared and @b noSharing parameter
- * is false, all newly created terms will be inserted into
- * the sharing structure. Otherwise they will not be shared.
+ * If @b trm can be shared, all newly created terms will be
+ * inserted into the sharing structure.
  *
  * The specified substitution must be an identity on variables
  * bound inside the formula.
@@ -479,19 +445,19 @@ Term* SubstHelper::applyImpl(Term* trm, Applicator& applicator, bool noSharing)
  * This function can handle the substitution of sorts. 
  */
 template<bool ProcessSpecVars, class Applicator>
-Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noSharing)
+Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator)
 {
   switch (f->connective()) {
   case LITERAL:
   {
-    Literal* lit = static_cast<Literal*>(applyImpl<ProcessSpecVars>(f->literal(), applicator, noSharing));
+    Literal* lit = static_cast<Literal*>(applyImpl<ProcessSpecVars>(f->literal(), applicator));
     return lit == f->literal() ? f : new AtomicFormula(lit);
   }
 
   case AND:
   case OR:
   {
-    FormulaList* newArgs = applyImpl<ProcessSpecVars>(f->args(), applicator, noSharing);
+    FormulaList* newArgs = applyImpl<ProcessSpecVars>(f->args(), applicator);
     if (newArgs == f->args()) {
       return f;
     }
@@ -502,8 +468,8 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   case IFF:
   case XOR:
   {
-    Formula* l = applyImpl<ProcessSpecVars>(f->left(), applicator, noSharing);
-    Formula* r = applyImpl<ProcessSpecVars>(f->right(), applicator, noSharing);
+    Formula* l = applyImpl<ProcessSpecVars>(f->left(), applicator);
+    Formula* r = applyImpl<ProcessSpecVars>(f->right(), applicator);
     if (l == f->left() && r == f->right()) {
       return f;
     }
@@ -512,7 +478,7 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
 
   case NOT:
   {
-    Formula* arg = applyImpl<ProcessSpecVars>(f->uarg(), applicator, noSharing);
+    Formula* arg = applyImpl<ProcessSpecVars>(f->uarg(), applicator);
     if (f->uarg() == arg) {
       return f;
     }
@@ -528,7 +494,7 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
     while(vit.hasNext()) {
       auto [v, sort] = vit.next();
       TermList binding = applicator.apply(v);
-      TermList newSort = TermList(applyImpl<ProcessSpecVars>(sort, applicator, noSharing));
+      TermList newSort = TermList(applyImpl<ProcessSpecVars>(sort, applicator));
       ASS(binding.isVar());
       unsigned newVar = binding.var();
       VSList::push({newVar, newSort}, newVars);
@@ -537,7 +503,7 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
       }
     }
 
-    Formula* arg = applyImpl<ProcessSpecVars>(f->qarg(), applicator, noSharing);
+    Formula* arg = applyImpl<ProcessSpecVars>(f->qarg(), applicator);
     if (!varsModified && arg == f->qarg()) {
       VSList::destroy(newVars);
       return f;
@@ -546,7 +512,7 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
   }
 
   case BOOL_TERM:
-    return BoolTermFormula::create(applyImpl<ProcessSpecVars>(f->getBooleanTerm(), applicator, noSharing));
+    return BoolTermFormula::create(applyImpl<ProcessSpecVars>(f->getBooleanTerm(), applicator));
 
   case TRUE:
   case FALSE:
@@ -562,9 +528,8 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
  * TermList apply(unsigned var) and, if ProcessSpecVars
  * is set to true, also TermList applyToSpecVar(unsigned specVar).
  *
- * If @b trm can be shared and @b noSharing parameter
- * is false, all newly created terms will be inserted into
- * the sharing structure. Otherwise they will not be shared.
+ * If @b trm can be shared, all newly created terms will be
+ * inserted into the sharing structure.
  *
  * The specified substitution must be an identity on variables
  * bound inside the formula.
@@ -572,7 +537,7 @@ Formula* SubstHelper::applyImpl(Formula* f, Applicator& applicator, bool noShari
  * This function can handle special terms.
  */
 template<bool ProcessSpecVars, class Applicator>
-FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, bool noSharing)
+FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator)
 {
   if (FormulaList::isEmpty(fs)) {
     return fs;
@@ -591,8 +556,8 @@ FormulaList* SubstHelper::applyImpl(FormulaList* fs, Applicator& applicator, boo
     fs = args.pop();
     Formula* g = fs->head();
     FormulaList* gs = fs->tail();
-    Formula* h = applyImpl<ProcessSpecVars>(g, applicator, noSharing);
-    FormulaList* hs = res; // = applyImpl<ProcessSpecVars>(gs, applicator, noSharing);
+    Formula* h = applyImpl<ProcessSpecVars>(g, applicator);
+    FormulaList* hs = res; // = applyImpl<ProcessSpecVars>(gs, applicator);
 
     if (gs == hs && g == h) {
       res = fs;
