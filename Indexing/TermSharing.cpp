@@ -46,17 +46,14 @@ TermSharing::TermSharing()
 TermSharing::~TermSharing()
 {
 #if CHECK_LEAKS
-  Set<Term*, TermSharing, Equal>::Iterator ts(_terms);
-  while (ts.hasNext()) {
-    ts.next()->destroy();
+  for (auto ts : _terms.iter()) {
+    ts->destroy();
   }
-  Set<Literal*, TermSharing, Equal>::Iterator ls(_literals);
-  while (ls.hasNext()) {
-    ls.next()->destroy();
+  for (auto ls : _literals.iter()) {
+    ls->destroy();
   }
-  Set<AtomicSort*, TermSharing, Equal>::Iterator ss(_sorts);
-  while (ss.hasNext()) {
-    ss.next()->destroy();
+  for (auto ss : _sorts.iter()) {
+    ss->destroy();
   }
 #endif
 }
@@ -80,7 +77,6 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     unsigned vars = 0;
     bool hasInterpretedConstants=t->arity()==0 &&
       env.signature->getFunction(t->functor())->interpreted();
-    bool hasTermVar = false;
     bool hasBetaRedex = t->isBetaRedex();
     bool hasEtaRedex = t->isEtaRedex();
     const bool isLambda = t->isLambdaTerm();
@@ -97,14 +93,10 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
       t->setFreeDBIndices(t->termArg(0).freeDBIndices()->getUnion(t->termArg(1).freeDBIndices()));
     }
 
-    unsigned typeArity = t->numTypeArguments();
     for (unsigned i = 0; i < t->arity(); i++) {
       TermList* tt = t->nthArgument(i);
       if (tt->isVar()) {
         ASS(tt->isOrdinaryVar());
-        if(i >= typeArity) {
-          hasTermVar = true;
-        }
         vars++;
         weight += 1;
       }
@@ -116,7 +108,6 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
   
         vars += r->numVarOccs();
         weight += r->weight();
-        hasTermVar |= r->hasTermVar();
         hasBetaRedex |= r->hasBetaRedex();
         hasEtaRedex |= r->hasEtaRedex();
         hasLambda  |= r->hasLambda();
@@ -132,7 +123,6 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->setId(_terms.size());
     t->setNumVarOccs(vars);
     t->setWeight(weight);
-    t->setHasTermVar(hasTermVar);
     if (env.colorUsed) {
       Color fcolor = env.signature->getFunction(t->functor())->color();
       color = static_cast<Color>(color | fcolor);

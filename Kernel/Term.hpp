@@ -340,8 +340,6 @@ private:
     unsigned literal : 1;
     /** true if atomic sort */
     unsigned sort : 1;
-    /** true if term contains at least one term var */
-    unsigned hasTermVar : 1;
     /** Ordering comparison result for commutative term arguments, one of
      * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
      * @see Term::ArgumentOrder */
@@ -368,14 +366,13 @@ private:
     BITFIELD_MEMBER(bool, _hasLambda, _setHasLambda, 1,
     BITFIELD_MEMBER(bool, _hasBetaRedex, _setHasBetaRedex, 1,
     BITFIELD_MEMBER(bool, _hasEtaRedex, _setHasEtaRedex, 1,
-    BITFIELD_MEMBER(bool, _hasTermVar, _setHasTermVar, 1,
     BITFIELD_MEMBER(bool, _sort, _setSort, 1,
     BITFIELD_MEMBER(bool, _literal, _setLiteral, 1,
     BITFIELD_MEMBER(bool, _shared, _setShared, 1,
     BITFIELD_MEMBER(bool, _polarity, _setPolarity, 1,
     BITFIELD_MEMBER(unsigned, _tag, _setTag, TERM_TAG_BITS,
     END_BITFIELD
-  )))))))))))))
+  ))))))))))))
   BITFIELD_PTR_GET(Term, _term, 0)
   BITFIELD_PTR_SET(Term, _setTerm, 0)
 
@@ -655,14 +652,6 @@ public:
     return numVarOccs() == 0;
   } // ground
 
-  /** True if the term contains a term variable (type variables don't count)
-   *  Only applicable to shared terms */
-  bool hasTermVar() const
-  {
-    ASS(shared());
-    return info()._hasTermVar();
-  } // ground
-
   /** True if the term is shared */
   bool shared() const
   { return info()._shared(); } // shared
@@ -722,18 +711,9 @@ public:
   /** Set the number of variable _occurrences_ */
   void setNumVarOccs(unsigned v)
   {
-    if(_isTwoVarEquality) {
-      ASS_EQ(v,2);
-      return;
-    }
+    ASS(!_isTwoVarEquality);
     _vars = v;
   } // setVars
-
-  void setHasTermVar(bool b)
-  {
-    ASS(shared() && !isSort())
-    info()._setHasTermVar(b);
-  }
 
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const
@@ -887,7 +867,7 @@ public:
    * everything below it, and left all of it unchanged, so that a later evaluation
    * can skip the whole subtree.
    *
-   * Unlike weight(), color() or hasTermVar(), this is not a property of the term
+   * Unlike weight() or color(), this is not a property of the term
    * but a cache belonging to one particular evaluator (much like _kboWeight belongs
    * to one KBO). The owner is the single InterpretedEvaluation of a saturation run;
    * nobody else may set it, and every other user of InterpretedLiteralEvaluator
@@ -1020,7 +1000,7 @@ class AtomicSort
   : public Term
 {
 public:
-  AtomicSort();
+  AtomicSort() = default;
   explicit AtomicSort(const AtomicSort& t) throw();
 
   AtomicSort(unsigned functor,unsigned arity) throw()
@@ -1082,7 +1062,7 @@ public:
   bool isEquality() const
   { return functor() == 0; }
 
-  Literal();
+  Literal() = default;
   explicit Literal(const Literal& l) throw();
 
   /**
