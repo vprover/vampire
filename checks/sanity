@@ -192,6 +192,13 @@ check_exact_output ucore/test2.out --input_syntax smtlib2 -om ucore ucore/test2.
 # Finite model building
 # sort bound detection over a function with a multi-sorted argument list
 check_szs_status Satisfiable -sa fmb -fmbdsb on fmb/detect-sort-bounds.p
+check_szs_status Satisfiable -sa fmb -newcnf off fmb/sort-inference-equality.p
+check_szs_status Satisfiable -sa fmb -newcnf on fmb/sort-inference-equality.p
+# not just the status, as that is printed before the (wrong) model is even built
+check_output_contains "(X = 'fmb_\$i_1') | (X = 'fmb_\$i_2')" -sa fmb -fmbes contour -sas cadical fmb/contour-monotonic.p
+# strict sort constraints in contour: a cycle of them means giving up, and they may push a sort past its max
+check_szs_status GaveUp -sa fmb -fmbes contour -fmbdsb on -t 5 fmb/contour-strict-cycle.p
+check_szs_status Unsatisfiable -sa fmb -fmbes contour -fmbdsb on -t 5 fmb/contour-strict-at-max.p
 
 # Term algebra problems
 check_szs_status Unsatisfiable term-algebra/terms_distinct.smt2
@@ -271,6 +278,12 @@ check_szs_status Satisfiable theory/let-nested-bool.smt2
 check_szs_status Satisfiable -newcnf on theory/let-nested-bool.smt2
 
 # Arrays
+# Explicit plus signs on TPTP integer and rational literals.
+check_szs_status Theorem --input_syntax tptp theory/plus-numerals.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-integer-disequality.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-zero-disequality.p
+check_szs_status Unsatisfiable --input_syntax tptp theory/plus-rational-disequality.p
+
 check_szs_status Unsatisfiable theory/arrays.smt2
 check_szs_status Unsatisfiable -newcnf on theory/arrays.smt2
 
@@ -308,15 +321,15 @@ check_szs_status Theorem -newcnf on parse/cond.p
 # corresponding commit messages for details.
 # (rejection tests pass --input_syntax tptp explicitly, so that the auto mode
 #  does not retry the failing input as SMT-LIB and garble the error message)
-check_output_contains '(p & ((q = r)))' --mode output parse/eq-precedence.p
-check_output_contains '(((p = r)) & s)' --mode output parse/eq-precedence.p
+check_output_contains '(p & (q = r))' --mode output parse/eq-precedence.p
+check_output_contains '((p = r) & s)' --mode output parse/eq-precedence.p
 # the same thing one level down, inside an argument list: an equality now resumes
 # connective parsing after itself, and the equality-argument guard no longer leaks
 # into a nested argument list. a1/a3/a6 of the file are three spellings of one
 # formula, and the single expectation below covers all three
-check_output_contains 'r(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
+check_output_contains 'r((X0 = a) & p(X0))' --mode output parse/term-eq-connective.p
 check_output_contains 'd = h(p(X0) & p(a))' --mode output parse/term-eq-connective.p
-check_output_contains 'd = h(X0 = a & p(X0))' --mode output parse/term-eq-connective.p
+check_output_contains 'd = h((X0 = a) & p(X0))' --mode output parse/term-eq-connective.p
 check_output_contains '((d = X0) & p(X0))' --mode output parse/term-eq-connective.p
 check_rejected 'crlf-line-numbers.p", line 4: formula or term expected' --input_syntax tptp --mode output parse/crlf-line-numbers.p
 check_output_contains 'second_unit_parsed' --mode output parse/block-comment-star.p
@@ -328,34 +341,34 @@ check_szs_status Unsatisfiable parse/include-filtered-conjecture.p
 check_rejected 'sort mismatch in the if-then-else' --input_syntax tptp --mode output parse/ite-sort-mismatch.p
 check_rejected 'cnf(), fof(), tff(), tcf(), thf(), vampire() or include() expected' --input_syntax tptp --mode output parse/bad-unit-kind.p
 check_output_contains 'f0(X0) := $sum(X0,1)' --mode output parse/let-function-parse.p
-check_output_contains '((((q) = r)) & p)' --mode output parse/thf-eq-truncation.p
-check_output_contains '((((f @ x)) = y))' --mode output parse/thf-eq-truncation.p
-check_output_contains '(^[X0 : tree_b] : (((X0 = e_b))))' --mode output parse/thf-binder-eq.p
-check_output_contains '(![X0 : $o] : (((X0 = X0))))' --mode output parse/thf-binder-eq.p
-check_output_contains '(s & ((p = r)))' --mode output parse/thf-eq-precedence.p
-check_output_contains '(((p = q)) <=> r)' --mode output parse/thf-eq-precedence.p
-check_output_contains '((p = ((f @ x))))' --mode output parse/thf-eq-precedence.p
+check_output_contains '((q = r) & p)' --mode output parse/thf-eq-truncation.p
+check_output_contains '((f @ x) = y)' --mode output parse/thf-eq-truncation.p
+check_output_contains '(^[X0 : tree_b] : (X0 = e_b))' --mode output parse/thf-binder-eq.p
+check_output_contains '(! [X0 : $o] : (X0 = X0))' --mode output parse/thf-binder-eq.p
+check_output_contains '(s & (p = r))' --mode output parse/thf-eq-precedence.p
+check_output_contains '((p = q) <=> r)' --mode output parse/thf-eq-precedence.p
+check_output_contains '(p = (f @ x))' --mode output parse/thf-eq-precedence.p
 check_output_contains '((f @ x) & p)' --mode output parse/thf-app-absorb.p
 check_output_contains '((g @ x @ y) & p)' --mode output parse/thf-app-absorb.p
 check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-app-absorb.p
-check_output_contains '(f @ (^[X0 : a] : (X0)) @ (^[X1 : b] : (X1)))' --mode output parse/thf-lambda-in-app-chain.p
-check_output_contains '(^[X0 : a] : ((g @ X0))) @ y' --mode output parse/thf-lambda-in-app-chain.p
-check_output_contains '(ev @ (^[X0 : a] : ((? [X1 : b] : (r @ X0 @ X1)))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
-check_output_contains '(((((^[X0 : b] : (y)) @ w)) = y))' --mode output parse/thf-lambda-in-app-chain.p
-check_output_contains '(fl @ (^[X0 : a] : ((~(r @ X0 @ w)))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(f @ (^[X0 : a] : X0) @ (^[X1 : b] : X1))' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(^[X0 : a] : (g @ X0)) @ y' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(ev @ (^[X0 : a] : (? [X1 : b] : (r @ X0 @ X1))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(((^[X0 : b] : y) @ w) = y)' --mode output parse/thf-lambda-in-app-chain.p
+check_output_contains '(fl @ (^[X0 : a] : (~ (r @ X0 @ w))) @ q)' --mode output parse/thf-lambda-in-app-chain.p
 check_rejected 'sort mismatch in the application x @ y' --input_syntax tptp --mode output parse/thf-ill-typed-app.p
 check_rejected 'sort mismatch in the application r | q @ x' --input_syntax tptp --mode output parse/thf-app-to-formula.p
-check_output_contains '(~((p = q)))' --mode output parse/thf-not-eq.p
+check_output_contains '(~ (p = q))' --mode output parse/thf-not-eq.p
 check_output_contains_once "'~' applied to an unparenthesized (in)equality" --mode output parse/thf-non-conformity-warnings.p
 check_output_contains_once 'an unparenthesized application as a connective argument' --mode output parse/thf-non-conformity-warnings.p
 check_output_contains_once 'as an unparenthesized equality argument' --mode output parse/thf-non-conformity-warnings.p
 check_output_contains_once 'a chained equality is not legal THF' --mode output parse/thf-non-conformity-warnings.p
-check_output_contains '(g @ <~>)' --mode output parse/thf-xor-section.p
+check_output_contains '(g @ (<~>))' --mode output parse/thf-xor-section.p
 check_rejected 'formula or term expected' --input_syntax tptp --mode output parse/thf-empty-parens.p
 check_rejected 'cannot parse the ?* quantifier' --input_syntax tptp --mode output parse/thf-quant-some.p
 check_rejected 'only supports type quantification (!>) in type declarations' --input_syntax tptp --mode output parse/thf-type-quant-in-formula.p
 check_output_contains '(p(vAND) & p(vNOT))' --mode output parse/proxy-names.p
-check_output_contains '(c = vPI(c))' --mode output parse/proxy-names.p
+check_output_contains '(vPI(c) = c)' --mode output parse/proxy-names.p
 # distinct objects (doubly-quoted symbols): declarable at a user sort in tff, one
 # distinct group per sort, non-ground sorts rejected
 check_szs_status Unsatisfiable parse/distinct-objects-tff.p
@@ -425,19 +438,21 @@ check_szs_status Theorem -t 1d -alasca on -alascai on -thf on Problems/DAT/DAT02
 check_szs_status Theorem -t 1d -tha off Problems/DAT/DAT042_1.p
 check_szs_status Theorem -t 5d -s 1010 -thsq on -thsqr 8,1 -thsqc 64 -thsqd 64 -canc force Problems/DAT/DAT043_1.p
 check_szs_status Theorem -t 10d -sa discount -s 2 -awr 1:32 -to lpo -s2a on -s2agt 20 -bd all Problems/HWV/HWV087_2.p
-check_szs_status Theorem -t 1d -sa discount -awr 1:32 -to lpo -sp const_frequency -sos all -sac on -lma off Problems/ITP/ITP319_1.p
+check_szs_status Theorem -t 1d -sa discount -awr 1:32 -to lpo -sp const_frequency -sos on -sosts on -sac on -lma off Problems/ITP/ITP319_1.p
 check_szs_status Theorem -t 1d -sa discount -tha off -nwc 5.0 -gtg exists_sym -gtgl 5 Problems/ITP/ITP320_1.p
 check_szs_status Theorem -t 1d -gve force -uwa one_side_interpreted -ep R Problems/NUM/NUM919_1.p
 check_szs_status ContradictoryAxioms -t 1d -s 1011 -thi all -uwa ground -br off -nwc 1.0 Problems/PLA/PLA046_1.p
 check_szs_status Theorem -t 1d -s 1002 -to kbo -kws inv_frequency -sas z3 -nwc 5.0 -gtg exists_all Problems/PLA/PLA050_1.p
 check_szs_status Theorem -t 1d -sa discount -s 1002 -to lpo -tha off -canc force -fsr off -fdi 10 -nwc 1.0 Problems/SEV/SEV425_1.p
-check_szs_status Theorem -t 1d -isp bottom -to lpo -sas z3 -fd preordered -ev force -bd all -nwc 1.0 -sp arity Problems/SWC/SWC478_1.p
+# Forced evaluation must not cycle with demodulation, including without LRS.
+check_szs_status Theorem -t 1 -isp bottom -to lpo -sas z3 -fd preordered -ev force -bd all -nwc 1.0 -sp arity Problems/SWC/SWC478_1.p
+check_szs_status Theorem -t 1 -sa otter -isp bottom -to lpo -sas z3 -fd preordered -ev force -bd all -nwc 1.0 -sp arity Problems/SWC/SWC478_1.p
 check_szs_status Theorem --decode ott+11_1:1_to=lpo:thi=all:sas=z3:bd=all:fdtod=on:sp=const_max:foolp=on:gtgl=5:asg=cautious:gtg=all:rawr=on_10 -lma off -add on -nwc 1.0  Problems/SWC/SWC482_1.p
 check_szs_status Theorem -t 1d -s 1011 -to lpo -sp unary_frequency -tha off -newcnf on -s2a on -doe on Problems/SWW/SWW587_2.p
 check_szs_status Theorem -t 3d -s 1011 -tgt full -fde none -nm 0 -bd all -sp arity -lma off -add on -nwc 1.0 Problems/SWW/SWW605_2.p
 check_szs_status Theorem --decode ott+10_1:1024_to=kbo:norm_ineq=on:fde=unused:sas=z3:sos=on:tha=off:nm=16_1 Problems/SWW/SWW617_2.p
 check_szs_status Theorem -t 1d -sas z3 -fs off -slsq off -s2a on -ep RSTC -fsr off -alasca on Problems/SWW/SWW620_2.p
-check_szs_status Theorem -t 1d -to lpo -sos all -doe on Problems/SWW/SWW629_2.p
+check_szs_status Theorem -t 1d -to lpo -sos on -sosts on -doe on Problems/SWW/SWW629_2.p
 
 # Forward ground joinability
 check_szs_status Satisfiable -t 5d -fgj on Problems/SWV/SWV021-1.p
@@ -497,6 +512,7 @@ check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt
 # --mode output, before preprocessing runs at all.
 check_szs_status Theorem hol/hol1.p
 check_szs_status Theorem hol/hol2.p
+check_szs_status Theorem hol/hol-bool-ext.p
 check_rejected 'distinct objects are not supported in higher-order problems' \
 	--input_syntax tptp hol/hol-distinct-object.p
 

@@ -210,8 +210,7 @@ public:
   /** set the content manually - hazardous, such terms should then only be used as integers */
   void setContent(uint64_t content) { _content = content; }
 
-  // TODO this default value is probably the reason we get too many parentheses everywhere
-  std::string toString(bool topLevel = false) const;
+  std::string toString(bool mightNeedParens = false) const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::TermList const& tl);
   /** make the term into an ordinary variable with a given number */
@@ -283,16 +282,18 @@ public:
   /* Higher-order terms */
   bool isApplication() const;
   bool isLambdaTerm() const;
-  bool isRedex() const;
+  bool isBetaRedex() const;
+  bool isEtaRedex() const;
+  bool isProxy() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
-  bool isPlaceholder() const;
 
   Option<unsigned> deBruijnIndex() const;
   /* Checks whether a term contains a loose, or unbound DB index.
    * In other words, it returns true if there is a db_i in the
    * term that is not wrapped into i lambda binders. */ 
   bool containsLooseDBIndex() const;
+  const SharedSet<unsigned>* freeDBIndices() const;
   TermList lhs() const;
   TermList rhs() const;
   TermList lambdaBody() const;
@@ -365,8 +366,8 @@ private:
     BITFIELD_MEMBER(uint32_t, _distinctVars, _setDistinctVars, TERM_DIST_VAR_BITS,
     BITFIELD_MEMBER(unsigned, _order, _setOrder, ARGUMENT_ORDER_BITS,
     BITFIELD_MEMBER(bool, _hasLambda, _setHasLambda, 1,
-    BITFIELD_MEMBER(bool, _hasRedex, _setHasRedex, 1,
-    BITFIELD_MEMBER(bool, _hasDeBruijnIndex, _setHasDeBruijnIndex, 1,
+    BITFIELD_MEMBER(bool, _hasBetaRedex, _setHasBetaRedex, 1,
+    BITFIELD_MEMBER(bool, _hasEtaRedex, _setHasEtaRedex, 1,
     BITFIELD_MEMBER(bool, _hasTermVar, _setHasTermVar, 1,
     BITFIELD_MEMBER(bool, _sort, _setSort, 1,
     BITFIELD_MEMBER(bool, _literal, _setLiteral, 1,
@@ -431,63 +432,38 @@ public:
   {
     friend class Term;
   private:
+    TermList _sort;
     union {
       struct {
-        Formula * condition;
-        TermList sort;
+        Formula* condition;
       } _iteData;
       struct {
         Formula* binding;
-        TermList sort;
       } _letData;
       struct {
-        Formula * formula;
+        Formula* formula;
       } _formulaData;
       struct {
         TermList lambdaExp;
         VSList* _vars;  // variables with their sorts together
-        TermList sort;
-        TermList expSort;//TODO is this needed?
       } _lambdaData;
       struct {
-        TermList sort;
         TermList matchedSort;
       } _matchData;
-      struct {
-        TermList sort; // the sort of every value argument, and of the final else
-      } _condData;
     };
     /** Return pointer to the term to which this object is attached */
     const Term* getTerm() const { return reinterpret_cast<const Term*>(this+1); }
   public:
     SpecialFunctor specialFunctor() const
     { return getTerm()->specialFunctor(); }
+    TermList getSort() const { return _sort; }
 
     Formula* getITECondition() const { ASS_EQ(specialFunctor(), SpecialFunctor::ITE); return _iteData.condition; }
-    VSList* getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
-    void setLambdaVars(VSList* vars) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData._vars = vars; }
+    VSList*  getLambdaVars() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData._vars; }
     TermList getLambdaExp() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.lambdaExp; }
-    void setLambdaExp(TermList exp) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.lambdaExp = exp; }
-    void setLambdaExpSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.expSort = sort; }
-    void setLambdaSort(TermList sort) { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); _lambdaData.sort = sort; }
     Formula* getLetBinding() const { ASS_EQ(specialFunctor(), SpecialFunctor::LET); return _letData.binding; }
-    TermList getLambdaExpSort() const { ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA); return _lambdaData.expSort; }
-    TermList getSort() const {
-      switch (specialFunctor()) {
-        case SpecialFunctor::ITE:
-          return _iteData.sort;
-        case SpecialFunctor::LET:
-          return _letData.sort;
-        case SpecialFunctor::LAMBDA:
-          return _lambdaData.sort;
-        case SpecialFunctor::MATCH:
-          return _matchData.sort;
-        case SpecialFunctor::COND:
-          return _condData.sort;
-        default:
-          ASSERTION_VIOLATION_REP(specialFunctor());
-      }
-    }
+    /** the sort of the lambda body, recovered by stripping one arrow per bound variable from the lambda's sort */
+    TermList getLambdaExpSort() const;
     Formula* getFormula() const { ASS_EQ(specialFunctor(), SpecialFunctor::FORMULA); return _formulaData.formula; }
     TermList getMatchedSort() const { ASS_EQ(specialFunctor(), SpecialFunctor::MATCH); return _matchData.matchedSort; }
   };
@@ -551,7 +527,7 @@ public:
 
   SpecialFunctor specialFunctor() const 
   { return toSpecialFunctor(functor()); }
-  std::string toString(bool topLevel = true) const;
+  std::string toString(bool mightNeedParens = false) const;
   friend std::ostream& operator<<(std::ostream& out, Kernel::Term const& tl);
   static std::string variableToString(unsigned var);
   static std::string variableToString(TermList var);
@@ -716,12 +692,6 @@ public:
     return _weight;
   }
 
-  int maxRedLength() const
-  {
-    ASS(shared());
-    return _maxRedLen;    
-  }
-
   int kboWeight(const void* kboInstance) const
   {
     ASS(_kboInstance || _kboWeight == -1);
@@ -737,6 +707,12 @@ public:
 #endif
     _kboWeight = w;
   }
+
+  const SharedSet<unsigned>* freeDBIndices() const
+  { return _freeDBIndices; }
+
+  void setFreeDBIndices(const SharedSet<unsigned>* is)
+  { _freeDBIndices = is; }
 
   /** Mark term as shared */
   void markShared()
@@ -760,11 +736,6 @@ public:
     ASS(shared());
     return info()._id();
   }
-  
-  void setMaxRedLen(int rl)
-  {
-    _maxRedLen = rl;
-  } // setWeight
 
   /** Set the number of variable _occurrences_ */
   void setNumVarOccs(unsigned v)
@@ -819,10 +790,10 @@ public:
   /** true if the term is a lambda term */
   bool isLambdaTerm() const;
   /** true if the term is a redex */
-  bool isRedex() const;
+  bool isBetaRedex() const;
+  bool isEtaRedex() const;
   bool isProxy(Proxy proxy) const;
   bool isChoice() const;
-  bool isPlaceholder() const;
 
   TermList lambdaBody() const {
     ASS(isLambdaTerm())
@@ -830,31 +801,28 @@ public:
     return *nthArgument(2);
   }
 
-  void setHasRedex(bool b) {
+  void setHasBetaRedex(bool b) {
     ASS(shared() && !isSort())
 
-    info()._setHasRedex(b);
+    info()._setHasBetaRedex(b);
   }
 
   /** true if term contains redex */
-  bool hasRedex() const {
+  bool hasBetaRedex() const {
     ASS(shared())
-    return info()._hasRedex();
+    return info()._hasBetaRedex();
+  }
+  void setHasEtaRedex(bool b) {
+    ASS(shared() && !isSort())
+
+    info()._setHasEtaRedex(b);
+  }
+  bool hasEtaRedex() const {
+    ASS(shared())
+    return info()._hasEtaRedex();
   }
   /** returns empty option if not a De Bruijn index and index otherwise */
   Option<unsigned> deBruijnIndex() const;
-
-  void setHasDeBruijnIndex(bool b) {
-    ASS(shared() && !isSort());
-    info()._setHasDeBruijnIndex(b);
-  }
-
-  /** returns true if term contains De Bruijn index */
-  bool hasDeBruijnIndex() const {
-    ASS(shared())
-
-    return info()._hasDeBruijnIndex();
-  }
 
   void setHasLambda(bool b) {
     ASS(shared() && !isSort())
@@ -932,6 +900,22 @@ public:
   /** Assign value that will be returned by the hasInterpretedConstants() function */
   void setInterpretedConstantsPresence(bool value) { _hasInterpretedConstants=value; }
 
+  /**
+   * True if interpreted evaluation has already been applied to this term and to
+   * everything below it, and left all of it unchanged, so that a later evaluation
+   * can skip the whole subtree.
+   *
+   * Unlike weight(), color() or hasTermVar(), this is not a property of the term
+   * but a cache belonging to one particular evaluator (much like _kboWeight belongs
+   * to one KBO). The owner is the single InterpretedEvaluation of a saturation run;
+   * nobody else may set it, and every other user of InterpretedLiteralEvaluator
+   * ignores it. It is deliberately not part of a term's identity: terms are hashed
+   * and compared on their functor and arguments only.
+   */
+  bool isEvalNormalForm() const { return _evalNormalForm; }
+  /** @see isEvalNormalForm; only shared terms are ever marked */
+  void markEvalNormalForm() { ASS(shared()); _evalNormalForm = 1; }
+
   /** Return true if term is either an if-then-else or a let...in expression */
   bool isSpecial() const { return functor() >= SPECIAL_FUNCTOR_LOWER_BOUND; }
 
@@ -955,7 +939,7 @@ public:
   }
 
 protected:
-  std::string prefixToString() const;
+  std::string prefixToString(bool mightNeedParens) const;
 
   unsigned computeDistinctVars() const;
 
@@ -990,7 +974,9 @@ protected:
   /** The number of this symbol in a signature */
   unsigned _functor;
   /** Arity of the symbol */
-  unsigned _arity : 28;
+  unsigned _arity : 27;
+  /** Evaluation cache bit, @see isEvalNormalForm() */
+  unsigned _evalNormalForm : 1;
   /** colour, used in interpolation and symbol elimination */
   unsigned _color : 2;
   /** Equal to 1 if the term/literal contains any interpreted constants */
@@ -1006,8 +992,7 @@ protected:
   /** KBO instance that uses the cached value @b _kboWeight. */
   const void* _kboInstance;
 #endif
-  /** length of maximum reduction length */
-  int _maxRedLen;
+  const SharedSet<unsigned>* _freeDBIndices;
   union {
     /** If _isTwoVarEquality is false, this value is valid and contains
      * number of occurrences of variables */
@@ -1326,7 +1311,7 @@ public:
   bool isAnswerLiteral() const;
 
   friend std::ostream& operator<<(std::ostream& out, Kernel::Literal const& tl);
-  std::string toString(bool reverseEquality = false) const;
+  std::string toString(bool reverseEquality = false, bool mightNeedParens = false) const;
 
   const std::string& predicateName() const;
 

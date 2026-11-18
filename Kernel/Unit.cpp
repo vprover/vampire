@@ -185,7 +185,7 @@ std::string Unit::inferenceAsString() const
 {
   const Inference& inf = inference();
 
-  std::string result = (std::string)"[" + inf.name();
+  std::string result = "[" + ruleName(inf.rule());
   SAT::SATClause *sat = inf.satPremise();
   if(sat)
     return result + " s" + Int::toString(inf.satPremise()->number) + "]";
@@ -248,24 +248,24 @@ bool Unit::minimizeAncestorsAndUpdateSelectedStats()
     std::tie(current,collecting) = todo.pop();
     if (collecting) {
       Inference& inf = current->inference();
-      seenInputInference |= (inf.rule() == InferenceRule::INPUT);
+      seenInputInference |= isInputRule(inf.rule());
       Inference::Iterator iit = inf.iterator();
       if (inf.hasNext(iit)) {
-        UnitInputType uit = UnitInputType::AXIOM; // we compute a maximum, so start from the smallest element
+        GoalAffinity affinity = MIN_AFFINITY; // we compute a maximum, so start from the smallest element
         bool isPureTheoryDescendant = true; // see also Inference::initMany
         while(inf.hasNext(iit)) {
           Unit* premUnit = inf.next(iit);
-          uit = getInputType(uit,premUnit->inputType());
+          affinity = childAffinity(affinity,premUnit->goalAffinity());
           isPureTheoryDescendant &= premUnit->isPureTheoryDescendant();
         }
-        current->setInputType(uit);
+        current->setGoalAffinity(affinity);
         inf.setPureTheoryDescendant(isPureTheoryDescendant);
       } else if (inf.rule() == InferenceRule::AVATAR_DEFINITION) {
         // don't touch _pureTheoryDescendant for AVATAR_DEFINITIONs - in general, they are no longer theory consequences (see Splitter.cpp around l. 1251)
-        current->setInputType(UnitInputType::AXIOM); // AVATAR_DEFINITION might have inherited goaledness from its causal parent, which we want to reset
+        current->setGoalAffinity(GoalAffinity::AXIOM); // AVATAR_DEFINITION might have inherited goaledness from its causal parent, which we want to reset
       } else {
         // no premises and not InferenceRule::AVATAR_DEFINITION
-        // we leave input type unchanged and isPureTheoryDescendant is already correctly set to isTheoryAxiom
+        // we leave goal affinity unchanged and isPureTheoryDescendant is already correctly set to isTheoryAxiom
         ASS_EQ(inf.isPureTheoryDescendant(),inf.isTheoryAxiom());
       }
       inf.updateStatistics(); // in particular, update inductionDepth (which could have decreased, since we might have fewer parents after miniminization)

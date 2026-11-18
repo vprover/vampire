@@ -371,7 +371,7 @@ SAT::Status SplittingBranchSelector::processDPConflicts()
       for(unsigned i=0; i<unsatCoreCnt; i++) {
         unsatCore.reset();
         _dp->getUnsatCore(unsatCore, i);
-        SATClause* conflCl = s2f.createConflictClause(unsatCore);
+        SATClause* conflCl = _parent.buildDPConflictClause(unsatCore);
         _solver.addClause(conflCl);
       }
 
@@ -611,7 +611,7 @@ SATLiteral Splitter::getLiteralFromName(SplitLevel compName)
   return SATLiteral(var, polarity);
 }
 
-std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+void Splitter::ensureSplPrefix()
 {
   if (splPrefix.empty()) {
     if(env.options->proof()==Options::Proof::TPTP){
@@ -619,6 +619,11 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
       splPrefix = env.signature->predicateName(spl)+"_";
     }
   }
+}
+
+std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated)
+{
+  ensureSplPrefix();
 
   SATLiteral lit = getLiteralFromName(compName);
   if (negated) {
@@ -628,6 +633,8 @@ std::string Splitter::getFormulaStringFromName(SplitLevel compName, bool negated
 }
 
 std::string Splitter::getFormulaStringFromLiteral(SATLiteral lit) {
+  ensureSplPrefix();
+
   if (lit.positive()) {
     return splPrefix+Lib::Int::toString(lit.var());
   } else {
@@ -639,6 +646,49 @@ Unit* Splitter::getDefinitionFromName(SplitLevel compName) const
 {
   // always stored positively
   return _defs.get(compName & ~1);
+}
+
+/**
+ * Build the SAT clause for an unsat core found by the decision procedure (e.g. congruence closure).
+ *
+ * The first-order conflict clause (a theory tautology) is wrapped in an AVATAR_SPLIT_CLAUSE
+ * that also cites the definitions of all the split names involved,
+ * so that these definitions end up in the proof.
+ */
+SATClause* Splitter::buildDPConflictClause(const LiteralStack& unsatCore)
+{
+  static LiteralStack foLits;
+  foLits.reset();
+  static SATLiteralStack satLits;
+  satLits.reset();
+
+  UnitList* ps = 0;
+  FormulaList* resLst = 0;
+
+  for (Literal* ul : iterTraits(unsatCore.iter())) {
+    Literal* lit = Literal::complementaryLiteral(ul);
+    foLits.push(lit);
+
+    SATLiteral slit = _sat2fo.toSAT(lit);
+    satLits.push(slit);
+
+    UnitList::push(getDefinitionFromName(getNameFromLiteral(slit)),ps);
+    FormulaList::push(new NamedFormula(getFormulaStringFromLiteral(slit)),resLst);
+  }
+
+  Clause* foConfl = Clause::fromStack(foLits,
+      NonspecificInference0(GoalAffinity::AXIOM,InferenceRule::THEORY_TAUTOLOGY_SAT_CONFLICT));
+  UnitList::push(foConfl,ps); // making sure this clause is the last one pushed (for the sake of colorFromAssumedFOConversion)
+
+  Formula* f = JunctionFormula::generalJunction(OR,resLst);
+  FormulaUnit* scl = new FormulaUnit(f,NonspecificInferenceMany(InferenceRule::AVATAR_SPLIT_CLAUSE,ps));
+
+  SATClause* confl = SATClause::fromStack(satLits);
+  if(env.options->proofExtra() == Options::ProofExtra::FULL)
+    env.proofExtra.insert(scl, new SATClauseExtra(confl));
+
+  confl->setInference(new FOConversionInference(scl));
+  return SATClause::removeDuplicateLiterals(confl);
 }
 
 void Splitter::collectDependenceLits(SplitSet* splits, SATLiteralStack& acc) const
@@ -1125,7 +1175,7 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
    */
   SplitLevel posName = (name&~1);
   Unit* def_u;
-  UnitInputType inpType = orig->inputType();
+  GoalAffinity affinity = orig->goalAffinity();
   if (!_defs.find(posName, def_u)) {
     Literal* oplit;
     Literal*const* possibly_flipped_lits = lits;
@@ -1136,12 +1186,12 @@ Clause* Splitter::buildAndInsertComponentClause(SplitLevel name, unsigned size, 
 
     std::string formula_name = getFormulaStringFromName(posName);
     Clause* temp = Clause::fromIterator(arrayIter(possibly_flipped_lits, size),
-        NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION));
+        NonspecificInference0(affinity,InferenceRule::AVATAR_DEFINITION));
     Formula* def_f = new BinaryFormula(IFF,
                  new NamedFormula(formula_name),
                  Formula::fromClause(temp));
 
-    Inference def_u_i = NonspecificInference0(inpType,InferenceRule::AVATAR_DEFINITION);
+    Inference def_u_i = NonspecificInference0(affinity,InferenceRule::AVATAR_DEFINITION);
     // def_u_i.setPureTheoryDescendant(orig->isPureTheoryDescendant()); -- don't probapagate PureTheoryDescendant through avatar
     // e.g. when a PureTheoryDescendant ~$less(X1,$sum(X1,1)) | ~$less(X0,X0) splits, the component ~$less(X1,$sum(X1,1)) is not longer a theory lemma
     def_u_i.setInductionDepth(orig->inference().inductionDepth());
@@ -1242,8 +1292,8 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
 }
 
 /**
- * @param orig original clause (one being split) used to determine input type of the component.
- *             Can be zero, in that case the input type is Unit::AXIOM
+ * @param orig original clause (one being split) used to determine goal affinity of the component.
+ *             Must not be null.
  * @param comp Component (Record) that we're getting the name for
  * @param compCl The clause that will be used to represent this component - to be filled
  *
@@ -1255,8 +1305,8 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Claus
 }
 
 /**
- * @param orig original clause (one being split) used to determine input type of the component.
- *             Can be zero, in that case the input type is Unit::AXIOM
+ * @param orig original clause (one being split) used to determine goal affinity of the component.
+ *             Must not be null.
  * @param size The number of literals in the component
  * @param lits The component to be named (as an array of literals)
  * @param compCl The clause that will be used to represent this component - to be filled

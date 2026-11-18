@@ -62,6 +62,7 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
 #define DEBUG_SHOW_UNITS 0
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> TPTP::_axiomNames;
+DHSet<unsigned, FnvHash, IdentityHash> TPTP::_modelDefinitionUnits;
 DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
@@ -139,7 +140,7 @@ Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
   Parse::TPTP parser(input, "<string>");
-  parser._lastInputType = UnitInputType::AXIOM;
+  parser._lastGoalAffinity = GoalAffinity::AXIOM;
   parser._lastDialect = Dialect::FOF; // what fof/tff normally records (but we start "from the middle")
   parser._strings.push("dummy_name");
   parser._states.push(END_FOF);  // this is what does the clause building
@@ -360,6 +361,48 @@ void TPTP::parseImpl(State initialState)
 #endif
   }
 } // TPTP::parse()
+
+void TPTP::parseInputType(const std::string& tp)
+{
+  _isConjecture = false;
+  _isQuestion = false;
+  _isClaim = false;
+  if(_modelDefinition){
+    // the role of a model definition is ignored, see isModelDefinition()
+    _lastGoalAffinity = GoalAffinity::AXIOM;
+  }
+  else if (tp == "axiom" || tp == "plain" || tp == "definition") {
+    // an axiom from an include() file is background knowledge, further from the goal than
+    // the axioms of the problem file itself
+    _lastGoalAffinity = restoreFiles.empty() ? GoalAffinity::AXIOM : GoalAffinity::DISTANT_AXIOM;
+  }
+  else if (tp == "conjecture") {
+    _isConjecture = true;
+    _lastGoalAffinity = GoalAffinity::CONJECTURE;
+  }
+  else if (tp == "question") {
+    _isConjecture = true;
+    _isQuestion = true;
+    _lastGoalAffinity = GoalAffinity::CONJECTURE;
+  }
+  else if (tp == "negated_conjecture") {
+    _lastGoalAffinity = GoalAffinity::CONJECTURE;
+  }
+  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
+    _lastGoalAffinity = GoalAffinity::ASSUMPTION;
+  }
+  else if (tp == "claim") {
+    _isClaim = true;
+    _lastGoalAffinity = GoalAffinity::AXIOM;
+  }
+  else if (tp == "assumption" || tp == "unknown" || tp == "logic") {
+    // MS: we were silently dropping these until now. I wonder why...
+    USER_ERROR("Unsupported unit type '", tp, "' found");
+  }
+  else {
+    PARSE_ERROR("unit type, such as axiom or definition expected but "s + tp + " found");
+  }
+}
 
 /**
  * Return either the content or the string for this token
@@ -1354,7 +1397,7 @@ void TPTP::unitList()
  * Process fof() or cnf() declaration. Does the following:
  * <ol>
  *  <li>add 0 to _formulas</li>
- *  <li>save the input type to _lastInputType</li>
+ *  <li>save the goal affinity to _lastGoalAffinity</li>
  *  <li>add unit name to _strings</li>
  *  <li>add to _states END_FOF,FORMULA</li>
  *  <li>records in _lastDialect whether this is fof or cnf</li>
@@ -1381,45 +1424,7 @@ void TPTP::fof(bool fo)
   }
 
   consumeToken(T_COMMA);
-  std::string tp = name();
-
-  _isQuestion = false;
-  if(_modelDefinition){
-    _lastInputType = UnitInputType::MODEL_DEFINITION;
-  }
-  else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if(tp == "extensionality"){
-    // this will be transformed to just AXIOM after clausification
-    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
-  }
-  else if (tp == "definition") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if (tp == "conjecture") {
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "question") {
-    _isQuestion = true;
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "negated_conjecture") {
-    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
-  }
-  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = UnitInputType::ASSUMPTION;
-  }
-  else if (tp == "claim") {
-    _lastInputType = UnitInputType::CLAIM;
-  }
-  else if (tp == "assumption" || tp == "unknown") {
-    // MS: we were silently dropping these until now. I wonder why...
-    USER_ERROR("Unsupported unit type '", tp, "' found");
-  }
-  else {
-    PARSE_ERROR("unit type, such as axiom or definition expected but "s + tp + " found");
-  }
+  parseInputType(name());
   consumeToken(T_COMMA);
   _states.push(END_FOF);
   _states.push(FORMULA);
@@ -1429,7 +1434,7 @@ void TPTP::fof(bool fo)
  * Process tff(), thf() or tcf() declaration. Does the following:
  * <ol>
  *  <li>add 0 to _formulas</li>
- *  <li>save the input type to _lastInputType</li>
+ *  <li>save the goal affinity to _lastGoalAffinity</li>
  *  <li>add unit name to _strings</li>
  *  <li>add to _states END_FOF,FORMULA</li>
  *  <li>records in _lastDialect whether this is tcf (which must end up a clause) or not</li>
@@ -1518,43 +1523,7 @@ void TPTP::tff(bool tcf)
   }
 
   _lastDialect = tcf ? Dialect::TCF : Dialect::FOF;
-  _isQuestion = false;
-  if(_modelDefinition){
-    _lastInputType = UnitInputType::MODEL_DEFINITION;
-  }
-  else if (tp == "axiom" || tp == "plain") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if (tp == "extensionality"){
-    // this will be transformed to just AXIOM after clausification
-    _lastInputType = UnitInputType::EXTENSIONALITY_AXIOM;
-  }
-  else if (tp == "definition") {
-    _lastInputType = UnitInputType::AXIOM;
-  }
-  else if (tp == "conjecture") {
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "question") {
-    _isQuestion = true;
-    _lastInputType = UnitInputType::CONJECTURE;
-  }
-  else if (tp == "negated_conjecture") {
-    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
-  }
-  else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = UnitInputType::ASSUMPTION;
-  }
-  else if (tp == "assumption" || tp == "unknown") {
-    // MS: we were silently dropping these until now. I wonder why...
-    USER_ERROR("Unsupported unit type '", tp, "' found");
-  }
-  else if (tp == "claim") {
-    _lastInputType = UnitInputType::CLAIM;
-  }
-  else {
-    PARSE_ERROR("unit type, such as axiom or definition expected but " + tp + " found");
-  }
+  parseInputType(tp);
   consumeToken(T_COMMA);
   _states.push(END_FOF);
   _states.push(FORMULA);
@@ -3496,22 +3465,18 @@ void TPTP::midEquality()
  */
 Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
 {
-  TermList masterVar;
   TermList sort;
-  if (!SortHelper::getResultSortOrMasterVariable(lhs, sort, masterVar)) {
-    // Master variable is a variable whose sort determines the sort of a term.
-    // If term is a variable, the master variable is the variable itself. The
-    // trickier case is when we have an if-then-else expression with variable
-    // arguments.
+  if (lhs.isVar()) {
     SList* vs;
-    if (_variableSorts.find(masterVar.var(),vs) && vs) {
+    if (_variableSorts.find(lhs.var(),vs) && vs) {
       sort = vs->head();
     }
     else { // this may happen when free variables appear in the formula (or clause)
       sort = AtomicSort::defaultSort();
     }
+  } else {
+    sort = SortHelper::getResultSort(lhs.term());
   }
-   
   return Literal::createEquality(polarity,lhs,rhs,sort);
 } // TPTP::createEquality
 
@@ -3519,7 +3484,7 @@ Literal* TPTP::createEquality(bool polarity,TermList& lhs,TermList& rhs)
  * Creates a formula that is a predicate application literal from
  * provided predicate symbol name and arity. If arity is greater than zero,
  * the arguments are assumed to be on the _termLists stack.
- * @since 27/03/1015 Manchester
+ * @since 27/03/2015 Manchester
  */
 Formula* TPTP::createPredicateApplication(std::string name, unsigned arity)
 {
@@ -3685,8 +3650,17 @@ TermList TPTP::createTypeConApplication(std::string name, unsigned arity)
 
   bool added = false;
   unsigned typeCon = env.signature->addTypeCon(name,arity,added)->number();
-  if(added)
+  if(added) {
+    if (env.signature->functionExists(name,arity)) {
+      auto type = env.signature->getFunction(env.signature->getFunctionNumber(name,arity))->type();
+      USER_ERROR("Vampire does not yet support dependent types (function '", name, ": ", type->toString(), "' was used in a type declaration).");
+    }
+    if (env.signature->predicateExists(name,arity)) {
+      auto type = env.signature->getPredicate(env.signature->getPredicateNumber(name,arity))->type();
+      USER_ERROR("Vampire does not yet support dependent types (predicate '", name, ": ", type->toString(), "' was used in a type declaration).");
+    }
     USER_ERROR("Undeclared type constructor ", name, "/", arity);
+  }
 
   auto args = nLastTermLists(arity);
   for (auto i : range(0, arity)) {
@@ -4050,7 +4024,7 @@ void TPTP::endFof()
     _curQuestionVarNames.reset();
     return;
   }
-  if (_lastInputType == UnitInputType::CONJECTURE) {
+  if (_isConjecture) {
     // count the conjecture only now, once the unit is known not to be
     // filtered out by an include() formula selection
     // (containsConjecture() decides between SZS Theorem and Unsatisfiable)
@@ -4064,7 +4038,8 @@ void TPTP::endFof()
 
   Unit *unit, *original;
   if (!mustBeClause) { // fof() or tff()
-    original = unit = new FormulaUnit(f,FromInput(_lastInputType));
+    original = unit = new FormulaUnit(f,
+        _isConjecture ? Inference(InputConjecture()) : Inference(FromInput(_lastGoalAffinity)));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf() or tcf()
@@ -4126,14 +4101,8 @@ void TPTP::endFof()
         USER_ERROR("input formula not in CNF: " + f->toString());
       }
     }
-    if(needsFlipDocumenting) {
-      FormulaUnit *fu = new FormulaUnit(f, FromInput(_lastInputType));
-      original = fu;
-      FormulaClauseTransformation transform(InferenceRule::REORIENT_EQUATIONS, fu);
-      unit = Clause::fromStack(lits, transform);
-    }
-    else
-      original = unit = Clause::fromStack(lits, FromInput(_lastInputType));
+    unit = Clause::fromStackKeepingOrientation(lits, FromInput(_lastGoalAffinity),
+        needsFlipDocumenting ? f : nullptr, original);
     unit->setInheritedColor(_currentColor);
   }
 
@@ -4146,38 +4115,29 @@ void TPTP::endFof()
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
-  if (!restoreFiles.empty()) {
-    unit->inference().markIncluded();
-  }
-
-  switch (_lastInputType) {
-  case UnitInputType::CONJECTURE:
+  if (_isConjecture) {
     // negating a clause does not give a clause
     if(mustBeClause) USER_ERROR("conjecture is not allowed in ",
         _lastDialect == Dialect::CNF ? "cnf" : "tcf");
-    {
-      ASS_EQ(freeVariables(f),VList::empty())
-      f = new NegatedFormula(f);
-      unit = new FormulaUnit(f,
-			     FormulaClauseTransformation(InferenceRule::NEGATED_CONJECTURE,unit));
-      if (_isQuestion) {
-        _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
-      }
+    ASS_EQ(freeVariables(f),VList::empty())
+    f = new NegatedFormula(f);
+    unit = new FormulaUnit(f,
+			   FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION,unit));
+    if (_isQuestion) {
+      _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
     }
-    break;
-
-  case UnitInputType::CLAIM:
+  }
+  if (_isClaim) {
     unit = processClaimFormula(unit,f,nm);
-    break;
-
-  default:
-    break;
+  }
+  if (_modelDefinition) {
+    _modelDefinitionUnits.insert(unit->number());
   }
   _units.pushBack(unit);
 } // tag
 
 /*
-* The given unit has already been parsed (and had the role CLAIM).
+* The given unit has already been parsed (and had the role claim).
 * It's actually a FormulaUnit with the formula f wrapped inside.
 * nm is the name of the claim in TPTP, but can be any other string
 * that will serve as the name of the predice we introduce:
@@ -5250,26 +5210,18 @@ unsigned TPTP::addOverloadedPredicate(std::string name,int arity,int symbolArity
  */
 TermList TPTP::sortOf(TermList t)
 {
-  for (;;) {
-    if (t.isVar()) {
-      SList* sorts;
-      if (_variableSorts.find(t.var(),sorts) && SList::isNonEmpty(sorts)) {
-        return sorts->head();
-      }
-      // there might be variables whose sort is undeclared,
-      // in this case they have the default sort
-      TermList def = AtomicSort::defaultSort();
-      bindVariable(t.var(), def);
-      return def;
+  if (t.isVar()) {
+    SList* sorts;
+    if (_variableSorts.find(t.var(),sorts) && SList::isNonEmpty(sorts)) {
+      return sorts->head();
     }
-    TermList sort;
-    TermList mvar;
-    if (SortHelper::getResultSortOrMasterVariable(t.term(), sort, mvar)) { //TODO update
-      return sort;
-    } else {
-      t = mvar;
-    }
+    // there might be variables whose sort is undeclared,
+    // in this case they have the default sort
+    TermList def = AtomicSort::defaultSort();
+    bindVariable(t.var(), def);
+    return def;
   }
+  return SortHelper::getResultSort(t.term());
 } // sortOf
 
 

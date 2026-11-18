@@ -284,7 +284,7 @@ private:
   {
   public:
     void init(FlatTerm* ft_, const CodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_) {
-      Matcher::init(tree_, tree_.getEntryPoint(), 0, 0, firstsInBlocks_);
+      Matcher::init(tree_, tree_.getEntryPoint(), LitInfoOccupation(), 0, 0, firstsInBlocks_);
       ft=ft_;
       tp=0;
       op=entry;
@@ -523,7 +523,21 @@ bool PartialRedundancyHandlerImpl<enabled, ordC, avatarC, litC>::compareWithSupe
           return true;
         }
         // case 2.b.
-        return checkOrConstrainGreater(_ord->compare(other, tgtTermS), other, tgtTermS, cons);
+        auto tord = _ord->compare(other, tgtTermS);
+        if (_labeled) {
+          switch (tord) {
+            case Ordering::GREATER:
+              return true;
+            case Ordering::EQUAL:
+              return rwCl->number() > eqCl->number();
+            case Ordering::LESS:
+              return false;
+            case Ordering::INCOMPARABLE:
+              return rwCl->number() > eqCl->number() || checkOrConstrainGreater(tord, other, tgtTermS, cons);
+          }
+        } else {
+          return checkOrConstrainGreater(tord, other, tgtTermS, cons);
+        }
       }
       // case 2.c.
       if (!MatchingUtils::matchTerms(rwTerm, eqLHS)) {

@@ -327,51 +327,51 @@ public:
   Result apply(Arg const& toEval) 
   {
     /* recursion state. Contains a stack of items that are being recursed on. */
-    Recycled<Stack<BottomUpChildIter<Arg>>> recState;
-    Recycled<Stack<Result>> recResults;
+    Scratch<std::tuple<Stack<BottomUpChildIter<Arg>>, Stack<Result>>> stacks;
+    auto& [recState, recResults] = *stacks;
 
-    recState->push(BottomUpChildIter<Arg>(toEval, _context));
+    recState.push(BottomUpChildIter<Arg>(toEval, _context));
 
-    while (!recState->isEmpty()) {
-      if (recState->top().hasNext(_context)) {
-        Arg t = recState->top().next(_context);
+    while (!recState.isEmpty()) {
+      if (recState.top().hasNext(_context)) {
+        Arg t = recState.top().next(_context);
 
         Option<Result> nonRec = _evNonRec(t);
         if (nonRec) {
-          recResults->push(move_if_value<Result>(*nonRec));
+          recResults.push(move_if_value<Result>(*nonRec));
 
         } else {
           Option<Result> cached = _memo.get(t);
           if (cached.isSome()) {
-            recResults->push(std::move(cached).unwrap());
+            recResults.push(std::move(cached).unwrap());
           } else {
-            recState->push(BottomUpChildIter<Arg>(t, _context));
+            recState.push(BottomUpChildIter<Arg>(t, _context));
           }
 
         }
 
       } else {
 
-        BottomUpChildIter<Arg> orig = recState->pop();
+        BottomUpChildIter<Arg> orig = recState.pop();
 
         ASS_GE(recResults.size(), orig.nChildren(_context))
         Result* argLst = orig.nChildren(_context) == 0 
           ? nullptr 
-          : static_cast<Result*>(&((*recResults)[recResults->size() - orig.nChildren(_context)]));
+          : static_cast<Result*>(&(recResults[recResults.size() - orig.nChildren(_context)]));
 
         Result eval = _memo.getOrInit(orig.self(), 
                         [&](){ return _function(orig.self(), argLst); });
 
         DEBUG_BOTTOM_UP(0, "evaluated: ", orig.self(), " -> ", eval);
-        recResults->pop(orig.nChildren(_context));
-        recResults->push(std::move(eval));
+        recResults.pop(orig.nChildren(_context));
+        recResults.push(std::move(eval));
       }
     }
-    ASS(recState->isEmpty())
+    ASS(recState.isEmpty())
 
 
-    ASS(recResults->size() == 1);
-    auto result = recResults->pop();
+    ASS(recResults.size() == 1);
+    auto result = recResults.pop();
     DEBUG_BOTTOM_UP(0, "eval result: ", toEval, " -> ", result);
     return result;
   }

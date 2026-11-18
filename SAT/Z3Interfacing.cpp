@@ -318,7 +318,7 @@ Z3Interfacing::Z3Interfacing(SAT2FO& s2f, bool showZ3, bool unsatCore, std::stri
   z3_enable_trace("arith");
 #endif // TRACE_Z3
 
-  for (auto c : { 'f', 't' }) {
+  for (auto c : { 'e', 'f', 't' }) {
     for (auto s : { _context->real_sort(), _context->int_sort() }) {
       // we need these auxiliary variables to make $quotient_t and friends
       // uninterpreted functions for a zero divisor. i.e. we need to make
@@ -1460,7 +1460,8 @@ namespace tptp {
   }
 
   z3::expr quotient_e(z3::expr l, z3::expr r)
-  { return l / r; }
+  { return ite(r == 0, tptp::quotient0('e', l)
+                     , ite(r > 0, tptp::floor(l / r), tptp::ceiling(l / r))); }
 
   z3::expr remainder_e(z3::expr l, z3::expr r)
   { return z3::mod(l, r); }

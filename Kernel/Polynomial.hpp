@@ -661,8 +661,9 @@ IterTraits<IterArgsPnf> iterArgsPnf(Literal* lit);
 
 } // namespace Kernel
 
-// include needs to go here, since we need the specialization BottomUpChildIter<PolyNf> to declare Iter
-#include "Kernel/BottomUpEvaluation.hpp"
+// include needs to go here: the specialization BottomUpChildIter<PolyNf> needs PolyNf complete, and
+// every TU that uses PolyNf::SubtermIter must see it (otherwise the empty primary template gets instantiated, an ODR violation)
+#include "Kernel/PolynomialBottomUpEvaluation.hpp"
 
 namespace Kernel {
 

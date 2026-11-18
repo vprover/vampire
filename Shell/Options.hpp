@@ -463,6 +463,9 @@ public:
     ENCOMPASS, // (1) positive unit equations (PUE) are smaller than non-PUE clauses,
                // (2) more general PUE are smaller than less general PUE, and
                // (3) equally general PUEs are ordered based on term ordering.
+    LABELED,   // similar to encompass, but a PUE is smaller than another when
+               // they are equally general ordered but incomparable equations
+               // and the label (clause number) is smaller than that of the other.
   };
 
   enum class TheoryAxiomLevel : unsigned int {
@@ -546,7 +549,6 @@ public:
    * @since 06/05/2007 Manchester
    */
   enum class Mode : unsigned int {
-    AXIOM_SELECTION,
     CASC,
     CLAUSIFY,
     CONSEQUENCE_ELIMINATION,
@@ -730,9 +732,8 @@ public:
   };
 
   enum class SineSelection : unsigned int {
-    AXIOMS = 0,
-    INCLUDED = 1,
-    OFF = 2
+    OFF = 0,
+    ON = 1
   };
 
   enum class Proof : unsigned int {
@@ -758,8 +759,7 @@ public:
   enum class ExtensionalityResolution : unsigned int {
     FILTER = 0,
     KNOWN = 1,
-    TAGGED = 2,
-    OFF = 3
+    OFF = 2
   };
 
   enum class SplittingLiteralPolarityAdvice : unsigned int {
@@ -794,11 +794,19 @@ public:
   };
 
   enum class Sos : unsigned int{
-    ALL = 0,
-    OFF = 1,
-    ON = 2,
-    THEORY = 3
+    OFF = 0,
+    ON = 1,
+    THEORY = 2
   };
+
+  /** The goal affinities (see Kernel::GoalAffinity) at which a goal-directed heuristic
+   *  can draw its line between goal and non-goal; see toGoalAffinity() */
+  enum class GoalAffinityThreshold : unsigned int {
+    AXIOM = 0,
+    ASSUMPTION = 1,
+    CONJECTURE = 2
+  };
+  static Kernel::GoalAffinity toGoalAffinity(GoalAffinityThreshold t);
 
   enum class TARules : unsigned int {
     OFF = 0,
@@ -893,8 +901,7 @@ public:
   enum class HPrinting : unsigned int {
     RAW = 0,
     DB_INDICES = 1,
-    PRETTY = 2,
-    TPTP = 3
+    TPTP = 2
   };
 
     //==========================================================
@@ -1440,7 +1447,12 @@ public:
   bool extensionalityAllowPosEq() const { return _extensionalityAllowPosEq.actualValue; }
   unsigned nongoalWeightCoefficientNumerator() const { return _nonGoalWeightCoefficient.numerator; }
   unsigned nongoalWeightCoefficientDenominator() const { return _nonGoalWeightCoefficient.denominator; }
+  /** clauses of at least this goal affinity count as goal for nongoal_weight_coefficient */
+  Kernel::GoalAffinity nongoalWeightAffinityThreshold() const { return toGoalAffinity(_nonGoalWeightAffinityThreshold.actualValue); }
   Sos sos() const { return _sos.actualValue; }
+  bool sosTotalSelection() const { return _sosTotalSelection.actualValue; }
+  /** with sos=on, clauses below this goal affinity go to the set of support */
+  Kernel::GoalAffinity sosAffinityThreshold() const { return toGoalAffinity(_sosAffinityThreshold.actualValue); }
   unsigned sosTheoryLimit() const { return _sosTheoryLimit.actualValue; }
   //void setSos(Sos newVal) { _sos = newVal; }
 
@@ -1491,7 +1503,8 @@ public:
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
   unsigned sineToAgeGeneralityThreshold() const { return _sineToAgeGeneralityThreshold.actualValue; }
   SineSelection sineSelection() const { return _sineSelection.actualValue; }
-  void setSineSelection(SineSelection val) { _sineSelection.actualValue=val; }
+  /** SInE selects among the units below this goal affinity; the others are its seeds */
+  Kernel::GoalAffinity sineAffinityThreshold() const { return toGoalAffinity(_sineAffinityThreshold.actualValue); }
   float sineTolerance() const { return _sineTolerance.actualValue; }
   float sineToAgeTolerance() const { return _sineToAgeTolerance.actualValue; }
 
@@ -1568,6 +1581,7 @@ public:
   bool booleanEqTrick() const { return _booleanEqTrick.actualValue; }
   bool heuristicInstantiation() const { return _heuristicInstantiation.actualValue; }
   unsigned higherOrderUnifDepth() const { return _higherOrderUnifDepth.actualValue; }
+  unsigned higherOrderUnifMaxWeight() const { return _higherOrderUnifMaxWeight.actualValue; }
   bool casesSimp() const { return _casesSimp.actualValue; }
   bool cases() const { return _cases.actualValue; }
   bool newTautologyDel() const { return _newTautologyDel.actualValue; }
@@ -1893,9 +1907,12 @@ private:
   UnsignedOptionValue _sineGeneralityThreshold;
   UnsignedOptionValue _sineToAgeGeneralityThreshold;
   ChoiceOptionValue<SineSelection> _sineSelection;
+  ChoiceOptionValue<GoalAffinityThreshold> _sineAffinityThreshold;
   FloatOptionValue _sineTolerance;
   FloatOptionValue _sineToAgeTolerance;
   ChoiceOptionValue<Sos> _sos;
+  BoolOptionValue _sosTotalSelection;
+  ChoiceOptionValue<GoalAffinityThreshold> _sosAffinityThreshold;
   UnsignedOptionValue _sosTheoryLimit;
   BoolOptionValue _splitting;
   BoolOptionValue _splitAtActivation;
@@ -1948,6 +1965,7 @@ private:
   OptionChoiceValues _tagNames;
 
   NonGoalWeightOptionValue _nonGoalWeightCoefficient;
+  ChoiceOptionValue<GoalAffinityThreshold> _nonGoalWeightAffinityThreshold;
 
   SelectionOptionValue _selection;
 
@@ -1984,6 +2002,7 @@ private:
   BoolOptionValue _booleanEqTrick;
   BoolOptionValue _heuristicInstantiation;
   UnsignedOptionValue _higherOrderUnifDepth;
+  UnsignedOptionValue _higherOrderUnifMaxWeight;
   BoolOptionValue _casesSimp;
   BoolOptionValue _cases;
   BoolOptionValue _newTautologyDel;

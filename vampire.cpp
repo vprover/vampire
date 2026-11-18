@@ -50,10 +50,8 @@
 #include "Shell/TheoryFinder.hpp"
 #include "Shell/TPTPPrinter.hpp"
 #include "Parse/TPTP.hpp"
-#include "Shell/FOOLElimination.hpp"
 #include "Shell/Statistics.hpp"
 #include "Shell/UIHelper.hpp"
-#include "Shell/SineUtils.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
@@ -197,9 +195,10 @@ void preprocessMode(Problem* problem, bool theory)
   }
   prepro.preprocess(*prb);
 
-  //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  const auto language = TPTPPrinter::outputLanguage(!theory && !prb->hasFormulas());
+  const auto declarationLanguage = language == TPTPOutput::Language::CNF || language == TPTPOutput::Language::FOF
+      ? TPTPOutput::Language::TFF : language;
+  std::cout << TPTPPrinter::symbolDeclarations(declarationLanguage);
   UnitList::Iterator units(prb->units());
   while (units.hasNext()) {
     Unit* u = units.next();
@@ -211,16 +210,10 @@ void preprocessMode(Problem* problem, bool theory)
 
     if (theory) {
       Formula* f = u->getFormula();
-
-      // CONJECTURE as inputType is evil, as it cannot occur multiple times
-      if (u->inference().inputType() == UnitInputType::CONJECTURE) {
-        u->inference().setInputType(UnitInputType::NEGATED_CONJECTURE);
-      }
-
       FormulaUnit* fu = new FormulaUnit(f,u->inference()); // we are stealing u's inference which is not nice
-      std::cout << TPTPPrinter::toString(fu) << "\n";
+      std::cout << TPTPPrinter::unit(fu, language, UIHelper::outputRole(fu)) << "\n";
     } else {
-      std::cout << TPTPPrinter::toString(u) << "\n";
+      std::cout << TPTPPrinter::unit(u, language, UIHelper::outputRole(u)) << "\n";
     }
   }
 
@@ -236,7 +229,11 @@ void preprocessMode(Problem* problem, bool theory)
 void modelCheckMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
-  
+
+  // model definitions are recorded by the TPTP parser
+  if (env.options->inputSyntax() == Options::InputSyntax::SMTLIB2) {
+    USER_ERROR("Mode model_check only supports TPTP input");
+  }
   if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
@@ -255,14 +252,23 @@ void outputMode(Problem* problem)
 {
   ScopedPtr<Problem> prb(problem);
 
-  //outputSymbolDeclarations also deals with sorts for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout);
+  const auto language = TPTPPrinter::outputLanguage(!prb->hasFormulas());
+  const auto declarationLanguage = language == TPTPOutput::Language::CNF || language == TPTPOutput::Language::FOF
+      ? TPTPOutput::Language::TFF : language;
+  std::cout << TPTPPrinter::symbolDeclarations(declarationLanguage);
   UnitList::Iterator units(prb->units());
 
   while (units.hasNext()) {
     Unit* u = units.next();
-    std::cout << TPTPPrinter::toString(u) << "\n";
+    if (u->inference().rule() == InferenceRule::CONJECTURE_NEGATION) {
+      // the parsers negate a conjecture right away; output the one that was stated
+      UnitIterator parents = u->getParents();
+      ALWAYS(parents.hasNext());
+      u = parents.next();
+      ASS(!parents.hasNext());
+      ASS(u->inference().rule() == InferenceRule::INPUT_CONJECTURE);
+    }
+    std::cout << TPTPPrinter::unit(u, language, UIHelper::outputRole(u)) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
@@ -382,9 +388,14 @@ void clausifyMode(Problem* problem, bool theory)
 
   ScopedPtr<Problem> prb(preprocessProblem(problem));
 
-  //outputSymbolDeclarations deals with sorts as well for now
-  //UIHelper::outputSortDeclarations(std::cout);
-  UIHelper::outputSymbolDeclarations(std::cout,/*tcf=*/theory);
+  // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
+  TPTPOutput::Language clauseLanguage = TPTPOutput::Language::CNF;
+  if (theory) {
+    clauseLanguage = TPTPOutput::Language::TCF;
+  }
+  const auto declarationLanguage = theory ? TPTPOutput::Language::TCF
+      : env.higherOrder() ? TPTPOutput::Language::THF : TPTPOutput::Language::TFF;
+  std::cout << TPTPPrinter::symbolDeclarations(declarationLanguage);
 
   ClauseIterator cit = prb->clauseIterator();
   bool printed_conjecture = false;
@@ -394,63 +405,30 @@ void clausifyMode(Problem* problem, bool theory)
     if (!cl) {
       continue;
     }
-    printed_conjecture |= cl->inputType() == UnitInputType::CONJECTURE || cl->inputType() == UnitInputType::NEGATED_CONJECTURE;
-    // with theory, we print tcf(), i.e. the clause quantified with its variables' sorts
-    std::cout << TPTPPrinter::toString(cl,theory) << "\n";
+    printed_conjecture |= cl->goalAffinity() >= GoalAffinity::CONJECTURE;
+    std::cout << TPTPPrinter::unit(cl, clauseLanguage, UIHelper::outputRole(cl)) << "\n";
   }
   if(!printed_conjecture && UIHelper::haveConjecture()){
+    // print a fake tautology conjecture for Kostya and friends
+    // (otherwise they can't tell whether the input contained a conjecture or not
+    //  which is important for reporting the SZS status)
     unsigned p = env.signature->addFreshPredicate(0,"p")->number();
     auto c = Clause::fromLiterals({
         Literal::create(p, /* polarity */ true , {}),
         Literal::create(p, /* polarity */ false, {})
-      }, 
-      FromInput(UnitInputType::NEGATED_CONJECTURE));
-    std::cout << TPTPPrinter::toString(c,theory) << "\n";
+      },
+      FromInput(GoalAffinity::CONJECTURE));
+    std::cout << TPTPPrinter::unit(c, clauseLanguage, UIHelper::outputRole(c)) << "\n";
   }
 
   //we have successfully output all clauses, so we'll terminate with zero return value
   vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
 } // clausifyMode
 
-void axiomSelectionMode(Problem* problem)
-{
-  ScopedPtr<Problem> prb(problem);
-
-  env.options->setSineSelection(Options::SineSelection::AXIOMS);
-
-  if (prb->hasFOOL()) {
-    FOOLElimination().apply(*prb);
-  }
-
-  // reorder units
-  if (env.options->normalize()) {
-    env.statistics->phase = ExecutionPhase::NORMALIZATION;
-    Normalisation norm;
-    norm.normalise(*prb);
-  }
-
-  env.statistics->phase = ExecutionPhase::SINE_SELECTION;
-  Shell::SineSelector(*env.options).perform(*prb);
-
-  env.statistics->phase = ExecutionPhase::FINALIZATION;
-
-  UnitList::Iterator uit(prb->units());
-  while (uit.hasNext()) {
-    Unit* u = uit.next();
-    std::cout << TPTPPrinter::toString(u) << "\n";
-  }
-
-  //we have successfully output the selected units, so we'll terminate with zero return value
-  vampireReturnValue = VAMP_RESULT_STATUS_SUCCESS;
-}
-
 void dispatchByMode(Problem* problem)
 {
   switch (env.options->mode())
   {
-  case Options::Mode::AXIOM_SELECTION:
-    axiomSelectionMode(problem);
-    break;
   case Options::Mode::SPIDER:
     spiderMode(problem);
     break;
@@ -673,13 +651,12 @@ int main(int argc, char* argv[])
       interactiveMetamode();
     } else {
       // can only happen after reading options as it relies on `env.options`
-      Timer::reinitialise(); // start our timer, so that we also limit parsing
-
+      // start our timer, so that we also limit parsing
 #if VAMPIRE_PERF_EXISTS
-      unsigned saveInstrLimit = env.options->instructionLimit();
-      if (env.options->parsingDoesNotCount()) {
-        env.options->setInstructionLimit(0);
-      }
+      // (with parsing_does_not_count, the instruction limit starts after parsing, see below)
+      Timer::reinitialise(true, !env.options->parsingDoesNotCount());
+#else
+      Timer::reinitialise();
 #endif
 
       if (opts.inputFile().empty()) {
@@ -697,7 +674,13 @@ int main(int argc, char* argv[])
         addCommentSignForSZS(std::cout);
         std::cout << "Instructions burned parsing: " << burnedParsing << " (million)" << endl;
 
-        env.options->setInstructionLimit(saveInstrLimit+burnedParsing);
+        // 0 means no limit, also after parsing
+        unsigned instrLimit = env.options->instructionLimit();
+        if (instrLimit) {
+          instrLimit += burnedParsing;
+          env.options->setInstructionLimit(instrLimit);
+        }
+        Timer::setInstructionLimit(instrLimit);
       }
 #endif
 

@@ -42,10 +42,18 @@ using namespace Test;
   DECL_CONST(b, s)                                    \
   DECL_CONST(c, s)                                    \
   DECL_POLY_CONST(d, 1, alpha)                        \
+  TROO                                                \
+  FOLS                                                \
+  DECL_SORT_BOOL                                      \
+  DECL_IMP_PROXY                                      \
+  DECL_AND_PROXY                                      \
+  DECL_CONST(p, arrow(Bool, Bool))                    \
+  DECL_CONST(q, Bool)
 
 #define LEFT_BANK 0
 #define RIGHT_BANK 1
 #define UNIF_DEPTH 3
+#define UNIF_MAX_WEIGHT 100
 
 using VarSpecs = Stack<std::pair<VarSpec, TermList>>;
 
@@ -78,7 +86,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
     ASSERTION_VIOLATION;
   }
 
-  HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH, funcExt);
+  HOL::AbstractingWrapper wrapper(unif, UNIF_DEPTH, UNIF_MAX_WEIGHT, funcExt);
   for (unsigned i = 0; i < expected.size(); i++) {
     if (!wrapper.hasNext()) {
       std::cout << std::endl;
@@ -112,7 +120,7 @@ void testUnifySuccess(TermList lhs, TermList rhs, Stack<ResultSpec> expected) {
       }
       vars.remove(vs);
     }
-    ASS_REP(vars.isEmpty(), vars);
+    ASS_REP(vars.isEmpty(), vars); // unexpected vars
 
     auto cons = hoUnif->computeConstraintLiterals();
     for (unsigned j = 0; j < e.constraints.size(); j++) {
@@ -150,7 +158,7 @@ void testUnifyFail(TermList lhs, TermList rhs) {
   AbstractingUnifier unif(oracle);
 
   if (unif.unify(lhs, LEFT_BANK, rhs, RIGHT_BANK, /*fixedPointIteration=*/true)) {
-    HOL::AbstractingWrapper wrapper(&unif, UNIF_DEPTH, funcExt);
+    HOL::AbstractingWrapper wrapper(unif, UNIF_DEPTH, UNIF_MAX_WEIGHT, funcExt);
     if (wrapper.hasNext()) {
       std::cout << std::endl;
       std::cout << "expected *not* to HO unify (" << unifToStr(lhs, rhs) << ")" << std::endl;
@@ -434,6 +442,51 @@ TEST_UNIFY_SUCCESS(success_15,
         vsLeft(x, s),
       },
       LiteralStack()
+    }
+  }
+)
+
+// Boolean abstraction
+
+TEST_UNIFY_SUCCESS(success_16,
+  ap(p, x),
+  ap(p, ap(impP, {q, y})),
+  {
+    ResultSpec{
+      {
+        vsLeft(x, ap(impP, {q, x})),
+        vsRight(y, x),
+      },
+      LiteralStack()
+    }
+  }
+)
+
+TEST_UNIFY_SUCCESS(success_17,
+  ap(p, ap(impP, {x, q})),
+  ap(p, ap(impP, {q, y})),
+  {
+    ResultSpec{
+      {
+        vsLeft(x, x),
+        vsRight(y, y),
+      },
+      {
+        ap(impP, {x, q}) != ap(impP, {q, y})
+      }
+    }
+  }
+)
+
+TEST_UNIFY_SUCCESS(success_18,
+  ap(p, ap(impP, {q, q})),
+  ap(p, ap(andP, {troo, fols})),
+  {
+    ResultSpec{
+      VarSpecs(),
+      {
+        ap(impP, {q, q}) != ap(andP, {troo, fols})
+      }
     }
   }
 )

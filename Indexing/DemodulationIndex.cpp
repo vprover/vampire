@@ -46,9 +46,9 @@ void DemodulationSubtermIndex<higherOrder>::handleClause(Clause* c, bool adding)
       continue;
     }
 
-    RewritableSubtermIterator<higherOrder> it(lit);
+    RewritableSubtermIterator<higherOrder, /*insideLambdasToo=*/true> it(lit);
     while (it.hasNext()) {
-      Term* t= it.next();
+      auto t = it.next();
       if (!inserted.insert(t)) {//TODO existing error? Terms are inserted once per a literal
         //It is enough to insert a term only once per clause.
         //Also, once we know term was inserted, we know that all its

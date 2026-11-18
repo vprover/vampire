@@ -42,7 +42,7 @@ private:
   const Ordering& _ord;
   const bool _preordered;
   std::shared_ptr<DemodulationSubtermIndex<higherOrder>> _index;
-  DemodulationHelper _helper;
+  const DemodulationHelper _helper;
 };
 
 using BackwardDemodulationExtra = RewriteInferenceExtra;

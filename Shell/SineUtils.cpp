@@ -54,7 +54,7 @@ using namespace Kernel;
  */
 SineSymbolExtractor::SymId SineSymbolExtractor::getSymIdBound()
 {
-  return max(env.signature->predicates()*3-1, 
+  return max(env.signature->predicates()*3-1,
          max(env.signature->functions()*3, env.signature->typeCons()*3));
 }
 
@@ -132,7 +132,7 @@ void SineSymbolExtractor::addSymIds(Literal* lit,DHSet<SymId, FnvHash, IdentityH
         ids.insert(t->functor() * 3 + 2);
       } else {
         ids.insert(t->functor() * 3 + 1);
-      }      
+      }
     }
   }
 } // addSymIds
@@ -259,7 +259,7 @@ void SineBase::initGeneralityFunction(UnitList* units)
 }
 
 SineSelector::SineSelector(const Options& opt)
-: _onIncluded(opt.sineSelection()==Options::SineSelection::INCLUDED),
+: _threshold(opt.sineAffinityThreshold()),
   _genThreshold(opt.sineGeneralityThreshold()),
   _tolerance(opt.sineTolerance()),
   _depthLimit(opt.sineDepth()),
@@ -268,8 +268,8 @@ SineSelector::SineSelector(const Options& opt)
   init();
 }
 
-SineSelector::SineSelector(bool onIncluded, float tolerance, unsigned depthLimit, unsigned genThreshold, bool justForSineLevels)
-: _onIncluded(onIncluded),
+SineSelector::SineSelector(float tolerance, unsigned depthLimit, unsigned genThreshold, bool justForSineLevels)
+: _threshold(GoalAffinity::ASSUMPTION), // hardwired to the default of sine_affinity_threshold, for now
   _genThreshold(genThreshold),
   _tolerance(tolerance),
   _depthLimit(depthLimit),
@@ -390,12 +390,11 @@ bool SineSelector::perform(UnitList*& units)
   while (uit2.hasNext()) {
     numberUnitsLeftOut++;
     Unit* u=uit2.next();
-    bool performSelection= _onIncluded ? u->included() : ((u->inputType()==UnitInputType::AXIOM)
-                            || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
+    bool performSelection = u->goalAffinity() < _threshold;
     if (performSelection) { // register the unit for later
       updateDefRelation(u);
     }
-    else { // goal units are immediately taken (well, non-axiom, to by more precise. Includes ASSUMPTION, which cl->isGoal() does not take into account)
+    else { // goal units (all those not subject to selection) are immediately taken
       selected.insert(u->number());
       selectedStack.push(u);
       newlySelected.push_back(u);
@@ -419,7 +418,7 @@ bool SineSelector::perform(UnitList*& units)
     if (!u) {
       //next selected formulas will be one step further from the original formulas
       depth++;
-      
+
       if (_depthLimit && depth==_depthLimit) {
 	break;
       }
@@ -499,216 +498,6 @@ bool SineSelector::perform(UnitList*& units)
 #endif
 
   return (numberUnitsLeftOut > 0);
-}
-
-//////////////////////////////////////
-// SineTheorySelector
-//////////////////////////////////////
-
-SineTheorySelector::SineTheorySelector(const Options& opt)
-: _genThreshold(opt.sineGeneralityThreshold()), _opt(opt)
-{
-}
-
-void SineTheorySelector::handlePossibleSignatureChange()
-{
-  size_t symIdBound=_symExtr.getSymIdBound();
-  size_t oldSize=_def.size();
-  ASS_EQ(_gen.size(), oldSize);
-
-  if (symIdBound==oldSize) {
-    return;
-  }
-  ASS_G(symIdBound, oldSize);
-
-  _gen.expand(symIdBound);
-  _def.expand(symIdBound);
-  for (size_t i=oldSize;i<symIdBound;i++) {
-    _gen[i]=0;
-    _def[i]=0;
-  }
-}
-
-/**
- * Connect unit @b u with symbols it defines
- */
-void SineTheorySelector::updateDefRelation(Unit* u)
-{
-  SymIdIterator sit0=_symExtr.extractSymIds(u);
-
-  if (!sit0.hasNext()) {
-
-    _unitsWithoutSymbols.push(u);
-    return;
-  }
-
-  static Stack<SymId> symIds;
-  symIds.reset();
-  symIds.loadFromIterator(std::move(sit0));
-
-  Stack<SymId>::Iterator sit(symIds);
-
-  ALWAYS(sit.hasNext());
-  unsigned leastGenVal=_gen[sit.next()];
-
-  while (sit.hasNext()) {
-    SymId sym=sit.next();
-    unsigned val=_gen[sym];
-    ASS_G(val,0);
-
-    if (val<leastGenVal) {
-      leastGenVal=val;
-    }
-  }
-
-  unsigned generalityLimit=leastGenVal*(maxTolerance/strictTolerance);
-
-  Stack<SymId>::Iterator sit2(symIds);
-  while (sit2.hasNext()) {
-    SymId sym=sit2.next();
-    unsigned val=_gen[sym];
-
-    if (val<=_genThreshold) {
-      //if a symbol fits under _genThreshold, add it into the relation
-      DEntryList::push(DEntry(strictTolerance,u),_def[sym]);
-    }
-    else if (val<=generalityLimit) {
-      unsigned short minTolerance=(val*strictTolerance)/leastGenVal;
-      //only if the symbol is over _genThreshold; otherwise it is already added
-      DEntryList::push(DEntry(minTolerance,u),_def[sym]);
-    }
-  }
-
-}
-
-/**
- * Preprocess the theory axioms in @b units, so that some of them can be later
- * selected for a particular problem formulas by the @b addSelectedAxioms() function
- *
- * If the value of the sineTolerance and sineDepth options changes after the
- * preprocessing and before the call to the @b addSelectedAxioms function, the
- * modified values will be used (The preprocessing allows for selection with
- * tolerance values up to the limit implied by the value of @b maxTolerance.)
- */
-void SineTheorySelector::initSelectionStructure(UnitList* units)
-{
-  TIME_TRACE(TimeTrace::SINE_SELECTION);
-
-  initGeneralityFunction(units);
-
-  SymId symIdBound=_symExtr.getSymIdBound();
-
-  //build the D-relation
-  _def.init(symIdBound,0);
-  UnitList::Iterator uit(units);
-  while (uit.hasNext()) {
-    Unit* u=uit.next();
-    updateDefRelation(u);
-  }
-}
-
-
-void SineTheorySelector::perform(UnitList*& units)
-{
-  TIME_TRACE(TimeTrace::SINE_SELECTION);
-
-  handlePossibleSignatureChange();
-
-  UnitList::Iterator uit(units);
-  while (uit.hasNext()) {
-    Unit* u=uit.next();
-    SymIdIterator sit=_symExtr.extractSymIds(u);
-    while (sit.hasNext()) {
-      SymId sid=sit.next();
-      _gen[sid]++;
-    }
-  }
-
-  UnitList* res=0;
-  DHSet<SymId, FnvHash, IdentityHash> addedSymIds;
-  DHSet<unsigned, FnvHash, IdentityHash> selected;
-  Deque<Unit*> newlySelected;
-
-  bool sineOnIncluded=_opt.sineSelection()==Options::SineSelection::INCLUDED;
-
-  //build the D-relation and select the non-axiom formulas
-  UnitList::Iterator uit2(units);
-  while (uit2.hasNext()) {
-    Unit* u=uit2.next();
-    bool performSelection= sineOnIncluded ? u->included() : ((u->inputType()==UnitInputType::AXIOM)
-                   || (env.options->guessTheGoal() != Options::GoalGuess::OFF && u->inputType()==UnitInputType::ASSUMPTION));
-
-    if (performSelection) {
-      updateDefRelation(u);
-    }
-    else {
-      selected.insert(u->number());
-      newlySelected.push_back(u);
-      UnitList::push(u,res);
-    }
-  }
-
-
-  unsigned short intTolerance=static_cast<unsigned short>(ceil(_opt.sineTolerance()*10));
-
-  unsigned depthLimit=_opt.sineDepth();
-  unsigned depth=0;
-  newlySelected.push_back(0);
-
-  //select required axiom formulas
-  while (newlySelected.isNonEmpty()) {
-    Unit* u=newlySelected.pop_front();
-
-    if (!u) {
-      //next selected formulas will be one step further from the original formulas
-      depth++;
-      if (depthLimit && depth==depthLimit) {
-	break;
-      }
-      ASS(!depthLimit || depth<depthLimit);
-
-      if (newlySelected.isNonEmpty()) {
-	//we must push another mark if we're not done yet
-	newlySelected.push_back(0);
-      }
-      continue;
-    }
-
-    SymIdIterator sit=_symExtr.extractSymIds(u);
-    while (sit.hasNext()) {
-      SymId sym=sit.next();
-      if (!addedSymIds.insert(sym)) {
-	//we already added units belonging to this symbol
-	continue;
-      }
-      DEntryList::Iterator defUnits(_def[sym]);
-      while (defUnits.hasNext()) {
-	DEntry de=defUnits.next();
-
-	if (de.minTolerance>intTolerance || !selected.insert(de.unit->number())) {
-	  continue;
-	}
-	UnitList::push(de.unit,res);
-	newlySelected.push_back(de.unit);
-      }
-    }
-  }
-
-  UnitList::pushFromIterator(Stack<Unit*>::Iterator(_unitsWithoutSymbols), res);
-
-  UnitList::destroy(units);
-//  units=res->reverse(); //we want to resemble the original SInE as much as possible
-  units=res;
-
-  env.statistics->sineIterations=depth;
-  env.statistics->selectedBySine=_unitsWithoutSymbols.size() + selected.size();
-
-#if SINE_PRINT_SELECTED
-  UnitList::Iterator selIt(units);
-  while (selIt.hasNext()) {
-    cout<<'#'<<selIt.next()->toString()<<endl;
-  }
-#endif
 }
 
 }

@@ -76,11 +76,8 @@ TEST_FUN(cond_result_sort)
 
   Term* t = twoCaseCond(alpha, p(x), a.sugaredExpr(), q(x), b.sugaredExpr(), c.sugaredExpr());
 
-  // getResultSort refuses special terms; this is the entry point that handles them
-  TermList sort;
-  TermList masterVar;
-  ALWAYS(SortHelper::getResultSortOrMasterVariable(t, sort, masterVar));
-  ASS_EQ(sort, alpha.sugaredExpr());
+  // a special term keeps its sort in SpecialTermData::_sort, which getResultSort reads
+  ASS_EQ(SortHelper::getResultSort(t), alpha.sugaredExpr());
 }
 
 TEST_FUN(cond_to_ite_one_case)
@@ -195,12 +192,12 @@ TEST_FUN(cond_parses_conditions_of_argument_equalities)
   UnitList* bare = parseTPTP(
     "tff(g_type,type,g: ( alpha * alpha ) > alpha).\n"
     "tff(t,axiom, g(d,d) = $cond(d = a & d = b, c, d = a, b, a)).\n");
-  ASS_EQ(lastFormula(bare), "g(d,d) = $cond(d = a & d = b,c,d = a,b,a)");
+  ASS_EQ(lastFormula(bare), "g(d,d) = $cond((d = a) & (d = b),c,d = a,b,a)");
 
   UnitList* parens = parseTPTP(
     "tff(g_type,type,g: ( alpha * alpha ) > alpha).\n"
     "tff(t,axiom, g(d,d) = $cond((d = a & d = b), c, (d = a), b, a)).\n");
-  ASS_EQ(lastFormula(parens), "g(d,d) = $cond(d = a & d = b,c,d = a,b,a)");
+  ASS_EQ(lastFormula(parens), "g(d,d) = $cond((d = a) & (d = b),c,d = a,b,a)");
 }
 
 TEST_FUN(cond_keeps_a_conjunct_before_an_equality)

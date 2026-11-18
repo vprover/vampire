@@ -30,7 +30,8 @@ PolynomialEvaluationRule::~PolynomialEvaluationRule() {}
 PolynomialEvaluationRule::PolynomialEvaluationRule(const Ordering& ordering) 
   : SimplifyingGeneratingLiteralSimplification(InferenceRule::EVALUATION, ordering)
   // TODO we have an additional step of normalization here. simplify!
-  , _alwaysEvaluate(env.options->alasca())
+  , _alwaysEvaluate(env.options->alasca() ||
+      env.options->evaluationMode() == Shell::Options::EvaluationMode::POLYNOMIAL_FORCE)
   {}
 
 

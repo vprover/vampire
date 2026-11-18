@@ -37,7 +37,7 @@ public:
   static constexpr OrdVal maxOrdVal = std::make_pair(UINT_MAX,UINT_MAX);
   OrdVal getOrdVal(Clause* cl) const;
 protected:
-  bool lessThan(Clause*,Clause*) override;
+  uint64_t key(Clause*) override;
 private:
   const Shell::Options& _opt;
 };
@@ -52,7 +52,7 @@ public:
   static constexpr OrdVal maxOrdVal = std::make_pair(UINT_MAX,UINT_MAX);
   OrdVal getOrdVal(Clause* cl) const;
 protected:
-  bool lessThan(Clause*,Clause*) override;
+  uint64_t key(Clause*) override;
 private:
   const Shell::Options& _opt;
 };
@@ -119,7 +119,7 @@ public:
 
     // creating a fake inference to represent our current (pessimistic) estimate potential
     // FromInput - so that there is no Unit ownership issue
-    Inference inf = FromInput(UnitInputType::CONJECTURE); // CONJECTURE, so that derivedFromGoal is estimated as true
+    Inference inf = FromInput(MAX_AFFINITY); // the highest affinity, so that the estimate counts it as goal
     inf.setAge(cl->age() + 1); // clauses inferred from the clause as generating inferences will be over age limit...
 
     int maxSelWeight=0;
@@ -143,7 +143,7 @@ public:
   bool exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const override
   {
     // the same considerations as in AWPassiveClauseContainer::exceedsWeightLimit
-    return Clause::computeWeightForClauseSelection(w, 0, 0, inference.derivedFromGoal(), _opt) > _curLimit.first;
+    return Clause::computeWeightForClauseSelection(w, 0, 0, inference.goalAffinity(), _opt) > _curLimit.first;
   }
 };
 

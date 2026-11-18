@@ -47,7 +47,10 @@ pel!=off > peltl ~uf 0.9,5.0
 > tgt ~cat off:10,ground:6,full:5
 
 # set_of_support
-> sos ~cat off:80,on:17,all:10,theory:10
+> sos ~cat off:80,on:27,theory:10
+sos=on > sosts ~cat off:17,on:10
+sos=theory > sosts ~cat on:1
+sos=on > sosat ~cat assumption:3,conjecture:1,axiom:1
 
 # sos_theory_limit
 sos=theory > sstl ~cat 0:10,1:1,2:1,3:1
@@ -59,7 +62,8 @@ sos=theory > sstl ~cat 0:10,1:1,2:1,3:1
 > thf ~cat on:1,off:10
 
 # sine_selection
-> ss ~cat off:1182,included:135,axioms:392
+> ss ~cat off:1182,on:527
+ss=on > ssat ~cat axiom:135,assumption:300,conjecture:92
 
 # sine_depth
 ss!=off > sd ~cat 0:45,1:13,2:12,3:5,4:4,5:4,7:3,10:2,12:1,15:1
@@ -122,6 +126,7 @@ sa=lrs > lrd ~cat off:1,on:1
 > $nwc ~cat 1:2,666:1
 $nwc=1 > nwc ~cat 1:1
 $nwc!=1 > nwc ~uf 0.5,15.0
+$nwc!=1 > nwat ~cat conjecture:2,assumption:3,axiom:1
 # TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
 
 # increased_numeral_weight
@@ -213,7 +218,7 @@ er!=off > erml ~cat 0:3,2:1,3:1
 > $drc ~cat 0:1
 fd!=off > $drc ~cat 1:1
 bd!=off > $drc ~cat 1:1
-$drc=1 > drc ~cat encompass:500,ordering:500,off:354
+$drc=1 > drc ~cat labeled:500,encompass:500,ordering:500,off:354
 
 # forward_demodulation_term_ordering_diagrams
 fd!=off > fdtod ~cat on:1,off:1

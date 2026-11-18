@@ -614,7 +614,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
       //here we assume, that stack is an array with
       //second topmost element at &top()-1, third at
       //&top()-2, etc...
-      TermList* argLst=&args.top() - (orig->arity()-1);
+      TermList* argLst = args.end() - orig->arity();
 
       Term* newTrm;
       if(orig->isSort()){
@@ -706,7 +706,7 @@ Term* FunctionDefinition::applyDefinitions(Literal* lit, Stack<Def*>* usedDefs)
   //here we assume, that stack is an array with
   //second topmost element as &top()-1, third at
   //&top()-2, etc...
-  TermList* argLst=&args.top() - (lit->arity()-1);
+  TermList* argLst = args.end() - lit->arity();
   return Literal::create(static_cast<Literal*>(lit),argLst);
 }
 
@@ -770,7 +770,7 @@ FunctionDefinition::~FunctionDefinition ()
 FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
-  if(unit.derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
+  if(unit.goalAffinity() >= GoalAffinity::CONJECTURE && env.options->ignoreConjectureInPreprocessing()){
     return 0;
   }
 

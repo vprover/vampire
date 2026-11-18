@@ -50,7 +50,7 @@ BackwardDemodulation<higherOrder>::BackwardDemodulation(SaturationAlgorithm& sal
   : _ord(salg.getOrdering()),
     _preordered(salg.getOptions().backwardDemodulation() == Options::Demodulation::PREORDERED),
     _index(salg.getSimplifyingIndex<DemodulationSubtermIndex<higherOrder>>()),
-    _helper(DemodulationHelper(salg.getOptions(), &salg.getOrdering()))
+    _helper(salg.getOptions(), salg.getOrdering())
 {}
 
 namespace {
@@ -127,7 +127,7 @@ struct BackwardDemodulation<higherOrder>::ResultFn
     TermList rhsS=subs->applyToBoundQuery(rhs);
 
     if (_helper.redundancyCheckNeededForPremise(qr.data->clause,qr.data->literal,lhsS) &&
-      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,lhs,&appl))
+      !_helper.isPremiseRedundant(qr.data->clause,qr.data->literal,lhsS,rhsS,_cl,lhs,&appl))
     {
       return BwSimplificationRecord(0);
     }

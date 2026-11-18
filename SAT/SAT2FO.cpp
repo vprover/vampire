@@ -102,19 +102,6 @@ void SAT2FO::collectAssignment(SATSolver& solver, LiteralStack& res) const
   }
 }
 
-SATClause* SAT2FO::createConflictClause(LiteralStack& unsatCore, InferenceRule rule)
-{
-  static LiteralStack negStack;
-  negStack.reset();
-  LiteralStack::ConstIterator ucit(unsatCore);
-  while(ucit.hasNext()) {
-    Literal* ul = ucit.next();
-    negStack.push(Literal::complementaryLiteral(ul));
-  }
-  Clause* foConfl = Clause::fromStack(negStack,NonspecificInference0(UnitInputType::AXIOM,rule));
-  return toSAT(foConfl);
-}
-
 std::ostream& operator<<(std::ostream& out, SAT2FO const& self)
 { return out << self._posMap; }
 

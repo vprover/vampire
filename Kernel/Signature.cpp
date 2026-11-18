@@ -138,12 +138,29 @@ void Signature::Symbol::addToDistinctGroup(unsigned group)
 } // addToDistinctGroup
 
 Signature::RealSymbol::RealSymbol(unsigned number, const RealConstantType& val)
-  : Symbol(number, Output::toString("$to_real(",val,")"),
+  : Symbol(number, /* name: built on demand, @see fillNumeralName */ "",
         /*              type */ OperatorType::getConstantsType(AtomicSort::realSort()),
         /*       interpreted */ true,
-        /*    preventQuoting */ false),
+        /*    preventQuoting */ true),
        _realValue(std::move(val))
 {
+}
+
+/**
+ * Numerals are created in large numbers during proof search and their names are only ever
+ * needed for output, so they are not named when created: converting an arbitrary-precision
+ * numeral to its decimal form costs time quadratic in the number of digits.
+ */
+void Signature::Symbol::fillNumeralName() const
+{
+  if (integerConstant()) {
+    _name = Output::toString(integerValue());
+  } else if (rationalConstant()) {
+    _name = Output::toString(rationalValue());
+  } else if (realConstant()) {
+    _name = Output::toString("$to_real(", realValue(), ")");
+  }
+  // anything else genuinely has the empty name it was given
 }
 
 /**
@@ -167,7 +184,6 @@ Signature::Signature ():
     _appFun(UINT_MAX),
     _lamFun(UINT_MAX),
     _choiceFun(UINT_MAX),
-    _placeholderFun(UINT_MAX),
     _defPred(UINT_MAX),
     _termAlgebras()
 {
@@ -552,15 +568,6 @@ unsigned Signature::getDeBruijnIndex(int index) {
   if (added) {
     _funs[fun]->setDeBruijnIndex(index);
   }
-  return fun;
-}
-
-unsigned Signature::getPlaceholder() {
-  if (_placeholderFun != UINT_MAX)
-    return _placeholderFun;
-
-  unsigned fun = addFreshFunction(OperatorType::getConstantsType(TermList::var(0), 1), "ph")->number();
-  _placeholderFun = fun;
   return fun;
 }
 

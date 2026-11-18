@@ -38,6 +38,16 @@ using namespace Lib;
 using namespace Shell;
 
 /**
+ * True if @b t1 and @b t2 have the same top symbol. Type constructors and
+ * function symbols are numbered independently, so a sort and a term can
+ * share a functor number without having anything in common.
+ */
+static bool sameTopSymbol(const Term* t1, const Term* t2)
+{
+  return t1->functor() == t2->functor() && t1->isSort() == t2->isSort();
+}
+
+/**
  * Return result of comparison between @b l1 and @b l2 under
  * an assumption, that @b traverse method have been called
  * for both literals. (Either traverse(Term*,Term*) or
@@ -49,7 +59,7 @@ Ordering::Result KBO::State::result(KBO const& kbo, AppliedTerm t1, AppliedTerm 
   Result res;
   if(_weightDiff) {
     res=_weightDiff>0 ? GREATER : LESS;
-  } else if(t1.term.term()->functor()!=t2.term.term()->functor()) {
+  } else if(!sameTopSymbol(t1.term.term(), t2.term.term())) {
     if(t1.term.term()->isLiteral()) {
       ASS(t2.term.term()->isLiteral());
       int prec1, prec2;
@@ -797,7 +807,7 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 
   state->init();
   Result res;
-  if(t1->functor()==t2->functor()) {
+  if(sameTopSymbol(t1, t2)) {
     res = state->traverseLexBidir(*this, tl1, tl2);
   } else {
     res = state->traverseNonLex</*unidirectional=*/false>(*this, tl1, tl2);

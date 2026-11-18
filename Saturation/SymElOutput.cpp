@@ -19,6 +19,8 @@
 #include "Kernel/Inference.hpp"
 #include "Kernel/Signature.hpp"
 
+#include "Shell/TPTPPrinter.hpp"
+
 #include "SymElOutput.hpp"
 
 namespace Saturation
@@ -70,7 +72,7 @@ void SymElOutput::onNonRedundantClause(Clause* c)
       outputSymbolElimination(_symElColors.get(src->number()), c);
     }
   }
-  //if(c->color()==COLOR_TRANSPARENT && c->inputType()!=Clause::AXIOM && !c->skip()) {
+  //if(c->color()==COLOR_TRANSPARENT && c->goalAffinity()!=Clause::AXIOM && !c->skip()) {
   //  cout<<"Interesting: "<<c->toNiceString()<<endl;
   //}
 }
@@ -141,7 +143,12 @@ void SymElOutput::outputSymbolElimination(Color eliminated, Clause* c)
     cname = "inv"+Int::toString(_symElNextClauseNumber);
   }
 
-  _printer.printAsClaim(cname, c);
+  if (!_declarationsPrinted) {
+    std::cout << TPTPPrinter::symbolDeclarations(TPTPOutput::Language::TCF);
+    _declarationsPrinted = true;
+  }
+  std::cout << TPTPPrinter::namedUnit(c, cname, TPTPOutput::Role::CLAIM, TPTPOutput::Language::TCF,
+      /*includeSplitLevels=*/true);
 
   _symElNextClauseNumber++;
 }

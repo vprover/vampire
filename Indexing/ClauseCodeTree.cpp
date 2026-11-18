@@ -318,7 +318,7 @@ void ClauseCodeTree::remove(Clause* cl)
 void ClauseCodeTree::RemovingLiteralMatcher::init(CodeOp* entry_, LitInfo* linfos_,
     size_t linfoCnt_, const ClauseCodeTree& tree_, Stack<CodeOp*>* firstsInBlocks_)
 {
-  Matcher::init(tree_, entry_, linfos_, linfoCnt_, firstsInBlocks_);
+  Matcher::init(tree_, entry_, LitInfoOccupation(), linfos_, linfoCnt_, firstsInBlocks_);
 
   ALWAYS(prepareLiteral());
 }
@@ -354,16 +354,23 @@ bool ClauseCodeTree::removeOneOfAlternatives(CodeOp* op, Clause* cl, Stack<CodeO
  */
 void ClauseCodeTree::LiteralMatcher::init(const CodeTree& tree_, CodeOp* entry_,
 					  LitInfo* linfos_, size_t linfoCnt_,
-					  bool seekOnlySuccess)
+					  bool seekOnlySuccess, LitInfoOccupation occupied)
 {
   ASS_G(linfoCnt_,0);
 
-  Matcher::init(tree_,entry_,linfos_,linfoCnt_);
+  Matcher::init(tree_,entry_,occupied,linfos_,linfoCnt_);
 
   _eagerlyMatched=false;
   eagerResults.reset();
 
   RSTAT_CTR_INC("LiteralMatcher::init");
+
+  // prepareLiteral might fail because all LitInfo's are occupied
+  // in that case, we still want to look for SUCCESS operations
+  if (!seekOnlySuccess && !prepareLiteral()) {
+    seekOnlySuccess = true;
+  }
+  firstLInfo = curLInfo;
   if(seekOnlySuccess) {
     RSTAT_CTR_INC("LiteralMatcher::init - seekOnlySuccess");
     //we are interested only in SUCCESS operations
@@ -380,8 +387,6 @@ void ClauseCodeTree::LiteralMatcher::init(const CodeTree& tree_, CodeOp* entry_,
     }
     return;
   }
-
-  ALWAYS(prepareLiteral());
 }
 
 /**
@@ -667,11 +672,11 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
 
       size_t matchIndex=ils->matchCnt;
       while(matchIndex!=0) {
-	matchIndex--;
-	MatchInfo* mi=ils->getMatch(matchIndex);
-	if(!existsCompatibleMatch(ils, mi, prevILS)) {
-	  ils->deleteMatch(matchIndex); //decreases ils->matchCnt
-	}
+        matchIndex--;
+        MatchInfo* mi=ils->getMatch(matchIndex);
+        if(!existsCompatibleMatch(ils, mi, prevILS)) {
+          ils->deleteMatch(matchIndex); //decreases ils->matchCnt
+        }
       }
       if(!ils->matchCnt) {
 	return false;
@@ -680,6 +685,32 @@ inline bool ClauseCodeTree::ClauseMatcher::canEnterLiteral(CodeOp* op)
   }
 
   return true;
+}
+
+CodeTree::LitInfoOccupation ClauseCodeTree::ClauseMatcher::occupiedPositions()
+{
+  LitInfoOccupation occupied;
+  // A truncated domain could falsely appear to contain just one position.
+  if(query->length() > LitInfoOccupation::CAPACITY) {
+    return occupied;
+  }
+
+  for(const auto& lm : lms) {
+    // A lazy matcher may still discover other positions for this LIT_END.
+    if(!lm->eagerlyMatched()) {
+      continue;
+    }
+    const ILStruct* ils=lm->getILS();
+    LitInfoOccupation domain;
+    // Use surviving matches, coalescing equality orientations and polarities.
+    for(unsigned i=0; i<ils->matchCnt; i++) {
+      domain.occupy(lInfos[ils->getMatch(i)->liIndex]);
+    }
+    if(domain.isExclusive()) {
+      occupied.occupy(domain);
+    }
+  }
+  return occupied;
 }
 
 /**
@@ -717,7 +748,9 @@ void ClauseCodeTree::ClauseMatcher::enterLiteral(CodeOp* entry, bool seekOnlySuc
   }
 
   Recycled<LiteralMatcher, NoReset> lm;
-  lm->init(*tree, entry, lInfos.array(), linfoCnt, seekOnlySuccess);
+  // Derive occupancy from the active LIT_ENDs
+  LitInfoOccupation occupied=seekOnlySuccess ? LitInfoOccupation() : occupiedPositions();
+  lm->init(*tree, entry, lInfos.array(), linfoCnt, seekOnlySuccess, occupied);
   lms.push(std::move(lm));
 }
 

@@ -41,7 +41,7 @@ public:
 private:
   FormulaUnit* apply(FormulaUnit* fu);
 
-  /** The currently processed unit */
+  /** The currently processed unit; the definitions introduced for it inherit its goal affinity */
   Unit* _unit;
 
   /** A list of definitions, produced during preprocessing */

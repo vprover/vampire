@@ -37,15 +37,9 @@ public:
   EqualityFactoring(SaturationAlgorithm& salg);
   ClauseIterator generateClauses(Clause* premise) override;
 private:
-  struct IsPositiveEqualityFn;
-  struct IsDifferentPositiveEqualityFn;
-  struct FactorablePairsFn;
-  struct ResultFn;
-  friend struct ResultFn;
-
   const SaturationAlgorithm& _salg;
-  AbstractionOracle _abstractionOracle;
-  bool _uwaFixedPointIteration;
+  const AbstractionOracle _abstractionOracle;
+  const bool _uwaFixedPointIteration;
 };
 
 using EqualityFactoringExtra = TwoLiteralRewriteInferenceExtra;

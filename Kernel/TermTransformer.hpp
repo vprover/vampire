@@ -71,8 +71,6 @@ protected:
 
     return orig == newTerm;
   }
-
-
 };
 
 /**
@@ -87,11 +85,21 @@ protected:
 class BottomUpTermTransformer : public TermTransformerCommon {
 public:
   virtual ~BottomUpTermTransformer() {}
+  explicit BottomUpTermTransformer(const bool transformSorts = true) : transformSorts(transformSorts) {}
   Term* transform(Term* term) override;
 protected:
   virtual TermList transformSubterm(TermList trm) = 0;
+  /**
+   * Lets a subclass declare that a term needs no transformation at all - neither it
+   * nor anything below it. Such a term is used as it is: it is not descended into and
+   * transformSubterm is not called on it. Only sound if the subclass can tell that
+   * transforming the whole subtree would be the identity.
+   */
+  virtual bool alreadyTransformed(Term* t) { return false; }
   Formula* transform(Formula* f) override;
   TermList transform(TermList ts) override;
+
+  const bool transformSorts;
 };
 
 

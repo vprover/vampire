@@ -145,6 +145,28 @@ void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string
   InferenceStore::instance()->outputProof(cerr, units);
 }
 
+/**
+ * The TPTP role of @b unit in the output modes, decided by its goal affinity.
+ *
+ * The parsers negate a stated conjecture right away (see InferenceRule::INPUT_CONJECTURE),
+ * so any other unit at the conjecture level is a negated conjecture or derived from one.
+ */
+const char* UIHelper::outputRole(const Unit* unit)
+{
+  if (unit->inference().rule() == InferenceRule::INPUT_CONJECTURE) {
+    return TPTPOutput::Role::CONJECTURE;
+  }
+  switch (unit->goalAffinity()) {
+  case GoalAffinity::ASSUMPTION:
+    return TPTPOutput::Role::HYPOTHESIS;
+  case GoalAffinity::CONJECTURE:
+    return TPTPOutput::Role::NEGATED_CONJECTURE;
+  default:
+    return TPTPOutput::Role::AXIOM;
+  }
+}
+
+
 void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 {
   if (szsOutputMode()) {
@@ -155,7 +177,8 @@ void UIHelper::outputSaturatedSet(std::ostream& out, UnitIterator uit)
 
   while (uit.hasNext()) {
     Unit* cl = uit.next();
-    out << TPTPPrinter::toString(cl) << endl;
+    // A unit derived from the conjecture stems from the negated conjecture.
+    out << TPTPPrinter::unit(cl, TPTPPrinter::unitLanguage(cl), outputRole(cl)) << endl;
   }
 
   if (szsOutputMode()) {
@@ -420,7 +443,7 @@ void UIHelper::outputResult(std::ostream& out)
     /**
      * Making explicit what was previously only done during proof printing.
      *
-     * However, we need to know the correct input type to decide whether to print "Theorem" vs "ContradictoryAxioms" below
+     * However, we need to know the correct goal affinity to decide whether to print "Theorem" vs "ContradictoryAxioms" below
      * (and this is not correctly set in inference by Global subsumtions for heuristic reasons).
      *
      * So it makes sense to call this even if minimizeSatProofs is false.
@@ -433,7 +456,7 @@ void UIHelper::outputResult(std::ostream& out)
 
     if (szsOutputMode()) {
       out << "% SZS status " <<
-        (UIHelper::haveConjecture() ? ( refutation->derivedFromGoal() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
+        (UIHelper::haveConjecture() ? ( (refutation->goalAffinity() >= GoalAffinity::CONJECTURE) ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
 	      << " for " << env.options->problemName << endl;
     }
     if (env.options->proof() != Options::Proof::OFF) {
@@ -474,9 +497,13 @@ void UIHelper::outputResult(std::ostream& out)
         ASSERTION_VIOLATION;
       }
 
-      out << "Symbol-weight minimized interpolant: " << TPTPPrinter::toString(interpolant) << endl;
-      out << "Actual weight: " << interpolant->weight() << endl;
-      out<<endl;
+      addCommentSignForSZS(out);
+      out << "Interpolant (symbol-weight minimized, weight " << interpolant->weight() << "):" << endl;
+      addCommentSignForSZS(out);
+      out << "SZS output start Interpolant" << endl;
+      out << TPTPPrinter::formula(interpolant) << endl;
+      addCommentSignForSZS(out);
+      out << "SZS output end Interpolant" << endl;
     }
 
     // the following two sanity checks are performed only after the proof printing, so we can also have a look at the proof, when we get a report back
@@ -594,108 +621,5 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
   }
 }
 
-/**
- * Output to @b out all symbol declarations for the current signature.
- * Symbols having default types will not be output.
- * @author Andrei Voronkov
- * @since 03/07/2013 Manchester
- */
-void UIHelper::outputSymbolDeclarations(std::ostream& out, bool tcf)
-{
-  const Signature& sig = *env.signature;
-
-  unsigned typeCons = sig.typeCons();
-  for (unsigned i=0; i<typeCons; ++i) {
-    outputSymbolTypeDeclarationIfNeeded(out, false, true, i, tcf);
-  }
-  unsigned funcs = sig.functions();
-  for (unsigned i=0; i<funcs; ++i) {
-    if (!env.options->showFOOL()) {
-      if (env.signature->isFoolConstantSymbol(true,i) || env.signature->isFoolConstantSymbol(false,i)) {
-        continue;
-      }
-    }
-    outputSymbolTypeDeclarationIfNeeded(out, true, false, i, tcf);
-  }
-  unsigned preds = sig.predicates();
-  for (unsigned i=0; i<preds; ++i) {
-    outputSymbolTypeDeclarationIfNeeded(out, false, false, i, tcf);
-  }
-} // UIHelper::outputSymbolDeclarations
-
-/**
- * Output to @b out a function or a predicate symbol declaration.
- * Symbols having default types will not be output.
- * @author Andrei Voronkov
- * @since 03/07/2013 Manchester
- */
-void UIHelper::outputSymbolTypeDeclarationIfNeeded(std::ostream& out, bool function, bool typeCon, unsigned symNumber, bool tcf)
-{
-  const Signature::Symbol* sym;
-
-  if(function){
-    sym = env.signature->getFunction(symNumber);
-  } else if(typeCon){
-    sym = env.signature->getTypeCon(symNumber);
-  } else {
-    sym = env.signature->getPredicate(symNumber);
-  }
-
-  if (typeCon && (env.signature->isArrayCon(symNumber) ||
-                  env.signature->isTupleCon(symNumber) ||
-                  env.signature->isArrowCon(symNumber))){
-    return;
-  }
-
-  if(typeCon && env.signature->isDefaultSortCon(symNumber) &&
-    (!env.signature->isBoolCon(symNumber) || !env.options->showFOOL())){
-    return;
-  }
-
-  if (sym->interpreted()) {
-    //there is no need to output type definitions for interpreted symbols
-    return;
-  }
-
-  unsigned dummy;
-  if (!typeCon && Theory::findTupleProjection(symNumber, !function, dummy)) {
-    return;
-  }
-
-  if (function) {
-    TermList sort = env.signature->getFunction(symNumber)->type()->result();
-    if (sort.isTupleSort()) {
-      return;
-    }
-  }
-
-  OperatorType* type = sym->type();
-
-  if (type->isAllDefault()) {//TODO required
-    return;
-  }
-
-  //out << "tff(" << (function ? "func" : "pred") << "_def_" << symNumber << ", type, "
-  //    << sym->name() << ": ";
-
-  std::string symName = sym->name();
-  if(typeCon && env.signature->isBoolCon(symNumber)){
-    ASS(env.options->showFOOL());
-    symName = "$bool";
-  }
-
-  //don't output type of app. It is an internal Vampire thing
-  if(!(function && env.signature->isAppFun(symNumber))){
-    //match the fragment used for the proof steps (see
-    //InferenceStore's getFofString), so one proof does not mix languages
-    out << (env.initiallyHigherOrder() ? "thf(" : (tcf ? "tcf(" : "tff("))
-        << (function ? "func" : (typeCon ?  "type" : "pred"))
-        << "_def_" << symNumber << ", type, "
-        << symName << ": ";
-    out << type->toString();
-    out << ")." << endl;
-  }
-  //out << ")." << endl;
-}
 
 } // namespace Shell

@@ -986,8 +986,8 @@ public:
       BacktrackData _normalizationBacktrackData;
       InstanceCntr _iterCntr;
     public:
-      Iterator(Iterator&&) = default;
-      Iterator& operator=(Iterator&&) = default;
+      Iterator(Iterator&&) = delete;
+      Iterator& operator=(Iterator&&) = delete;
       using Unifier = typename RetrievalAlgorithm::Unifier;
       using ElementType = QueryRes<Unifier, LeafData>;
 
@@ -1001,9 +1001,7 @@ public:
           _normalizationRecording=false;
           _normalizationBacktrackData.backtrack();
         }
-        while(_bdStack.isNonEmpty()) {
-          _bdStack.pop().backtrack();
-        }
+        ASS(_bdStack.isEmpty())
         _queryInitBacktrackData.backtrack();
       }
 

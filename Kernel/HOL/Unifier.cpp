@@ -127,8 +127,8 @@ Option<Stack<UnificationNode*>> UnificationNode::solve()
     // TODO(HOL): if simplify is called, this should be unnecessary
     if (curr.rigidRigid()) {
       DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
-      if (_funcExt && curr._sort.isArrowSort()) {
-        DEBUG("extensionality with sort ", curr._sort);
+      if (curr.shouldAbstract(_funcExt)) {
+        DEBUG("abstracting");
         i++;
         continue;
       }
@@ -186,8 +186,8 @@ bool UnificationNode::simplify()
 
     if (curr.rigidRigid()) {
       DEBUG("rigid-rigid ", curr._lhead, " ", curr._rhead);
-      if (_funcExt && curr._sort.isArrowSort()) {
-        DEBUG("extensionality with sort ", curr._sort);
+      if (curr.shouldAbstract(_funcExt)) {
+        DEBUG("abstracting");
         i++;
         continue;
       }
@@ -209,6 +209,16 @@ bool UnificationNode::simplify()
     i++;
   }
   return true;
+}
+
+unsigned UnificationNode::weight() const
+{
+  unsigned w = 0;
+  for (const auto& c : _cons) {
+    w += c._lhs.weight();
+    w += c._rhs.weight();
+  }
+  return w;
 }
 
 Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bool includeRest) const
@@ -249,22 +259,22 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
 }
 
 
-AbstractingWrapper::AbstractingWrapper(AbstractingUnifier* unifier, unsigned hoUnifDepth, bool funcExt)
-  : _unifier(new AbstractingUnifier(unifier->_uwa)), _hoUnifDepth(hoUnifDepth)
+AbstractingWrapper::AbstractingWrapper(AbstractingUnifier& unifier, unsigned hoUnifDepth, unsigned hoUnifMaxWeight, bool funcExt)
+  : _unifier(new AbstractingUnifier(unifier._uwa)), _hoUnifDepth(hoUnifDepth), _hoUnifMaxWeight(hoUnifMaxWeight)
 #if VDEBUG
   , _funcExt(funcExt)
 #endif
 {
-  _unifier->subs().copy(unifier->subs());
+  _unifier->subs().copy(unifier.subs());
   Stack<UnificationNode::Constraint> cons;
-  for (const auto c : unifier->constr().iter()) {
+  for (const auto c : unifier.constr().iter()) {
     cons.emplace(
       c.lhs().toGluedTerm(_unifier->subs()),
       c.rhs().toGluedTerm(_unifier->subs()),
       c.sort().toGluedTerm(_unifier->subs())
     );
   }
-  _todo.emplace(new UnificationNode(cons, _unifier->subs().nextGlueVar(), funcExt), 0);
+  _todo.emplace(new UnificationNode(cons, _unifier->subs().nextGlueVar(), funcExt), /*depth=*/0);
 }
 
 AbstractingWrapper::~AbstractingWrapper()
@@ -289,8 +299,8 @@ bool AbstractingWrapper::hasNext()
       continue;
     }
 
-    if (depth >= _hoUnifDepth) {
-      DEBUG("reached maximal depth");
+    if (depth >= _hoUnifDepth || (depth > 0 && node->weight() > _hoUnifMaxWeight)) {
+      DEBUG("reached maximal depth/weight");
       _next = node;
       return true;
     }
@@ -331,7 +341,7 @@ AbstractingUnifier* AbstractingWrapper::next()
 
   _unifier->constr().reset();
   for (const auto& con : _next->_cons) {
-    ASS_REP(con.flexFlex() || con.flexRigid() || (_funcExt && con._sort.isArrowSort()), con);
+    ASS_REP(con.flexFlex() || con.flexRigid() || con.shouldAbstract(_funcExt), con);
     ASS_REP(!con._lhs.containsLooseDBIndex(), con);
     ASS_REP(!con._rhs.containsLooseDBIndex(), con);
     auto sortS = SubstHelper::apply(con._sort, _next->_subs);

@@ -15,6 +15,7 @@
  * @since 06/05/2007 Manchester, changed into a single class instead of three
  */
 
+#include "Lib/SharedSet.hpp"
 #include "SubstHelper.hpp"
 #include "TermIterators.hpp"
 #include "RobSubstitution.hpp"
@@ -22,7 +23,7 @@
 #include "Indexing/TermSharing.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Lib/Metaiterators.hpp"
-#include "Lib/Output.hpp"
+#include "Lib/StringUtils.hpp"
 
 #include "Term.hpp"
 
@@ -131,8 +132,16 @@ bool TermList::isLambdaTerm() const {
   return !isVar() && term()->isLambdaTerm();
 }
 
-bool TermList::isRedex() const {
-  return isApplication() && lhs().isLambdaTerm();
+bool TermList::isBetaRedex() const {
+  return isTerm() && term()->isBetaRedex();
+}
+
+bool TermList::isEtaRedex() const {
+  return isTerm() && term()->isEtaRedex();
+}
+
+bool TermList::isProxy() const {
+  return isTerm() && !term()->isProxy(Proxy::NOT_PROXY);
 }
 
 bool TermList::isProxy(Proxy proxy) const {
@@ -141,10 +150,6 @@ bool TermList::isProxy(Proxy proxy) const {
 
 bool TermList::isChoice() const {
   return !isVar() && term()->isChoice();
-}
-
-bool TermList::isPlaceholder() const {
-  return !isVar() && term()->isPlaceholder();
 }
 
 Option<unsigned> TermList::deBruijnIndex() const {
@@ -156,29 +161,11 @@ Option<unsigned> TermList::deBruijnIndex() const {
 
 bool TermList::containsLooseDBIndex() const
 {
-  Stack<std::pair<TermList,unsigned>> todo;
-  todo.emplace(*this, 0);
+  return !freeDBIndices()->isEmpty();
+}
 
-  while (todo.isNonEmpty()) {
-    auto [curr, dep] = todo.pop();
-
-    if (curr.isVar() || (curr.term()->shared() && !curr.term()->hasDeBruijnIndex())) {
-      continue;
-    }
-
-    if (curr.deBruijnIndex().isSome()) {
-      unsigned idx = curr.deBruijnIndex().unwrap();
-      if (idx >= dep) { return true; }
-    }
-    else if (curr.isLambdaTerm()) {
-      todo.emplace(curr.lambdaBody(), dep + 1);
-    }
-    else if (curr.isApplication()) {
-      todo.emplace(curr.lhs(), dep);
-      todo.emplace(curr.rhs(), dep);
-    }
-  }
-  return false;
+const SharedSet<unsigned>* TermList::freeDBIndices() const {
+  return isVar() ? SharedSet<unsigned>::getEmpty() : term()->freeDBIndices();
 }
 
 TermList TermList::lhs() const {
@@ -561,7 +548,7 @@ std::string Term::variableToString(TermList var)
  * opening '(' and any special-term data preceding the arguments.
  * For zero arity this is the complete term.
  */
-std::string Term::prefixToString() const
+std::string Term::prefixToString(bool mightNeedParens) const
 {
   if (isSpecial()) {
     const Term::SpecialTermData* sd = getSpecialData();
@@ -569,7 +556,7 @@ std::string Term::prefixToString() const
     switch(specialFunctor()) {
       case SpecialFunctor::FORMULA: {
         ASS_EQ(arity(), 0);
-        std::string formula = sd->getFormula()->toString();
+        std::string formula = sd->getFormula()->toString(mightNeedParens);
         return env.options->showFOOL() ? "$term{" + formula + "}" : formula;
       }
       case SpecialFunctor::LET: {
@@ -629,7 +616,7 @@ std::string Term::prefixToString() const
           if (vs.hasNext())
             varList += ", ";
         }
-        return "(^[" + varList + "] : (" + lambdaExp.toString() + "))";
+        return StringUtils::addParens("^[" + varList + "] : " + lambdaExp.toString(/*mightNeedParens=*/true), mightNeedParens);
       }
       case SpecialFunctor::MATCH:
         // we simply let the arguments be written out
@@ -698,7 +685,7 @@ std::string TermList::asArgsToString() const
       continue;
     }
 
-    res += t->prefixToString();
+    res += t->prefixToString(/*mightNeedParens=*/false);
 
     if (t->arity()) {
       stack.push(t->args());
@@ -712,7 +699,7 @@ std::string TermList::asArgsToString() const
  * Write as a std::string the head of the term list.
  * @since 27/02/2008 Manchester
  */
-std::string TermList::toString(bool topLevel) const
+std::string TermList::toString(bool mightNeedParens) const
 {
   if (isEmpty()) {
     return "<empty TermList>";
@@ -720,16 +707,8 @@ std::string TermList::toString(bool topLevel) const
   if (isVar()) {
     return Term::variableToString(*this);
   }
-  if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
-    if (HOL::isTrue(*this)) {
-      return "⊤";
-    }
-    if (HOL::isFalse(*this)) {
-      return "⊥";
-    }
-  }
 
-  return term()->toString(topLevel);
+  return term()->toString(mightNeedParens);
 } // TermList::toString
 
 
@@ -737,25 +716,23 @@ std::string TermList::toString(bool topLevel) const
  * Return the result of conversion of a term into a std::string.
  * @since 16/05/2007 Manchester
  */
-std::string Term::toString(bool topLevel) const
+std::string Term::toString(bool mightNeedParens) const
 {
   if (isSuper()) {
     return "$tType";
   }
 
   if (env.higherOrder() && env.options->holPrinting() != Options::HPrinting::RAW) {
-    return HOL::toString(*this, topLevel);
+    return HOL::toString(*this, mightNeedParens);
   }
 
-  if (isSort() && static_cast<AtomicSort *>(const_cast<Term *>(this))->isArrowSort()) {
-    ASS(arity() == 2);
-    std::string res;
+  if (isSort() && static_cast<const AtomicSort*>(this)->isArrowSort()) {
+    ASS_EQ(arity(), 2);
     TermList arg1 = *(nthArgument(0));
     TermList arg2 = *(nthArgument(1));
-    res += topLevel ? "" : "(";
-    res += arg1.toString(false) + " > " + arg2.toString();
-    res += topLevel ? "" : ")";
-    return res;
+    return StringUtils::addParens(
+      arg1.toString(/*mightNeedParens=*/true) + " > " +
+      arg2.toString(/*mightNeedParens=*/true), mightNeedParens);
   }
 
 #if NICE_THEORY_OUTPUT
@@ -771,7 +748,7 @@ std::string Term::toString(bool topLevel) const
       return Option<std::string>(out.str());
     };
     auto binary = [&](auto sym)  {
-      auto needsPar = !topLevel;
+      auto needsPar = mightNeedParens;
       auto maybePar = [&](auto t) { 
         return t.toString(
             t.isTerm() && (
@@ -819,10 +796,10 @@ std::string Term::toString(bool topLevel) const
 #endif // NICE_THEORY_OUTPUT
 
   std::stringstream out;
-  out << prefixToString();
-
+  out << prefixToString(mightNeedParens);
+  
   if (_arity) {
-    out << Output::interleaved(',', anyArgIter(this)) << ")";
+    out << args()->asArgsToString(); // will also print the ')'
   }
   return out.str();
 } // Term::toString
@@ -843,47 +820,28 @@ std::pair<TermList,TermList> Literal::eqArgs() const {
  * If `reverseEquality` and this is an equation, print the arguments in reverse order.
  * @since 16/05/2007 Manchester
  */
-std::string Literal::toString(bool reverseEquality) const
+std::string Literal::toString(bool reverseEquality, bool mightNeedParens) const
 {
   if (isEquality()) {
     const TermList lhs = termArg(reverseEquality);
-    std::string lhss = lhs.toString();
+    std::string lhss = lhs.toString(/*mightNeedParens=*/true);
 
-    if (env.higherOrder() &&
-        env.options->holPrinting() != Options::HPrinting::RAW &&
-        lhs.isApplication()) {
-      lhss = "(" + lhss + ")";
-    }
-
-    std::string eqSym = isPositive() ? " = " : " != ";
-    if (env.higherOrder() && env.options->holPrinting() == Options::HPrinting::PRETTY) {
-      eqSym = isPositive() ? " ≈ " : " ≉ ";
-    }
-    lhss += eqSym;
+    lhss += isPositive() ? " = " : " != ";
 
     auto rhs = termArg(!reverseEquality);
-    std::string rhss = rhs.toString();
-    if (env.higherOrder() &&
-        env.options->holPrinting() != Options::HPrinting::RAW &&
-        rhs.isApplication()) {
-      rhss = "(" + rhss + ")";
-    }
+    std::string rhss = rhs.toString(/*mightNeedParens=*/true);
 
-    std::string res = lhss + rhss;
-    if (env.higherOrder() ||
-        SortHelper::getEqualityArgumentSort(this).isBoolSort()) {
-      res = "(" + res + ")";
-    }
+    std::string res = StringUtils::addParens(lhss + rhss, mightNeedParens);
 
-#ifdef VPRINT_EQ_SORT
-    res += " {" + eqArgSort().toString() + "}";
-#endif // VAMPIRE_PRINT_EQ_SORT
+    // uncomment to debug equality sorts
+    // res += " {" + eqArgSort().toString() + "}";
 
     return res;
   }
 
   if (env.signature->isDefPred(functor())) {
-    return termArg(0).toString() + " := " + termArg(1).toString();
+    return StringUtils::addParens(termArg(0).toString(/*mightNeedParens=*/true) +
+      " := " + termArg(1).toString(/*mightNeedParens=*/true), mightNeedParens);
   }
 
 #if NICE_THEORY_OUTPUT
@@ -911,14 +869,15 @@ std::string Literal::toString(bool reverseEquality) const
   Stack<const TermList*> stack(64);
   std::string s = "";
   if (polarity() == 0) { /* negative polarity */
-    if (env.options->holPrinting() == Options::HPrinting::PRETTY) {
-      s = "¬";
-    } else {
-      s = "~";
-    }
+    s = "~";
   }
 
-  s += predicateName();
+  const std::string& name = predicateName();
+  // "~$less(X,Y)" is not valid Prolog: "~$" would be read as a single token
+  if (polarity() == 0 && name[0] == '$') {
+    s += ' ';
+  }
+  s += name;
 
   //cerr << "predicate: "<< predicateName()<<endl;
   if (_arity > 0) {
@@ -944,8 +903,27 @@ bool Term::isLambdaTerm() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);
 }
 
-bool Term::isRedex() const {
+bool Term::isBetaRedex() const {
   return isApplication() && nthArgument(2)->isLambdaTerm();
+}
+
+bool Term::isEtaRedex() const {
+  if (!isLambdaTerm()) {
+    return false;
+  }
+  auto lb = lambdaBody();
+  if (!lb.isApplication()) {
+    return false;
+  }
+  auto lhs = lb.term()->termArg(0);
+  auto rhs = lb.term()->termArg(1);
+  if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
+    return false;
+  }
+  if (!lhs.freeDBIndices()->isEmpty() && lhs.freeDBIndices()->minval() == 0) {
+    return false;
+  }
+  return true;
 }
 
 bool Term::isProxy(Proxy proxy) const {
@@ -954,10 +932,6 @@ bool Term::isProxy(Proxy proxy) const {
 
 bool Term::isChoice() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);
-}
-
-bool Term::isPlaceholder() const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isPlaceholder(_functor);
 }
 
 Option<unsigned> Term::deBruijnIndex() const {
@@ -1086,6 +1060,7 @@ Term* Term::createNonShared(Term* t,TermList* args)
 {
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
+  s->_evalNormalForm = 0; // only shared terms carry this cache, @see isEvalNormalForm()
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
     ASS(!args[i].isEmpty());
@@ -1132,7 +1107,7 @@ Term* Term::createITE(Formula * condition, TermList thenBranch, TermList elseBra
   *ss = elseBranch;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_iteData.condition = condition;
-  s->getSpecialData()->_iteData.sort = branchSort;
+  s->getSpecialData()->_sort = branchSort;
   return s;
 }
 
@@ -1157,7 +1132,7 @@ Term* Term::createLet(Formula* binding, TermList body, TermList bodySort)
   *ss = body;
   ASS(ss->next()->isEmpty());
   s->getSpecialData()->_letData.binding = binding;
-  s->getSpecialData()->_letData.sort = bodySort;
+  s->getSpecialData()->_sort = bodySort;
   return s;
 }
 
@@ -1170,6 +1145,7 @@ Term* Term::createFormula(Formula* formula)
   Term* s = new(0,sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::FORMULA), 0);
   s->getSpecialData()->_formulaData.formula = formula;
+  s->getSpecialData()->_sort = AtomicSort::boolSort();
   return s;
 }
 
@@ -1183,7 +1159,6 @@ Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   s->makeSymbol(toNormalFunctor(SpecialFunctor::LAMBDA), 0);
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
   s->getSpecialData()->_lambdaData._vars = vars;
-  s->getSpecialData()->_lambdaData.expSort = expSort;
   Stack<TermList> revSorts;
   VSList::Iterator vit(vars);
   while(vit.hasNext()){
@@ -1193,15 +1168,25 @@ Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   while(!revSorts.isEmpty()){
     lambdaTmSort = AtomicSort::arrowSort(revSorts.pop(), lambdaTmSort);
   }
-  s->getSpecialData()->_lambdaData.sort = lambdaTmSort;
+  s->getSpecialData()->_sort = lambdaTmSort;
   return s;
+}
+
+TermList Term::SpecialTermData::getLambdaExpSort() const
+{
+  ASS_EQ(specialFunctor(), SpecialFunctor::LAMBDA);
+  TermList sort = _sort;
+  for (VSList* vs = _lambdaData._vars; vs; vs = vs->tail()) {
+    sort = sort.result();
+  }
+  return sort;
 }
 
 Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity, TermList *elements) {
   Term *s = new (arity, sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::MATCH), arity);
   TermList *ss = s->args();
-  s->getSpecialData()->_matchData.sort = sort;
+  s->getSpecialData()->_sort = sort;
   s->getSpecialData()->_matchData.matchedSort = matchedSort;
 
   for (unsigned i = 0; i < arity; i++) {
@@ -1221,7 +1206,7 @@ Term *Term::createCond(TermList sort, unsigned int arity, TermList *elements) {
   Term *s = new (arity, sizeof(SpecialTermData)) Term;
   s->makeSymbol(toNormalFunctor(SpecialFunctor::COND), arity);
   TermList *ss = s->args();
-  s->getSpecialData()->_condData.sort = sort;
+  s->getSpecialData()->_sort = sort; // the sort of every value argument, and of the final else
 
   for (unsigned i = 0; i < arity; i++) {
     ASS(!elements[i].isEmpty());
@@ -1265,6 +1250,7 @@ Term* Term::createNonShared(Term* t)
 {
   int arity = t->arity();
   Term* s = new(arity) Term(*t);
+  s->_evalNormalForm = 0; // only shared terms carry this cache, @see isEvalNormalForm()
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
     (*ss--).makeSpecialVar(0);
@@ -1280,6 +1266,7 @@ Term* Term::cloneNonShared(Term* t)
   int arity = t->arity();
   TermList* args = t->args();
   Term* s = new(arity) Term(*t);
+  s->_evalNormalForm = 0; // only shared terms carry this cache, @see isEvalNormalForm()
   TermList* ss = s->args();
   for (int i = 0;i < arity;i++) {
     *ss-- = args[-i];
@@ -1726,6 +1713,7 @@ Term::Term(const Term& t) throw()
 #if VDEBUG
     _kboInstance(nullptr),
 #endif
+    _freeDBIndices(SharedSet<unsigned>::getEmpty()),
     _vars(0)
 {
   ASS(!isSpecial()); //we do not copy special terms
@@ -1752,6 +1740,7 @@ AtomicSort::AtomicSort(const AtomicSort& p) throw()
 Term::Term() throw()
   :_functor(0),
    _arity(0),
+   _evalNormalForm(0),
    _color(COLOR_TRANSPARENT),
    _hasInterpretedConstants(0),
    _isTwoVarEquality(0),
@@ -1760,7 +1749,7 @@ Term::Term() throw()
 #if VDEBUG
    _kboInstance(nullptr),
 #endif
-   _maxRedLen(0),
+   _freeDBIndices(SharedSet<unsigned>::getEmpty()),
    _vars(0)
 {
   info().setContent(0);

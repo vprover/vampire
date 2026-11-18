@@ -950,7 +950,16 @@ class ContextualIterator
 {
 public:
   using ElementType = typename Inner::ElementType;
-  DEFAULT_CONSTRUCTORS(ContextualIterator)
+  ContextualIterator(ContextualIterator const&) = delete;
+  ContextualIterator& operator=(ContextualIterator const&) = delete;
+  ContextualIterator& operator=(ContextualIterator&&) = delete;
+
+  // a context may have registered pointers into itself on entering (e.g. via bdRecord),
+  // so we can only be moved when we are not in a context
+  ContextualIterator(ContextualIterator&& other)
+  : _inContext(false), _used(other._used), _context(std::move(other._context)),
+    _iit(std::move(other._iit)), _current(std::move(other._current))
+  { ASS(!other._inContext); }
 
   ContextualIterator(Inner iit, Ctx context)
   : _inContext(false), _used(true), _context(std::move(context)), _iit(std::move(iit)) {}
@@ -1003,7 +1012,7 @@ template<class Inner, class Ctx>
 inline
 ContextualIterator<Inner,Ctx> getContextualIterator(Inner it, Ctx context)
 {
-  return ContextualIterator<Inner,Ctx>(it, context);
+  return ContextualIterator<Inner,Ctx>(std::move(it), std::move(context));
 }
 
 #if VTIME_PROFILING

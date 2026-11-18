@@ -36,50 +36,20 @@ using namespace Lib;
 using namespace Kernel;
 
 /**
- * Weight comparison of clauses.
- * @return the result of comparison (LESS, EQUAL or GREATER)
- * @warning if the option increased_numeral_weight is on, then each comparison
- *          recomputes the numeral weight of clauses, see Clause::getNumeralWeight(), so it
- *          it can be expensive
- */
-static Comparison compareWeight(Clause* cl1, Clause* cl2, const Options& opt)
-{
-  return Int::compare(cl1->weightForClauseSelection(opt), cl2->weightForClauseSelection(opt));
-}
-
-/**
  * Comparison of clauses. The comparison uses four orders in the
  * following order:
  * <ol><li>by age;</li>
  *     <li>by weight;</li>
- *     <li>by input type;</li>
+ *     <li>by goal affinity;</li>
  *     <li>by number.</li>
  * </ol>
+ * The key holds the first two, ClauseQueue::tieLessThan the rest.
  * @since 30/12/2007 Manchester
  */
-bool AgeQueue::lessThan(Clause* c1,Clause* c2)
+uint64_t AgeQueue::key(Clause* c)
 {
-  if (c1->age() < c2->age()) {
-    return true;
-  }
-  if (c2->age() < c1->age()) {
-    return false;
-  }
-
-  Comparison weightCmp=compareWeight(c1, c2, _opt);
-  if (weightCmp!=EQUAL) {
-    return weightCmp==LESS;
-  }
-
-  if (c1->inputType() < c2->inputType()) {
-    return false;
-  }
-  if (c2->inputType() < c1->inputType()) {
-    return true;
-  }
-
-  return c1->number() < c2->number();
-} // AgeQueue::lessThan
+  return (uint64_t(c->age()) << 32) | c->weightForClauseSelection(_opt);
+} // AgeQueue::key
 
 AgeQueue::OrdVal AgeQueue::getOrdVal(Clause* cl) const
 {
@@ -91,32 +61,16 @@ AgeQueue::OrdVal AgeQueue::getOrdVal(Clause* cl) const
  * following order:
  * <ol><li>by weight;</li>
  *     <li>by age;</li>
- *     <li>by input type;</li>
+ *     <li>by goal affinity;</li>
  *     <li>by number.</li>
  * </ol>
+ * The key holds the first two, ClauseQueue::tieLessThan the rest.
  * @since 30/12/2007 Manchester
  */
-bool WeightQueue::lessThan(Clause* c1,Clause* c2)
+uint64_t WeightQueue::key(Clause* c)
 {
-  Comparison weightCmp=compareWeight(c1, c2, _opt);
-  if (weightCmp!=EQUAL) {
-    return weightCmp==LESS;
-  }
-
-  if (c1->age() < c2->age()) {
-    return true;
-  }
-  if (c2->age() < c1->age()) {
-    return false;
-  }
-  if (c1->inputType() < c2->inputType()) {
-    return false;
-  }
-  if (c2->inputType() < c1->inputType()) {
-    return true;
-  }
-  return c1->number() < c2->number();
-} // WeightQueue::lessThan
+  return (uint64_t(c->weightForClauseSelection(_opt)) << 32) | c->age();
+} // WeightQueue::key
 
 WeightQueue::OrdVal WeightQueue::getOrdVal(Clause* cl) const
 {
@@ -425,7 +379,7 @@ bool AWPassiveClauseContainer::allChildrenNecessarilyExceedLimits(Clause* cl, un
   {
     // creating a fake inference to represent our current (pessimistic) estimate potential
     // FromInput - so that there is no Unit ownership issue
-    Inference inf = FromInput(UnitInputType::CONJECTURE); // CONJECTURE, so that derivedFromGoal is estimated as true
+    Inference inf = FromInput(MAX_AFFINITY); // the highest affinity, so that the estimate counts it as goal
     inf.setAge(cl->age() + 1); // clauses inferred from the clause as generating inferences will be over age limit...
 
     int maxSelWeight=0;
@@ -494,9 +448,8 @@ bool AWPassiveClauseContainer::exceedsWeightLimit(unsigned w, unsigned numPositi
    * but it's only relevant with avatar on (and avatar would later compute the splitset of the new clause again)
    * and nonliteralsInClauseWeight on, which is not the default. So keeping the cheap version for now.
    */
-  const bool derivedFromGoal = inference.derivedFromGoal();
   // If the caller was too lazy to supply an Inference object we conservatively assume that the result is a goal-clause.
-  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, derivedFromGoal, _opt);
+  unsigned weightForClauseSelection = Clause::computeWeightForClauseSelection(w, splitWeight, numeralWeight, inference.goalAffinity(), _opt);
   return weightForClauseSelection > _weightSelectionMaxWeight;
 }
 

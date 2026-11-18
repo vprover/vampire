@@ -265,8 +265,8 @@ private:
   StatPair formulas = {};
   /** inference counts indexed by InferenceRule */
   std::array<StatPair, toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST)> inferenceCnts = {};
-  /** input types indexed by UnitInputType */
-  std::array<StatPair, toNumber(UnitInputType::MODEL_DEFINITION)> inputTypeCnts = {};
+  /** input units counted by goal affinity */
+  std::array<StatPair, toNumber(MAX_AFFINITY)+1> inputAffinityCnts = {};
 }; // class Statistics
 
 } // namespace Shell

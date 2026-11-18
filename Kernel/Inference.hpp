@@ -29,29 +29,42 @@ using namespace Lib;
 
 namespace Kernel {
 
-/** Kind of input. The integers should not be changed, they are used in
- *  Compare. */
-enum class UnitInputType : unsigned char {
-  /** Axiom or derives from axioms */
-  AXIOM = 0,
-  /** Assumption or derives from axioms and assumptions */
-  ASSUMPTION = 1,
-  /** derives from the goal */
-  CONJECTURE = 2,
-  /** negated conjecture */
-  NEGATED_CONJECTURE = 3,
-  /** Vampire-only, for the consequence-finding mode */
-  CLAIM = 4,
-  /** Used in parsing and preprocessing for extensionality clause tagging, should not appear in proof search */
-  EXTENSIONALITY_AXIOM = 5,
-  /** Used to separate model definitions in model_check mode, should not appear in proof search */
-  MODEL_DEFINITION = 6
+/**
+ * How closely a unit is related to the goal, i.e., to the conjecture.
+ *
+ * An input unit gets its affinity from the parser (from the TPTP formula role, or from the kind of
+ * SMT-LIB command); a derived unit gets the maximum over its parents, see childAffinity().
+ * Goal-directed heuristics compare against these levels to decide what counts as the goal.
+ *
+ * The values are ordered: besides childAffinity(), Normalisation and ClauseQueue order units by them.
+ */
+enum class GoalAffinity : unsigned char {
+  /** background knowledge, below the axioms of the problem: TPTP axiom, definition and plain
+   *  from an include() file */
+  DISTANT_AXIOM = 0,
+  /** TPTP axiom, definition, plain (from the problem file itself) and claim;
+   *  SMT-LIB assert, define-fun(s-rec) and assert-claim;
+   *  also Vampire's theory axioms and most of its definitions */
+  AXIOM = 1,
+  /** TPTP hypothesis, theorem and lemma */
+  ASSUMPTION = 2,
+  /** TPTP conjecture and question (negated by the parser right away) and negated_conjecture;
+   *  also SMT-LIB assert-not, an assert annotated as a goal, and a unit picked by goal guessing */
+  CONJECTURE = 3
 };
 
-inline constexpr std::underlying_type_t<UnitInputType> toNumber(UnitInputType t) { return static_cast<std::underlying_type_t<UnitInputType>>(t); }
+/** the lowest affinity, where a maximum over parents starts */
+inline constexpr GoalAffinity MIN_AFFINITY = GoalAffinity::DISTANT_AXIOM;
+/** the highest affinity */
+inline constexpr GoalAffinity MAX_AFFINITY = GoalAffinity::CONJECTURE;
 
-UnitInputType getInputType(UnitList* units);
-UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
+inline constexpr std::underlying_type_t<GoalAffinity> toNumber(GoalAffinity t) { return static_cast<std::underlying_type_t<GoalAffinity>>(t); }
+
+/** The goal affinity of a unit derived from parents of affinities @b t1 and @b t2.
+ *  This is the one rule for combining affinities; all propagation should go through it. */
+GoalAffinity childAffinity(GoalAffinity t1, GoalAffinity t2);
+/** The goal affinity of a unit derived from the (non-empty) list of parents @b units. */
+GoalAffinity childAffinity(UnitList* units);
 
 /** Step-by-step guide to adding an inference to Vampire:
  *  1) Update the enum below with an entry for the new inference.
@@ -105,13 +118,16 @@ UnitInputType getInputType(UnitInputType t1, UnitInputType t2);
 enum class InferenceRule : unsigned char {
   /** input formula or clause */
   INPUT,
+  /** a conjecture as stated in the input; the parsers negate it right away (see CONJECTURE_NEGATION),
+   *  so such a unit only ever occurs as the premise of its negation, never in the problem itself */
+  INPUT_CONJECTURE,
 
   /** THIS DEFINES AN INTERVAL IN THIS ENUM WHERE ALL
    * (preprocessing/normalisation) FORMULA TRANSFORMATION SHOULD BELONG
    * (see also INTERNAL_FORMULA_CLAUSE_TRANSFORMATION_LAST and isFormulaClauseTransformation below). */
   GENERIC_FORMULA_CLAUSE_TRANSFORMATION,
   /** negated conjecture from the input */
-  NEGATED_CONJECTURE,
+  CONJECTURE_NEGATION,
   /** introduction of answer literal into the conjecture */
   ANSWER_LITERAL_INJECTION,
   /** introduction of answer literal into the conjecture,
@@ -594,6 +610,11 @@ inline bool isGeneratingInferenceRule(InferenceRule r) {
       toNumber(r) < toNumber(InferenceRule::GENERIC_GENERATING_INFERENCE_LAST));
 }
 
+/** true for the rules of input units, which have no premises */
+inline bool isInputRule(InferenceRule r) {
+  return r == InferenceRule::INPUT || r == InferenceRule::INPUT_CONJECTURE;
+}
+
 inline bool isTheoryAxiomRule(InferenceRule r) {
   return (toNumber(r) > toNumber(InferenceRule::GENERIC_THEORY_AXIOM) &&
       toNumber(r) < toNumber(InferenceRule::GENERIC_THEORY_AXIOM_LAST));
@@ -604,7 +625,9 @@ inline bool isNonSpecificInferenceRule(InferenceRule r) {
       toNumber(r) < toNumber(InferenceRule::GENERIC_NONSPECIFIC_INFERENCE_LAST));
 }
 
-std::string inputTypeName(UnitInputType type);
+std::string goalAffinityName(GoalAffinity type);
+/** prints goalAffinityName() */
+std::ostream& operator<<(std::ostream& out, GoalAffinity type);
 std::string ruleName(InferenceRule rule);
 
 /*
@@ -613,9 +636,12 @@ std::string ruleName(InferenceRule rule);
 */
 
 struct FromInput {
-  FromInput(UnitInputType it) : inputType(it) {}
-  UnitInputType inputType;
+  FromInput(GoalAffinity a) : affinity(a) {}
+  GoalAffinity affinity;
 };
+
+/** a conjecture as stated in the input, see InferenceRule::INPUT_CONJECTURE */
+struct InputConjecture {};
 
 struct TheoryAxiom {
   TheoryAxiom(InferenceRule r) : rule(r) {}
@@ -674,8 +700,8 @@ struct GeneratingInferenceMany {
 };
 
 struct NonspecificInference0 {
-  NonspecificInference0(UnitInputType it, InferenceRule r) : inputType(it), rule(r) {}
-  UnitInputType inputType;
+  NonspecificInference0(GoalAffinity a, InferenceRule r) : affinity(a), rule(r) {}
+  GoalAffinity affinity;
   InferenceRule rule;
 };
 
@@ -740,17 +766,16 @@ private:
     SAT_NEEDS_MINIMIZATION
   };
 
-  void initDefault(UnitInputType inputType, InferenceRule r) {
-    _inputType = inputType;
+  void initDefault(GoalAffinity affinity, InferenceRule r) {
+    _goalAffinity = affinity;
     _rule = r;
-    _included = false;
     _inductionDepth = 0;
     _sineLevel = std::numeric_limits<decltype(_sineLevel)>::max();
     _splits = nullptr;
     _age = 0;
   }
 
-  void init0(UnitInputType inputType, InferenceRule r);
+  void init0(GoalAffinity affinity, InferenceRule r);
   void init1(InferenceRule r, Unit* premise);
   void init2(InferenceRule r, Unit* premise1, Unit* premise2);
   void initMany(InferenceRule r, UnitList* premises);
@@ -758,17 +783,16 @@ private:
 public:
   /* FromInput inferences are automatically InferenceRule::INPUT. */
   Inference(const FromInput& fi);
+  /* InputConjecture inferences are InferenceRule::INPUT_CONJECTURE with goal affinity CONJECTURE. */
+  Inference(const InputConjecture&);
 
-  /* Theory axioms are automatically of inputType AXIOM.
+  /* Theory axioms automatically have goal affinity AXIOM.
    * and the corresponding rule should satisfy isTheoryAxiomRule
    * CAREFUL: extending what TheoryAxiomRule is influences the theory_split_queue heuristic
    **/
   Inference(const TheoryAxiom& ta);
 
-  /* A formula transformation inference automatically propagates the _included flag from the parent to the child
-     (later during clausal proof search, currently, this is not done anymore)*/
   Inference(const FormulaClauseTransformation& ft);
-  // _included propagated from the first premise here
   Inference(const FormulaClauseTransformationMany& ft);
 
   /* A generating inference automatically computes age as 1 + the maximum over the parents' age */
@@ -869,15 +893,11 @@ public:
    */
   void minimizePremises();
 
-  // returns ruleName; with inputTypeName on top, in the case of ruleName == INPUT
-  std::string name() const;
 
-  /** return the input type of the unit */
-  UnitInputType inputType() const { return (UnitInputType)_inputType; }
-  /** set the input type of the unit */
-  void setInputType(UnitInputType it) { _inputType=it; }
-  /** return true if inputType relates to a goal **/
-  bool derivedFromGoal() const { return toNumber(_inputType) > toNumber(UnitInputType::ASSUMPTION); }
+  /** return the goal affinity of the unit */
+  GoalAffinity goalAffinity() const { return (GoalAffinity)_goalAffinity; }
+  /** set the goal affinity of the unit */
+  void setGoalAffinity(GoalAffinity a) { _goalAffinity=a; }
 
   /** Return the inference rule */
   InferenceRule rule() const { return _rule; }
@@ -911,11 +931,6 @@ public:
   bool isTheoryAxiom() const {
     return isTheoryAxiomRule(_rule);
   }
-
-  /** Mark the corresponding unit as read from a TPTP included file  */
-  void markIncluded() { _included = 1; }
-  /** true if the unit is read from a TPTP included file  */
-  bool included() const { return _included; }
 
   /*
    * Returns true if the unit belonging to this inference is a pure theory descendant.
@@ -983,15 +998,12 @@ private:
 
   Kind _kind : 2;
 
-  UnitInputType _inputType : 3;
-
-  /** true if the unit is read from a TPTP included file  */
-  bool _included : 1;
+  GoalAffinity _goalAffinity : 2;
 
   /** track whether all leafs were theory axioms only */
   bool _isPureTheoryDescendant : 1;
   /** Induction depth **/
-  unsigned _inductionDepth : 9;
+  unsigned _inductionDepth : 11;
 
 }; // class Inference
 

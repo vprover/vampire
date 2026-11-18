@@ -6,7 +6,7 @@ cmake_minimum_required (VERSION 3.14.0)
 project(Vampire)
 
 # version
-set(VAMPIRE_VERSION_NUMBER 5.1.0)
+set(VAMPIRE_VERSION_NUMBER 5.1.1)
 
 include(CheckSymbolExists)
 include(CTest)
@@ -227,6 +227,20 @@ endif()
 ################################################################
 # Vampire
 ################################################################
+# link-time optimisation for release builds, if the toolchain supports it
+if(CMAKE_BUILD_TYPE STREQUAL "Release")
+  include(CheckIPOSupported)
+  check_ipo_supported(RESULT IPO_SUPPORTED OUTPUT IPO_OUTPUT LANGUAGES CXX)
+  if(IPO_SUPPORTED)
+    set(CMAKE_INTERPROCEDURAL_OPTIMIZATION ON)
+  else()
+    message(STATUS "link-time optimisation not supported, building without it")
+    if(VERBOSE_IPO_FAILURE)
+      message(STATUS "${IPO_OUTPUT}")
+    endif()
+  endif()
+endif()
+
 # wrap up common object files so not built multiple times for each target
 add_library(common OBJECT ${SOURCES})
 

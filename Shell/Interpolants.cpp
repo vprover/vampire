@@ -23,6 +23,7 @@
 #include "Kernel/Connective.hpp"
 
 #include "Shell/Flattening.hpp"
+#include "Shell/UIHelper.hpp"
 #include "SimplifyFalseTrue.hpp"
 #include "Shell/NNF.hpp"
 
@@ -385,9 +386,14 @@ namespace Shell
         // print the depth of each ...
 
         // cout << "Number of red components: " << contributions.size() << endl;
-        cout << "Nestedness: " << justOneNoodle.implCnt << endl;
-        cout << "Before simplification: " << interpolant->toString() << endl;
-        cout << "Weight before simplification: " << interpolant->weight() << endl;
+        addCommentSignForSZS(cout);
+        cout << "Interpolant (before simplification, nestedness "
+             << justOneNoodle.implCnt << ", weight " << interpolant->weight() << "):" << endl;
+        addCommentSignForSZS(cout);
+        cout << "SZS output start Interpolant" << endl;
+        cout << interpolant->toString() << endl;
+        addCommentSignForSZS(cout);
+        cout << "SZS output end Interpolant" << endl;
 
         return Flattening::flatten(NNF::ennf(Flattening::flatten(SimplifyFalseTrue::simplify(interpolant)),true));
     }
@@ -404,7 +410,7 @@ namespace Shell
             continue;
             }
 
-            if (cur->inference().rule() == InferenceRule::NEGATED_CONJECTURE) {
+            if (cur->inference().rule() == InferenceRule::CONJECTURE_NEGATION) {
             VirtualIterator<Unit*> pars = cur->getParents();
 
             // negating the conjecture is not a sound inference,
@@ -421,7 +427,7 @@ namespace Shell
             ASS(!pars.hasNext()); // negating a conjecture should have exactly one parent
 
             cur->inference().destroy();
-            cur->inference() = FromInput(UnitInputType::NEGATED_CONJECTURE); // negated conjecture without a parent (non-standard, but nobody will see it)
+            cur->inference() = FromInput(GoalAffinity::CONJECTURE); // negated conjecture without a parent (non-standard, but nobody will see it)
             }
 
             todo.loadFromIterator(cur->getParents());

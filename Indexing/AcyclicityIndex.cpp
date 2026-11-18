@@ -323,7 +323,7 @@ namespace Indexing
                               n->parent->substIndex,
                               n->term,
                               n->substIndex)) {
-              _substChanges.push(btData);
+              _substChanges.push(std::move(btData));
               _currentDepth++;
               ASS_EQ(_currentDepth, _substChanges.size());
               _subst->bdDone();

@@ -12,6 +12,7 @@
  * Implements class Timer.
  */
 
+#include <atomic>
 #include <iostream>
 #include <mutex>
 #include <thread>
@@ -43,6 +44,8 @@ const long long MEGA = 1 << 20;
 // static data for measuring instructions
 static int PERF_FD = -1; // the file descriptor we later read the info from
 static long long LAST_INSTRUCTION_COUNT_READ = -1;
+// the instruction limit timer_thread enforces, see Timer::setInstructionLimit
+static std::atomic<unsigned> INSTRUCTION_BUDGET{0};
 
 namespace Lib { namespace Timer {
 // The same event, mmap'd so that the main thread can read the counter with rdpmc
@@ -134,20 +137,22 @@ static std::recursive_mutex EXIT_LOCK;
 
 static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
 
+// The thread is detached and can outlive env.options during global cleanup,
+// so it must not read env.options: reinitialise passes in the limits instead.
 // TODO could maybe be more efficient if we special-case the no-instruction-limit case:
 // then, we could simply sleep until the time limit
-[[noreturn]] void timer_thread()
+[[noreturn]] void timer_thread(unsigned timeLimit, unsigned simulatedInstrLimit)
 {
-  unsigned limit = env.options->timeLimitInDeciseconds();
   while(true) {
-    if(limit && Timer::elapsedDeciseconds() >= limit) {
+    if(timeLimit && Timer::elapsedDeciseconds() >= timeLimit) {
       limitReached(TIME_LIMIT);
     }
 
 #if VAMPIRE_PERF_EXISTS
-    if(env.options->instructionLimit() || env.options->simulatedInstructionLimit()) {
+    unsigned instrLimit = INSTRUCTION_BUDGET.load(std::memory_order_relaxed);
+    if(instrLimit || simulatedInstrLimit) {
       Timer::updateInstructionCount();
-      if (env.options->instructionLimit() && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)env.options->instructionLimit()) {
+      if (instrLimit && LAST_INSTRUCTION_COUNT_READ >= MEGA*(long long)instrLimit) {
         limitReached(INSTRUCTION_LIMIT);
       }
     }
@@ -162,7 +167,7 @@ static std::chrono::time_point<std::chrono::steady_clock> START_TIME;
 namespace Lib {
 namespace Timer {
 
-void reinitialise(bool tryInitInstructionLimiting) {
+void reinitialise(bool tryInitInstructionLimiting, bool enforceInstructionLimit) {
   // might (probably have) locked this in the parent process, release it for the child
   //
   // I am not sure of the semantics of placement-new for std::recursive_mutex,
@@ -227,7 +232,18 @@ void reinitialise(bool tryInitInstructionLimiting) {
   Shell::TimeTrace::instance().rebaseInstructionCounters();
 #endif
 
-  std::thread(timer_thread).detach();
+  unsigned simulatedInstrLimit = 0;
+#if VAMPIRE_PERF_EXISTS
+  setInstructionLimit(enforceInstructionLimit ? env.options->instructionLimit() : 0);
+  simulatedInstrLimit = env.options->simulatedInstructionLimit();
+#endif
+  std::thread(timer_thread, env.options->timeLimitInDeciseconds(), simulatedInstrLimit).detach();
+}
+
+void setInstructionLimit(unsigned limit) {
+#if VAMPIRE_PERF_EXISTS
+  INSTRUCTION_BUDGET.store(limit, std::memory_order_relaxed);
+#endif
 }
 
 void disableLimitEnforcement() {

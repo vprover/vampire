@@ -57,7 +57,7 @@ Literal* ExtensionalityClauseContainer::addIfExtensionality(Clause* c) {
     // We know that the patterns only have a single X=Y.
     varEq = getSingleVarEq(c);
     sort = varEq->twoVarEqSort();
-  } else if (!_onlyTagged || c->isTaggedExtensionality()) {
+  } else {
     // Generic filter for extensionality clauses.
     //   * Exactly one X=Y
     //   * No inequality of same sort as X=Y

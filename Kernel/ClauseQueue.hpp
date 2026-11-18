@@ -17,6 +17,8 @@
 #ifndef __ClauseQueue__
 #define __ClauseQueue__
 
+#include <cstdint>
+
 #if VDEBUG
 #include <ostream>
 #endif
@@ -51,11 +53,14 @@ public:
 
   friend class Iterator;
 protected:
-  /** comparison of clauses */
-  virtual bool lessThan(Clause*,Clause*) = 0;
+  /** primary sort key of a clause, ties are broken by tieLessThan() */
+  virtual uint64_t key(Clause*) = 0;
+  static bool tieLessThan(Clause* c1, Clause* c2);
   /** Nodes in the skip list */
   class Node : public Lib::FlexibleTail<Node, Node *> {
   public:
+    /** key() of the clause */
+    uint64_t key;
     /** Clause at this node */
     Clause* clause;
     /** Links to other nodes on the right, can be of any length */
@@ -66,6 +71,9 @@ protected:
   unsigned _height;
   /** the leftmost node with the dummy key and value */
   Node* _left;
+  /** true if the clause with key @b k goes before @b node */
+  static bool lessThan(uint64_t k, Clause* c, const Node* node)
+  { return k < node->key || (k == node->key && tieLessThan(c, node->clause)); }
 
 public:
   /** Iterator over the queue

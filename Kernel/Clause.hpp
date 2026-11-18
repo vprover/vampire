@@ -113,6 +113,34 @@ public:
   static Clause* fromClause(Clause* c);
 
   /**
+   * Create a clause from @b lits by @b inf, documenting the orientation it was written in.
+   *
+   * If @b written is non-null, it shows some equation of @b lits the other way round than
+   * it is stored (see AtomicFormula::flipForPrinting): @b inf then goes to a formula unit
+   * holding @b written, and the clause is derived from it by REORIENT_EQUATIONS, so that
+   * the proof shows the orientation as written. Otherwise, the clause is made by @b inf.
+   * @b origin is set to the unit carrying @b inf (the clause itself if not flipped).
+   *
+   * See also originalInference().
+   */
+  static Clause* fromStackKeepingOrientation(const Stack<Literal*>& lits, const Inference& inf,
+                                             Formula* written, Unit*& origin);
+
+  /**
+   * Create the unit clause @b lhs = @b rhs by @b inf (typically a definition of @b lhs),
+   * so that the proof shows it in this orientation, whichever way the equation is stored.
+   * @b origin is as for fromStackKeepingOrientation.
+   */
+  static Clause* definitionKeepingOrientation(TermList lhs, TermList rhs, TermList sort,
+                                              const Inference& inf, Unit*& origin);
+
+  /**
+   * The inference this clause was made by, looking through the REORIENT_EQUATIONS step
+   * of fromStackKeepingOrientation.
+   */
+  const Inference& originalInference() const;
+
+  /**
    * Return the (reference to) the nth literal
    *
    * Positions of literals in the clause are cached in the _literalPositions
@@ -200,7 +228,7 @@ public:
   /*
    * single source of truth for computation of weightForClauseSelection
    */
-  static unsigned computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt);
+  static unsigned computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, GoalAffinity affinity, const Shell::Options& opt);
 
   /** Return the color of a clause */
   Color color() const
@@ -216,7 +244,6 @@ public:
   }
 
   bool isExtensionality() const { return _extensionality; }
-  bool isTaggedExtensionality() const { return _extensionalityTag; }
   void setExtensionality(bool e) { _extensionality = e; }
 
   bool isComponent() const { return _component; }
@@ -357,14 +384,13 @@ protected:
     * becomes passive and is removed from the container, also this bit is unset.
     */
   unsigned _extensionality : 1;
-  unsigned _extensionalityTag : 1;
   /** Clause is a splitting component. */
   unsigned _component : 1;
 
   /** storage class */
   Store _store : 3;
   /** number of selected literals */
-  unsigned _numSelected : 24;
+  unsigned _numSelected : 25;
 
   /** weight */
   mutable unsigned _weight = 0;

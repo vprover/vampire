@@ -348,6 +348,9 @@ public:
    */
   bool containsConjecture() const { return _containsConjecture; }
   static bool findAxiomName(const Unit* unit, std::string& name, std::filesystem::path &path);
+  /** True iff @b unit was read between vampire(model_check,model_start) and
+   *  vampire(model_check,model_end), i.e. defines the model to check in --mode model_check. */
+  static bool isModelDefinition(const Unit* unit) { return _modelDefinitionUnits.contains(unit->number()); }
   unsigned lineNumber(){ return currentFile.lineNumber; }
   std::string currentPath(){ return currentFile.path; }
 
@@ -360,6 +363,7 @@ public:
   }
 private:
   void parseImpl(State initialState = State::UNIT_LIST);
+  void parseInputType(const std::string& tp);
   /** Return the input string of characters */
   const char* input() { return _chars.content(); }
 
@@ -555,14 +559,19 @@ private:
   UnitList::FIFO _units;
   /** stack of unprocessed states */
   Stack<State> _states;
-  /** input type of the last read unit */ // it must be int since -1 can be used as a value
-  UnitInputType _lastInputType;
+  /** goal affinity of the last read unit, as given by its formula role */
+  GoalAffinity _lastGoalAffinity = GoalAffinity::AXIOM;
   /** the top-level dialect the unit currently being read came from;
    *  CNF and TCF units must end up being clauses, FOF and TCF units must be closed */
   enum class Dialect { CNF, FOF, TCF };
   Dialect _lastDialect;
+  /** true if the last read unit is a conjecture (or a question), which tag() negates;
+   *  a negated_conjecture has the same goal affinity but is taken as it is */
+  bool _isConjecture = false;
   /** true if the last read unit is a question */
   bool _isQuestion = false;
+  /** true if the last read unit is a claim, see processClaimFormula() */
+  bool _isClaim = false;
   /** */
   bool _isThf;
   /** */
@@ -894,6 +903,8 @@ private:
 
   /** This field stores names of input units (and their file names) */
   static DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> _axiomNames;
+  /** The numbers of the model definition units, see isModelDefinition() */
+  static DHSet<unsigned, FnvHash, IdentityHash> _modelDefinitionUnits;
 
   /**
    * During question parsing, we store the mapping from int variables

@@ -137,6 +137,8 @@ private:
 
   /** The list of definitions produced by naming for this unit*/
   UnitList* _defs;
+  /** The goal affinity of the unit being named, inherited by the definitions introduced for it */
+  GoalAffinity _affinity;
 
   /** Replaces the two functions below with a non-recursive implementation. */
   Formula* apply_iter(Formula* top_f);

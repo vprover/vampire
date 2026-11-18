@@ -52,8 +52,16 @@ namespace Kernel {
 
 Option<IntegerConstantType> IntegerConstantType::parse(std::string const& str)
 {
+  const char* digits = str.c_str();
+  // GMP accepts a leading minus, but not a leading plus.
+  if (*digits == '+') {
+    ++digits;
+    if (*digits < '0' || *digits > '9') {
+      return {};
+    }
+  }
   auto out = IntegerConstantType(0);
-  if (-1 == mpz_set_str(out._val, str.c_str(), /* base */ 10)) {
+  if (-1 == mpz_set_str(out._val, digits, /* base */ 10)) {
     return {};
   } else {
     return some(out);
@@ -211,7 +219,7 @@ Sign RationalConstantType::sign() const
   return numerator().sign(); 
 }
 
-Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, IntegerConstantType n2)
+Comparison IntegerConstantType::comparePrecedence(IntegerConstantType const& n1, IntegerConstantType const& n2)
 {
   auto cmp = mpz_cmpabs(n1._val, n2._val);
   if (cmp > 0) return Comparison::GREATER;
@@ -227,7 +235,7 @@ Comparison IntegerConstantType::comparePrecedence(IntegerConstantType n1, Intege
 //
 
 RationalConstantType::RationalConstantType(InnerType num, InnerType den)
-  : _num(num), _den(den)
+  : _num(std::move(num)), _den(std::move(den))
 { cannonize(); }
 
 RationalConstantType RationalConstantType::operator+(const RationalConstantType& o) const
@@ -314,7 +322,7 @@ void RationalConstantType::cannonize()
   mpq_clear(q);
 }
  
-Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, RationalConstantType n2)
+Comparison RationalConstantType::comparePrecedence(RationalConstantType const& n1, RationalConstantType const& n2)
 {
   auto prec = IntegerConstantType::comparePrecedence(n1._den, n2._den);
   if (prec != EQUAL) return prec;
@@ -326,7 +334,7 @@ Comparison RationalConstantType::comparePrecedence(RationalConstantType n1, Rati
 // RealConstantType
 //
 
-Comparison RealConstantType::comparePrecedence(RealConstantType n1, RealConstantType n2)
+Comparison RealConstantType::comparePrecedence(RealConstantType const& n1, RealConstantType const& n2)
 { return RationalConstantType::comparePrecedence(n1, n2); }
 
 Option<RationalConstantType> parseRat(const std::string& num)

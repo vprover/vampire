@@ -37,6 +37,7 @@
 #include "Shell/UIHelper.hpp"
 #include "Shell/Property.hpp"
 
+#include "Kernel/Inference.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Signature.hpp"
 
@@ -487,6 +488,19 @@ void AbstractOptionValue::output(std::ostream &out, bool linewrap) const
   }
 }
 
+Kernel::GoalAffinity Options::toGoalAffinity(GoalAffinityThreshold t)
+{
+  switch (t) {
+  case GoalAffinityThreshold::AXIOM:
+    return Kernel::GoalAffinity::AXIOM;
+  case GoalAffinityThreshold::ASSUMPTION:
+    return Kernel::GoalAffinity::ASSUMPTION;
+  case GoalAffinityThreshold::CONJECTURE:
+    return Kernel::GoalAffinity::CONJECTURE;
+  }
+  ASSERTION_VIOLATION;
+}
+
 struct AbstractOptionValueCompatator{
   Comparison compare(AbstractOptionValue* o1, AbstractOptionValue* o2)
   {
@@ -685,7 +699,7 @@ Options::Options ()
        .description = "Perform condensation. If 'fast' is specified, we only perform condensations that are easy to check for.",
        .tag = OptionTag::INFERENCES})
   , _demodulationRedundancyCheck("demodulation_redundancy_check",this,
-       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass"},
+       DemodulationRedundancyCheck::ENCOMPASS,{"off","ordering","encompass","labeled"},
       {.short_name = "drc",
        .description = "The following cases of backward and forward demodulation do not preserve completeness:\n"
        "s = t     s = t1 \\/ C \t s = t     s != t1 \\/ C\n"
@@ -693,6 +707,7 @@ Options::Options ()
        "--------------------- \t ---------------------\n"
        "t = t1 \\/ C \t\t t != t1 \\/ C\n"
        "where t > t1 and s = t > C (RHS replaced)\n"
+       "With `labeled`, we have `encompass` but we also demodulate one equation with another (equally general but incomparable) equation if one was generated earlier (labeled smaller)."
        "With `encompass`, we treat demodulations (both forward and backward) as encompassment demodulations (as defined by Duarte and Korovin in 2022's IJCAR paper).\n"
        "With `ordering`, we check this condition and don't demodulate if we could violate completeness.\n"
        "With `off`, we skip the checks, save time, but become incomplete.",
@@ -727,7 +742,7 @@ Options::Options ()
        .description = "Perform equality resolution with deletion.",
        .tag = OptionTag::PREPROCESSING})
   , _extensionalityResolution("extensionality_resolution",this,
-                      ExtensionalityResolution::OFF,{"filter","known","tagged","off"},
+                      ExtensionalityResolution::OFF,{"filter","known","off"},
       {.short_name = "er",
        .description = "Turns on the following inference rule:\n"
       "  x=y \\/ C    s != t \\/ D\n"
@@ -735,8 +750,7 @@ Options::Options ()
       "  C{x → s, y → t} \\/ D\n"
       "Where s!=t is selected in s!=t \\/D and x=y \\/ C is a recognised as an extensionality clause - how clauses are recognised depends on the value of this option.\n"
       "If filter we attempt to recognise all extensionality clauses i.e. those that have exactly one X=Y, no inequality of the same sort as X-Y (and optionally no equality except X=Y, see extensionality_allow_pos_eq).\n"
-      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.\n"
-      "If tagged we only use formulas tagged as extensionality clauses.",
+      "If known we only recognise a known set of extensionality clauses. At the moment this includes the standard and subset-based formulations of the set extensionality axiom, as well as the array extensionality axiom.",
        .tag = OptionTag::INFERENCES})
   , _extensionalityMaxLength("extensionality_max_length",this,0,
       {.short_name = "erml",
@@ -1166,8 +1180,7 @@ Options::Options ()
       {.description = "An experimental interactive mode (commands to use: load <file to parse>, read <line to parse>, pop (to drop the last added set of formulas), run [options to supply], exit).",
        .experimental = true})
   , _mode("mode",this,Mode::VAMPIRE,
-                                    {"axiom_selection",
-                                        "casc",
+                                    {"casc",
                                         "clausify",
                                         "consequence_elimination",
                                         "model_check",
@@ -1184,13 +1197,12 @@ Options::Options ()
       {.description = "Select the mode of operation. Choices are:\n"
     "  -vampire: the standard mode of operation for first-order theorem proving\n"
     "  -portfolio: a portfolio mode running a specified schedule (see schedule)\n"
-    "  -casc, casc_sat, smtcomp - like portfolio mode, with competition-specific presets for other options, including output. "
+    "  -casc, smtcomp - like portfolio mode, with competition-specific presets for other options, including output. "
     "If you wish to use e.g. the CASC portfolio without the presets, use --mode portfolio --schedule casc.\n"
-    "  -preprocess,axiom_selection,clausify: modes for producing output\n      for other solvers.\n"
+    "  -preprocess,clausify: modes for producing output\n      for other solvers.\n"
     "  -tpreprocess,tclausify: output modes for theory input (clauses are quantified\n      with sort information; tclausify outputs TPTP tcf).\n"
     "  -output,profile: output information about the problem\n"
     "Some modes are not currently maintained (get in touch if interested):\n"
-    "  -bpa: perform bound propagation\n"
     "  -consequence_elimination: perform consequence elimination\n"})
   , _intent("intent",this,Intent::UNSAT,{"unsat","sat"},
       {.short_name = "intent",
@@ -1595,9 +1607,22 @@ Options::Options ()
       {.short_name = "s2agt",
        .description = "Like sine_generality_threshold but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection.",
        .tag = OptionTag::SATURATION})
-  , _sineSelection("sine_selection",this,SineSelection::OFF,{"axioms","included","off"},
+  , _sineSelection("sine_selection",this,SineSelection::OFF,{"off","on"},
       {.short_name = "ss",
-       .description = "If 'axioms', all formulas that are not annotated as 'axiom' (i.e. conjectures and hypotheses) are initially selected, and the SInE selection is performed on those annotated as 'axiom'. If 'included', all formulas that are directly in the problem file are initially selected, and the SInE selection is performed on formulas from included files. The 'included' value corresponds to the behaviour of the original SInE implementation.",
+       .description = "SInE axiom selection. The units whose goal affinity is at least sine_affinity_threshold are initially selected,"
+    " and the SInE selection is performed on the units below it (by default, on the axioms).",
+       .tag = OptionTag::PREPROCESSING})
+  , _sineAffinityThreshold("sine_affinity_threshold",this,GoalAffinityThreshold::ASSUMPTION,{"axiom","assumption","conjecture"},
+      {.short_name = "ssat",
+       .description = "The goal affinity threshold by which sine_selection decides what to select from."
+    " Every unit has a goal affinity, one of distant axiom < axiom < assumption < conjecture:"
+    " an input unit gets it from its role (e.g. TPTP axiom, hypothesis, conjecture or negated_conjecture),"
+    " a derived unit gets the highest affinity among its parents."
+    " Units whose affinity is at least the threshold are the seeds of the selection and always kept;"
+    " the selection is performed on the units strictly below the threshold."
+    " So 'assumption' selects among the axioms (affinity at most axiom), 'conjecture' also among what derives"
+    " from hypotheses, and 'axiom' only among distant axioms, i.e. those read from TPTP include files"
+    " (the behaviour of the original SInE implementation).",
        .tag = OptionTag::PREPROCESSING})
   , _sineTolerance("sine_tolerance",this,1.0,
       {.short_name = "st",
@@ -1611,11 +1636,25 @@ Options::Options ()
        .description = "Like sine_tolerance but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection."
     " Has special value of -1.0, but otherwise must be greater or equal 1.0.",
        .tag = OptionTag::SATURATION})
-  , _sos("sos",this,Sos::OFF,{"all","off","on","theory"},
+  , _sos("sos",this,Sos::OFF,{"off","on","theory"},
       {.short_name = "sos",
-       .description = "Set of support strategy. All formulas annotated as axioms are put directly among active clauses, without performing any inferences between them."
-    " If all, select all literals of set-of-support clauses, otherwise use the default literal selector. If theory then only apply to theory"
-    " axioms introduced by vampire (all literals are selected).",
+       .description = "Set of support strategy. The set-of-support clauses are put directly among active clauses, without performing any inferences between them."
+    " If on, these are the input clauses below sos_affinity_threshold (by default, those not derived from hypotheses or the conjecture)."
+    " If theory, these are the input clauses derived from theory axioms introduced by vampire only (see also sos_theory_limit).",
+       .tag = OptionTag::PREPROCESSING})
+  , _sosTotalSelection("sos_total_selection",this,false,
+      {.short_name = "sosts",
+       .description = "Select all literals of set-of-support clauses, instead of using the default literal selector.",
+       .tag = OptionTag::PREPROCESSING})
+  , _sosAffinityThreshold("sos_affinity_threshold",this,GoalAffinityThreshold::ASSUMPTION,{"axiom","assumption","conjecture"},
+      {.short_name = "sosat",
+       .description = "The goal affinity threshold by which sos=on decides what goes to the set of support."
+    " Every clause has a goal affinity, one of distant axiom < axiom < assumption < conjecture:"
+    " an input unit gets it from its role (e.g. TPTP axiom, hypothesis, conjecture or negated_conjecture),"
+    " a derived clause gets the highest affinity among its parents."
+    " Input clauses whose affinity is strictly below the threshold go to the set of support."
+    " So 'assumption' sets aside the axioms (affinity at most axiom), 'conjecture' also what derives from hypotheses,"
+    " and 'axiom' only distant axioms (those read from TPTP include files) and their descendants.",
        .tag = OptionTag::PREPROCESSING})
   , _sosTheoryLimit("sos_theory_limit",this,0,
       {.short_name = "sstl",
@@ -1891,8 +1930,21 @@ Options::Options ()
                 })
   , _nonGoalWeightCoefficient("nongoal_weight_coefficient",this,
       {.short_name = "nwc",
-       .description = "coefficient that will multiply the weight of non-conjecture clauses (those marked as 'axiom' in TPTP)",
+       .description = "coefficient that will multiply the weight of non-goal clauses (see nongoal_weight_affinity_threshold for what counts as goal)",
        .tag = OptionTag::SATURATION}) // default 10.0 is hard-wired to the constructor
+  , _nonGoalWeightAffinityThreshold("nongoal_weight_affinity_threshold",this,GoalAffinityThreshold::CONJECTURE,{"axiom","assumption","conjecture"},
+      {.short_name = "nwat",
+       .description = "The goal affinity threshold by which nongoal_weight_coefficient decides what counts as goal."
+    " Every clause has a goal affinity, one of distant axiom < axiom < assumption < conjecture:"
+    " an input unit gets it from its role (e.g. TPTP axiom, hypothesis, conjecture or negated_conjecture),"
+    " a derived clause gets the highest affinity among its parents."
+    " Clauses whose affinity is at least the threshold count as goal; all the others count as non-goal"
+    " and have their weight for clause selection multiplied by nongoal_weight_coefficient."
+    " So 'conjecture' makes only the (negated) conjecture and its descendants goal, 'assumption' adds"
+    " what derives from hypotheses, and 'axiom' leaves only distant axioms (those read from TPTP include files)"
+    " and their descendants on the non-goal side.",
+    // NOTE that "assumption" is stronger on TPTP than "conjecture" and thus is a candidate for a new default
+       .tag = OptionTag::SATURATION})
   , _selection("selection",this,10,
       {.short_name = "s",
        .description = "Selection methods 2,3,4,10,11 are complete by virtue of extending Maximal i.e. they select the best among maximal. Methods 1002,1003,1004,1010,1011 relax this restriction and are therefore not complete.\n"
@@ -2085,6 +2137,10 @@ Options::Options ()
        .description = "Set the maximum depth (in terms of projections and imitations) that higher-order unification can descend to."
       "Once limit is reached, remaining pairs are returned as constraints.",
        .tag = OptionTag::HIGHER_ORDER})
+  , _higherOrderUnifMaxWeight("hol_unif_max_weight",this,1000,
+      {.short_name = "humw",
+       .description = "Set the maximum weight a non-zero depth higher-order unification can have, otherwise it is returned as constraints.",
+       .tag = OptionTag::HIGHER_ORDER})
   , _casesSimp("cases_simp",this,false,
       {.short_name = "cs",
        .description = "FOOL Paramodulation with two conclusion as a simplification",
@@ -2189,6 +2245,7 @@ Options::Options ()
     _sineTolerance.addConstraint(Or(equal(-1.0f),greaterThanEq(1.0f) ));
     // Captures that if the value is not 1.0 then sineSelection must be on
     _sineTolerance.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
+    _sineAffinityThreshold.onlyUsefulWith(_sineSelection.is(notEqual(SineSelection::OFF)));
 
     _naming.addProblemConstraint(hasFormulas());
     _naming.addHardConstraint(lessThan(32768));
@@ -2235,6 +2292,8 @@ Options::Options ()
     _sos.onlyUsefulWith(ProperSaturationAlgorithm());
 
     _sosTheoryLimit.onlyUsefulWith(_sos.is(equal(Sos::THEORY)));
+    _sosTotalSelection.onlyUsefulWith(_sos.is(notEqual(Sos::OFF)));
+    _sosAffinityThreshold.onlyUsefulWith(_sos.is(equal(Sos::ON)));
 
     _fmbStartSize.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
 
@@ -2648,6 +2707,8 @@ Options::Options ()
     _literalComparisonMode.addProblemConstraint(notJustEquality());
 
     _nonGoalWeightCoefficient.onlyUsefulWith(ProperSaturationAlgorithm());
+    _nonGoalWeightAffinityThreshold.onlyUsefulWith(ProperSaturationAlgorithm());
+    _nonGoalWeightAffinityThreshold.onlyUsefulWith(_nonGoalWeightCoefficient.is(notEqual(1.0f)));
 
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::PLAIN)).then(ProperSaturationAlgorithm()));
     _questionAnswering.addHardConstraint(If(equal(QuestionAnsweringMode::SYNTHESIS)).then(ProperSaturationAlgorithm()));
@@ -3466,7 +3527,6 @@ void Options::readOptionsString(std::string optionsString,bool assign)
  */
 void Options::readFromEncodedOptions (std::string testId)
 {
-  ASS(!testId.empty())
   _testId.actualValue = testId;
 
   std::string ma(testId,0,3); // the first 3 characters

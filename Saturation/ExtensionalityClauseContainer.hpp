@@ -51,7 +51,6 @@ public:
     _allowPosEq(opt.extensionalityAllowPosEq())
   {
     _onlyKnown = (opt.extensionalityResolution() == Options::ExtensionalityResolution::KNOWN);
-    _onlyTagged = (opt.extensionalityResolution() == Options::ExtensionalityResolution::TAGGED);
   }
   Literal* addIfExtensionality(Clause* c);
   static Literal* getSingleVarEq(Clause* c);
@@ -67,7 +66,6 @@ private:
   unsigned _size;
   
   bool _onlyKnown;
-  bool _onlyTagged;
   unsigned _maxLen;
   bool _allowPosEq;
 };

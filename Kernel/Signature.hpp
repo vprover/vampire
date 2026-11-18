@@ -87,8 +87,8 @@ class Signature
     friend class Signature;
   
   protected:
-    /** print name */
-    std::string _name;
+    /** print name; for numerals it is only built when first asked for, @see fillNumeralName */
+    mutable std::string _name;
 
     OperatorType* _type;
     const unsigned _number;
@@ -171,7 +171,8 @@ class Signature
     /** Return the type argument arity of the symbol. Only accurate once type has been set. */
     inline unsigned numTypeArguments() const { return _type->numTypeArguments(); }
     /** Return the name of the symbol */
-    inline const std::string& name() const { return _name; }
+    inline const std::string& name() const
+    { if (_name.empty()) { fillNumeralName(); } return _name; }
     /** Return true iff the object is of type InterpretedSymbol */
     inline bool interpreted() const { return _interpreted; }
     Symbol* setProxy(Proxy prox) { _prox = prox; return this; }
@@ -200,6 +201,9 @@ class Signature
     { return interpreted() && arity()==0 && type()->result()==AtomicSort::realSort(); }
 
   private:
+    /** builds the name of a numeral symbol, which is not given one when created */
+    void fillNumeralName() const;
+
     bool numeralConstant(RealConstantType*) const { return realConstant(); }
     bool numeralConstant(RationalConstantType*) const { return rationalConstant(); }
     bool numeralConstant(IntegerConstantType*) const { return integerConstant(); }
@@ -333,10 +337,10 @@ class Signature
 
   public:
     IntegerSymbol(unsigned number, IntegerConstantType val)
-    : Symbol(number, Output::toString(val),
+    : Symbol(number, /* name: built on demand, @see fillNumeralName */ "",
         /*              type */ OperatorType::getConstantsType(AtomicSort::intSort()),
         /*       interpreted */ true, 
-        /*    preventQuoting */ false),
+        /*    preventQuoting */ true),
       _intValue(std::move(val))
     {
     }
@@ -352,10 +356,10 @@ class Signature
 
   public:
     RationalSymbol(unsigned number, RationalConstantType val)
-    : Symbol(number, Output::toString(val),
+    : Symbol(number, /* name: built on demand, @see fillNumeralName */ "",
         /*              type */ OperatorType::getConstantsType(AtomicSort::rationalSort()),
         /*       interpreted */ true, 
-        /*    preventQuoting */ false),
+        /*    preventQuoting */ true),
        _ratValue(std::move(val))
     {
     }
@@ -439,7 +443,6 @@ class Signature
   unsigned getDiff();
   unsigned getChoice();
   unsigned getDeBruijnIndex(int index);
-  unsigned getPlaceholder();
   unsigned getDefPred();
   /**
    * For a function f with result type t, this introduces a predicate
@@ -619,6 +622,19 @@ class Signature
     ASS_L(n, _typeCons.length());
     return _typeCons[n];
   }
+  /** Return the function, predicate or type constructor symbol by its number */
+  inline const Symbol* getSymbol(SymbolType type, unsigned n) const
+  {
+    switch (type) {
+    case SymbolType::FUNC:
+      return getFunction(n);
+    case SymbolType::PRED:
+      return getPredicate(n);
+    case SymbolType::TYPE_CON:
+      return getTypeCon(n);
+    }
+    ASSERTION_VIOLATION;
+  }
 
   static inline bool isEqualityPredicate(unsigned p)
   {
@@ -678,10 +694,6 @@ class Signature
 
   bool isChoiceFun(unsigned fun) const{
     return fun == _choiceFun && _choiceFun != UINT_MAX;
-  }
-
-  bool isPlaceholder(unsigned fun) const{
-    return fun == _placeholderFun && _placeholderFun != UINT_MAX;
   }
 
   bool isDefPred(unsigned p) const {
@@ -954,7 +966,6 @@ private:
   unsigned _appFun;
   unsigned _lamFun;
   unsigned _choiceFun;
-  unsigned _placeholderFun;
   unsigned _defPred;
   DHSet<unsigned, FnvHash, IdentityHash> _fnDefPreds;
   DHMap<unsigned,unsigned, FnvHash, IdentityHash> _boolDefPreds;

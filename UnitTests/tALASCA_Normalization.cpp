@@ -54,7 +54,7 @@ struct TestCase
 
   template<class NumTraits>
   void run() {
-    Clause* input = Clause::fromLiterals({ in }, Inference(FromInput(UnitInputType::ASSUMPTION)));
+    Clause* input = Clause::fromLiterals({ in }, Inference(FromInput(GoalAffinity::ASSUMPTION)));
 
     Stack<ImmediateSimplificationEngine*> rules;
     if (strong) {

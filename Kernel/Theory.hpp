@@ -38,8 +38,8 @@ template<class T>
 struct QR { T quot; T rem; };
 
 #define MK_CAST_OP(Type, OP, ToCast)                                                      \
-  friend auto operator OP(Type l, ToCast const& r) { return l OP Type(r); }               \
-  friend auto operator OP(ToCast const& l, Type r) { return Type(l) OP r; }               \
+  friend auto operator OP(Type const& l, ToCast const& r) { return l OP Type(r); }        \
+  friend auto operator OP(ToCast const& l, Type const& r) { return Type(l) OP r; }        \
 
 #define MK_CAST_OPS(Type, ToCast)                                                         \
   MK_CAST_OP(Type, *, ToCast)                                                             \
@@ -199,7 +199,7 @@ public:
   IntegerConstantType abs() const;
   IntegerConstantType log2() const;
 
-  static Comparison comparePrecedence(IntegerConstantType n1, IntegerConstantType n2);
+  static Comparison comparePrecedence(IntegerConstantType const& n1, IntegerConstantType const& n2);
   size_t hash() const;
 
   friend std::ostream& operator<<(std::ostream& out, const IntegerConstantType& val);
@@ -287,7 +287,7 @@ struct RationalConstantType {
 
   MK_SIGN_OPS
 
-  static Comparison comparePrecedence(RationalConstantType n1, RationalConstantType n2);
+  static Comparison comparePrecedence(RationalConstantType const& n1, RationalConstantType const& n2);
 
   friend std::ostream& operator<<(std::ostream& out, const RationalConstantType& val); 
 
@@ -354,7 +354,7 @@ public:
   RealConstantType abs() const;
 
   size_t hash() const;
-  static Comparison comparePrecedence(RealConstantType n1, RealConstantType n2);
+  static Comparison comparePrecedence(RealConstantType const& n1, RealConstantType const& n2);
 
   /* currently we only represent rational numerals */ 
   bool isRat() const { return true;  }

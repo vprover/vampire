@@ -152,3 +152,26 @@ TEST_FUN(parse_real)
   ASS_EQ(RealConstantType::parse("0.123e-8"), 
          RealConstantType::parse("0.00000000123"));
 }
+
+TEST_FUN(parse_signed_integer)
+{
+  for (const std::string value : {"0", "17", "1234567890123456789012345678901234567890"}) {
+    auto expected = IntegerConstantType::parse(value).unwrap();
+    ASS_EQ(IntegerConstantType::parse("+" + value).unwrap(), expected);
+    ASS_EQ(IntegerConstantType::parse("-" + value).unwrap(), -expected);
+  }
+}
+
+TEST_FUN(parse_signed_rational)
+{
+  ASS_EQ(RationalConstantType::parse("+10/4").unwrap(), rct(5, 2));
+  ASS_EQ(RationalConstantType::parse("-10/4").unwrap(), rct(-5, 2));
+  ASS_EQ(RationalConstantType::parse("+0/4").unwrap(), rct(0));
+}
+
+TEST_FUN(reject_malformed_integer_signs)
+{
+  for (const std::string value : {"", "+", "-", "++17", "+-17", "-+17", "--17", "+ 17", "+x"}) {
+    ASS_REP(!IntegerConstantType::parse(value), value);
+  }
+}

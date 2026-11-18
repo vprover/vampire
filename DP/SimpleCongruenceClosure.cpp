@@ -868,10 +868,9 @@ void SimpleCongruenceClosure::computeConstsNormalForm(unsigned c, NFMap& normalF
  */
 void SimpleCongruenceClosure::getModel(LiteralStack& model)
 {
-  // a heap of candidate constants to process
-  static DynamicHeap<unsigned, ConstOrderingComparator, ArrayMap<unsigned> >
+  // The comparator must refer to this instance's constants and ordering.
+  DynamicHeap<unsigned, ConstOrderingComparator, ArrayMap<unsigned> >
     candidates(ConstOrderingComparator(_cInfos,*_ord));
-  ASS(candidates.isEmpty());
   
   // a map of already computed normal forms, indexed by class representatives
   static NFMap normalForms;

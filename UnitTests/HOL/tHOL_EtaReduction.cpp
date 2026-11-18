@@ -21,21 +21,21 @@ HOL_TEST_FUN(eta_reduction_1) {
 
   auto term = toNameless(lam(x(0), app(D.f, x(0))));
   ASS_EQ(termListToString(term, Options::HPrinting::TPTP),
-         "(^[Y0 : srt]: (f @ Y0))")
+         "^[Y0 : srt]: (f @ Y0)")
   ASS_EQ(termListToString(term, Options::HPrinting::RAW),
          "vLAM(srt,srt,vAPP(srt,srt,f,db0(srt)))")
   ASS_EQ(etaNF(term), D.f)
 
   term = toNameless(lam({x(0), x(1)}, app(D.f2, x(0), x(1))));
   ASS_EQ(termListToString(term, Options::HPrinting::TPTP),
-         "(^[Y0 : srt]: ((^[Y1 : srt]: (f2 @ Y0 @ Y1))))")
+         "^[Y0 : srt]: (^[Y1 : srt]: (f2 @ Y0 @ Y1))")
   ASS_EQ(termListToString(term, Options::HPrinting::RAW),
          "vLAM(srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,vAPP(srt,srt > srt,f2,db1(srt)),db0(srt))))")
   ASS_EQ(etaNF(term), D.f2)
 
   term = toNameless(lam({x(0), x(1), x(2)}, app(D.f3, x(0), x(1), x(2))));
   ASS_EQ(termListToString(term, Options::HPrinting::TPTP),
-         "(^[Y0 : srt]: ((^[Y1 : srt]: ((^[Y2 : srt]: (f3 @ Y0 @ Y1 @ Y2))))))")
+         "^[Y0 : srt]: (^[Y1 : srt]: (^[Y2 : srt]: (f3 @ Y0 @ Y1 @ Y2)))")
   ASS_EQ(termListToString(term, Options::HPrinting::RAW),
          "vLAM(srt,srt > (srt > srt),vLAM(srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,vAPP(srt,srt > srt,vAPP(srt,srt > (srt > srt),f3,db2(srt)),db1(srt)),db0(srt)))))")
   ASS_EQ(etaNF(term), D.f3)

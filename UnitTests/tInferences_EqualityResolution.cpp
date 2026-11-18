@@ -83,8 +83,13 @@ TEST_GENERATION(test_07,
 #undef MY_SYNTAX_SUGAR
 #define MY_SYNTAX_SUGAR                               \
   DECL_SORT(s)                                        \
+  DECL_SORT_BOOL                                      \
+  TROO                                                \
+  DECL_AND_PROXY                                      \
+  DECL_PI_PROXY                                       \
   DECL_DEFAULT_VARS                                   \
   DECL_CONST(f, arrow({s, s}, s))                     \
+  DECL_CONST(p, arrow(s, Bool))                       \
   DECL_DE_BRUIJN_INDEX(db0, 0, s)                     \
   DECL_CONST(a, s)                                    \
   DECL_CONST(b, s)
@@ -108,4 +113,34 @@ TEST_GENERATION(test_hol_02,
       .expected( exactly(
         clause({ lam(s, x.sort(s)) != lam(s, y.sort(s)) })
       ))
+    )
+
+// not applied to Boolean proxies
+TEST_GENERATION(test_hol_03,
+    Generation::AsymmetricTest()
+      .input(clause({ selected(ap(andP, {x, y}) != x), selected(ap(piP(s), p) != troo), selected(x != ap(p, a)) }))
+      .options({
+        { "literal_maximality_aftercheck", "off" },
+      })
+      .expected({
+        clause({ ap(andP, {ap(p, a), y}) != ap(p, a), ap(piP(s), p) != troo }),
+      })
+    )
+
+#undef MY_SYNTAX_SUGAR
+#define MY_SYNTAX_SUGAR                               \
+  NUMBER_SUGAR(Real)                                  \
+  DECL_VAR_SORTED(x, 0, Real)                         \
+  auto minusX = TermSugar(RealTraits::linMul(RealConstantType(-1), x)); \
+  auto minusOne = TermSugar(RealTraits::linMul(RealConstantType(-1), RealTraits::constantTl(1)));
+
+// -(-x + -1) != x is true for every real x.
+TEST_GENERATION(first_order_abstraction_keeps_constraint,
+    Generation::AsymmetricTest()
+      .input(clause({ selected(-(minusX + minusOne) != x) }))
+      .options({
+        { "unification_with_abstraction", "alasca_main" },
+        { "unification_with_abstraction_fixed_point_iteration", "off" },
+      })
+      .expected(exactly(clause({ -(minusX + minusOne) != x })))
     )

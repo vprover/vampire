@@ -23,21 +23,13 @@ namespace Lib {
 using namespace std;
 
 IntUnionFind::IntUnionFind(int cnt)
-: _cnt(cnt), _modified(true), _components(8)
+: _cnt(cnt), _modified(true), _parents(new int[cnt]), _data(new int[cnt]), _components(8)
 {
   ASS_G(cnt, 0);
 
-  _parents=reinterpret_cast<int*>(ALLOC_KNOWN(_cnt*sizeof(int), "IntUnionFind"));
   for(int i=0;i<_cnt;i++) {
     _parents[i]=-1;
   }
-  _data=reinterpret_cast<int*>(ALLOC_KNOWN(_cnt*sizeof(int), "IntUnionFind"));
-}
-
-IntUnionFind::~IntUnionFind()
-{
-  DEALLOC_KNOWN(_parents, _cnt*sizeof(int), "IntUnionFind");
-  DEALLOC_KNOWN(_data, _cnt*sizeof(int), "IntUnionFind");
 }
 
 

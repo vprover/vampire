@@ -66,6 +66,7 @@ set(UNIT_TESTS
     UnitTests/tInferences_Factoring.cpp
     UnitTests/tInferences_FastCondensation.cpp
     UnitTests/tInferences_ForwardGroundJoinability.cpp
+    UnitTests/tInferences_ForwardLiteralRewriting.cpp
     UnitTests/tInferences_FunctionDefinitionRewriting.cpp
     UnitTests/tInferences_GaussianVariableElimination.cpp
     UnitTests/tInferences_HOL_ArgCong.cpp
@@ -102,6 +103,7 @@ set(UNIT_TESTS
     UnitTests/tMap.cpp
     UnitTests/tOption.cpp
     UnitTests/tPredicateElimination.cpp
+    UnitTests/tProofOutput.cpp
     UnitTests/tOptionConstraints.cpp
     UnitTests/tQKbo.cpp
     UnitTests/tQuotientE.cpp
@@ -111,15 +113,18 @@ set(UNIT_TESTS
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
     UnitTests/tSet.cpp
+    UnitTests/tSimpleCongruenceClosure.cpp
     UnitTests/tSkipList.cpp
     UnitTests/tSignature.cpp
     UnitTests/tStack.cpp
+    UnitTests/tStringUtilsNumerals.cpp
     UnitTests/tSyntaxSugar.cpp
     UnitTests/tTermPrinting.cpp
     UnitTests/tTermAlgebra.cpp
     UnitTests/tTermIndex.cpp
     UnitTests/tTermOutput.cpp
     UnitTests/tTimeTrace.cpp
+    UnitTests/tTimer.cpp
     UnitTests/tTuple.cpp
     UnitTests/tUnificationWithAbstraction.cpp
     UnitTests/HOL/tHOL_Printing.cpp
@@ -127,7 +132,6 @@ set(UNIT_TESTS
     UnitTests/HOL/tHOL_EtaReduction.cpp
     UnitTests/HOL/tHOL_TermShifter.cpp
     UnitTests/HOL/tHOL_SubtermReplacer.cpp
-    UnitTests/HOL/tHOL_ToPlaceholders.cpp
     UnitTests/HOL/tHOL_Unifier.cpp
 )
 
@@ -136,6 +140,7 @@ set(UNIT_TESTS
 ################################################################
 set(UNIT_TESTS_Z3
     UnitTests/tInferences_TheoryInstAndSimp.cpp
+    UnitTests/tSMTCheck.cpp
     UnitTests/tZ3Interfacing.cpp
 )
 
@@ -509,18 +514,14 @@ set(SOURCES
     Kernel/HOL/Create.cpp
     Kernel/HOL/Convert.cpp
     Kernel/HOL/Reduce.cpp
-    Kernel/HOL/BetaNormaliser.cpp
     Kernel/HOL/BetaNormaliser.hpp
     Kernel/HOL/RedexReducer.cpp
     Kernel/HOL/RedexReducer.hpp
     Kernel/HOL/TermShifter.cpp
     Kernel/HOL/TermShifter.hpp
-    Kernel/HOL/EtaNormaliser.cpp
     Kernel/HOL/EtaNormaliser.hpp
     Kernel/HOL/SubtermReplacer.cpp
     Kernel/HOL/SubtermReplacer.hpp
-    Kernel/HOL/ToPlaceholders.cpp
-    Kernel/HOL/ToPlaceholders.hpp
     Kernel/HOL/Unifier.cpp
     Kernel/HOL/Unifier.hpp
     Lib/Allocator.cpp
@@ -773,8 +774,11 @@ set(SOURCES
     Shell/SymbolDefinitionInlining.hpp
     Shell/SymbolOccurrenceReplacement.cpp
     Shell/SymbolOccurrenceReplacement.hpp
+    Shell/TPTPConstants.hpp
     Shell/TPTPPrinter.cpp
     Shell/TPTPPrinter.hpp
+    Shell/TPTPProofPrinter.cpp
+    Shell/TPTPProofPrinter.hpp
     Shell/TermAlgebra.cpp
     Shell/TermAlgebra.hpp
     Shell/TheoryAxioms.cpp

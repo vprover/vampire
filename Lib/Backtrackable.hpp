@@ -86,15 +86,18 @@ BacktrackObject* BacktrackObject::fromClosure(F f) { return new BacktrackClosure
  * can be backtracked. In order to avoid a memory leak, either the
  * @b backtrack or the @b drop function must always be called.
  *
- * The @b BacktrackData object has a shallow copy constructor, so
- * always at most one copy of the @b BacktrackData object should be
- * considered valid. Otherwise the behavior is undefined, as it may
- * lead to errors such as repeated deletion of list elements.
+ * The @b BacktrackData object cannot be copied, as there would then
+ * be two owners of the same list of records. Moving a @b BacktrackData
+ * object transfers the records and leaves the moved-from object empty.
  */
 class BacktrackData
 {
 public:
   BacktrackData() : _boList(0) {}
+  BacktrackData(BacktrackData const&) = delete;
+  BacktrackData& operator=(BacktrackData const&) = delete;
+  BacktrackData(BacktrackData&& other) : _boList(std::exchange(other._boList, nullptr)) {}
+  BacktrackData& operator=(BacktrackData&&) = delete;
 
   /**
    * Backtrack changes stored in this object
