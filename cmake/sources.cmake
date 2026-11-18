@@ -177,6 +177,8 @@ set(SOURCES
     FMB/FunctionRelationshipInference.cpp
     FMB/FunctionRelationshipInference.hpp
     FMB/ModelCheck.hpp
+    FMB/ModelLayer.cpp
+    FMB/ModelLayer.hpp
     FMB/Monotonicity.cpp
     FMB/Monotonicity.hpp
     FMB/SortInference.cpp

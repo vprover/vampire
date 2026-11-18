@@ -151,20 +151,6 @@ size_t FiniteModelMultiSorted::tableIndexOf(OperatorType* sig, const DArray<unsi
   return tableIndex(args,_sizes,sig);
 }
 
-unsigned TableFunLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
-{
-  size_t idx = m.tableIndexOf(_sig,args);
-  ASS_L(idx,_tbl.size());
-  return _tbl[idx]; // FUNV_UNDEF here means the model does not say, and falls through
-}
-
-char TablePredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
-{
-  size_t idx = m.tableIndexOf(_sig,args);
-  ASS_L(idx,_tbl.size());
-  return _tbl[idx]; // INTP_UNDEF here means the model does not say, and falls through
-}
-
 void FiniteModelMultiSorted::initTables()
 {
   deleteAllLayers();
@@ -195,53 +181,6 @@ void FiniteModelMultiSorted::initTables()
     _p_layers[p].push(new TablePredLayer(sig,tableSize(sig,symb->arity(),_sizes),MODEL_ZERO));
   }
 }
-
-#if FMB_CHECK_MODEL_AGAINST_INPUT
-
-// splitmix64's finalizer: cheap, stateless, and it scatters the low bits well enough that
-// taking the result modulo a small domain size is not obviously biased
-static uint64_t mix(uint64_t x)
-{
-  x += 0x9e3779b97f4a7c15ull;
-  x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ull;
-  x = (x ^ (x >> 27)) * 0x94d049bb133111ebull;
-  return x ^ (x >> 31);
-}
-
-// a value determined by the arguments and the symbol's own salt, and by nothing else --
-// a trivial layer has to be a function of its arguments like any other interpretation
-static uint64_t tupleHash(const DArray<unsigned>& args, unsigned salt)
-{
-  uint64_t h = salt;
-  for(unsigned i=0;i<args.size();i++) {
-    h = mix(h ^ args[i]);
-  }
-  return mix(h);
-}
-
-unsigned TrivialFunLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
-{
-  return 1 + tupleHash(args,_salt) % m.domainSizeOf(_resultSort);
-}
-
-char TrivialPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
-{
-  return (tupleHash(args,_salt) & 1) ? INTP_TRUE : INTP_FALSE;
-}
-
-#else
-
-unsigned TrivialFunLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
-{
-  return 1; // an unconstrained symbol may take any value; take the first domain element
-}
-
-char TrivialPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
-{
-  return INTP_FALSE;
-}
-
-#endif
 
 void FiniteModelMultiSorted::installTrivialLayers()
 {
@@ -1144,36 +1083,6 @@ bool FiniteModelMultiSorted::applyPredDef(Problem::PredDef* pd, const DArray<uns
     inner.set(pd->_head->nthArgument(i)->var(),args[i]);
   }
   return evaluateFormula(pd->_body,inner,asOf) == pd->_head->isPositive();
-}
-
-unsigned DefFunLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
-{
-  ArgsKey key(args);
-  unsigned v;
-  if (_memo.find(key,v)) {
-    return v;
-  }
-  v = m.applyFunDef(_fd,args,_born); // the model as it stood when this definition arrived
-  _memo.set(key,v); // set, not insert: the evaluation above may have come back round here
-  return v;
-}
-
-char DefPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
-{
-  ArgsKey key(args);
-  char v;
-  if (_memo.find(key,v)) {
-    return v;
-  }
-  v = m.applyPredDef(_pd,args,_born) ? INTP_TRUE : INTP_FALSE;
-  _memo.set(key,v);
-  return v;
-}
-
-char GlobalFlipPredLayer::value(const DArray<unsigned>& args, FiniteModelMultiSorted& m)
-{
-  // exactly the opposite of what stood below us, and nothing else changes anywhere
-  return (m.evalPred(_pred,args,_born) == INTP_TRUE) ? INTP_FALSE : INTP_TRUE;
 }
 
 void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
