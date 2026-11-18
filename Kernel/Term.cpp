@@ -349,19 +349,19 @@ bool TermList::isTupleSort() const {
 }
 
 bool AtomicSort::isArrowSort() const {
-  return env.signature->isArrowCon(_functor);
+  return env.signature->isArrowCon(functor());
 }
 
 bool AtomicSort::isBoolSort() const {
-  return env.signature->isBoolCon(_functor);
+  return env.signature->isBoolCon(functor());
 }
 
 bool AtomicSort::isArraySort() const {
-  return env.signature->isArrayCon(_functor);
+  return env.signature->isArrayCon(functor());
 }
 
 bool AtomicSort::isTupleSort() const {
-  return env.signature->isTupleCon(_functor);
+  return env.signature->isTupleCon(functor());
 }
 
 unsigned Term::numTypeArguments() const {
@@ -370,8 +370,8 @@ unsigned Term::numTypeArguments() const {
   return isSpecial()
     ? 0
     : isLiteral()
-      ? env.signature->getPredicate(_functor)->numTypeArguments()
-      : env.signature->getFunction(_functor)->numTypeArguments();
+      ? env.signature->getPredicate(functor())->numTypeArguments()
+      : env.signature->getFunction(functor())->numTypeArguments();
 }
 
 const TermList* Term::termArgs() const
@@ -751,8 +751,8 @@ std::string Term::toString(bool mightNeedParens) const
       auto maybePar = [&](auto t) { 
         return t.toString(
             t.isTerm() && (
-              t.term()->functor() == _functor 
-              || (NumTraits::isAdd(_functor) && NumTraits::isMul(t.term()->functor()))
+              t.term()->functor() == functor() 
+              || (NumTraits::isAdd(functor()) && NumTraits::isMul(t.term()->functor()))
               )
             );
       };
@@ -763,25 +763,25 @@ std::string Term::toString(bool mightNeedParens) const
       return Option<std::string>(out.str());
     };
     if (isLiteral()) {
-      if (NumTraits::isGreater(_functor)) {
+      if (NumTraits::isGreater(functor())) {
         return binary(">");
-      } else if (NumTraits::isGeq(_functor)) {
+      } else if (NumTraits::isGeq(functor())) {
         return binary(">=");
       }
       /* nothing */
     } else if (isSort()) {
       /* nothing */
     } else {
-      if (NumTraits::isAdd(_functor)) {
+      if (NumTraits::isAdd(functor())) {
         return binary(" + ");
-      } else if (NumTraits::isMul(_functor)) {
+      } else if (NumTraits::isMul(functor())) {
         return binary(" ");
-      } else if (auto c = NumTraits::tryLinMul(_functor)) {
+      } else if (auto c = NumTraits::tryLinMul(functor())) {
         return *c == -1 ? some(Output::toString("-", maybeParMul(termArg(0))))
                         : some(Output::toString(*c, " ", maybeParMul(termArg(0))));
-      } else if (NumTraits::isFloor(_functor)) {
+      } else if (NumTraits::isFloor(functor())) {
         return some(Output::toString("⌊", termArg(0), "⌋"));
-      } else if (NumTraits::isMinus(_functor)) {
+      } else if (NumTraits::isMinus(functor())) {
         return uminus();
       }
     }
@@ -853,9 +853,9 @@ std::string Literal::toString(bool reverseEquality, bool mightNeedParens) const
       return Option<std::string>(out.str());
     };
     using NumTraits = decltype(numTraits);
-    if (_functor == NumTraits::greaterF()) {
+    if (functor() == NumTraits::greaterF()) {
       return binary(">");
-    } else if (_functor == NumTraits::geqF()) {
+    } else if (functor() == NumTraits::geqF()) {
       return binary(">=");
     }
     return Option<std::string>();
@@ -887,19 +887,19 @@ std::string Literal::toString(bool reverseEquality, bool mightNeedParens) const
 
 const std::string& Term::functionName() const
 {
-  return env.signature->functionName(_functor);
+  return env.signature->functionName(functor());
 }
 
 bool Term::isArrowSort() const {
-  return isSort() && env.signature->isArrowCon(_functor);
+  return isSort() && env.signature->isArrowCon(functor());
 }
 
 bool Term::isApplication() const {
-  return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);
+  return !isSort() && !isLiteral() && env.signature->isAppFun(functor());
 }
 
 bool Term::isLambdaTerm() const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(functor());
 }
 
 bool Term::isBetaRedex() const {
@@ -926,27 +926,27 @@ bool Term::isEtaRedex() const {
 }
 
 bool Term::isProxy(Proxy proxy) const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(_functor)->proxy() == proxy;
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->getFunction(functor())->proxy() == proxy;
 }
 
 bool Term::isChoice() const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(_functor);
+  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isChoiceFun(functor());
 }
 
 Option<unsigned> Term::deBruijnIndex() const {
   if (isSort() || isLiteral() || isSpecial())
     return {};
-  return env.signature->getFunction(_functor)->deBruijnIndex();
+  return env.signature->getFunction(functor())->deBruijnIndex();
 }
 
 const std::string& AtomicSort::typeConName() const
 {
-  return env.signature->typeConName(_functor);
+  return env.signature->typeConName(functor());
 }
 
 const std::string& Literal::predicateName() const
 {
-  return env.signature->predicateName(_functor);
+  return env.signature->predicateName(functor());
 }
 
 bool Literal::isAnswerLiteral() const {
@@ -1505,7 +1505,7 @@ AtomicSort* AtomicSort::createNonShared(unsigned typeCon, unsigned arity, TermLi
  */
 bool Literal::headersMatch(Literal* l1, Literal* l2, bool complementary)
 {
-  if (l1->_functor!=l2->_functor || (complementary?1:0)!=(l1->polarity()!=l2->polarity())) {
+  if (l1->functor()!=l2->functor() || (complementary?1:0)!=(l1->polarity()!=l2->polarity())) {
     return false;
   }
 
@@ -1640,7 +1640,7 @@ Literal* Literal::create2(unsigned predicate, bool polarity, TermList arg1, Term
 
 /** create a new term and copy from t the relevant part of t's content */
 Term::Term(const Term& t) throw()
-  : _functor(t._functor),
+  : _head(t._head),
     _arity(t._arity),
     _color(COLOR_TRANSPARENT),
     _hasInterpretedConstants(0),
@@ -1675,7 +1675,7 @@ AtomicSort::AtomicSort(const AtomicSort& p) throw()
 
 /** dummy term constructor */
 Term::Term() throw()
-  :_functor(0),
+  :_head(0),
    _arity(0),
    _evalNormalForm(0),
    _color(COLOR_TRANSPARENT),
@@ -1698,7 +1698,7 @@ Term::Term() throw()
 std::string Term::headerToString() const
 {
   std::string s("functor: ");
-  s += Int::toString(_functor) + ", arity: " + Int::toString(_arity)
+  s += Int::toString(functor()) + ", arity: " + Int::toString(_arity)
     + ", weight: " + Int::toString(_weight)
     + ", vars: " + Int::toString(_vars)
     + ", polarity: " + Int::toString(info()._polarity())

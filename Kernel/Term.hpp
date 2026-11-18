@@ -171,11 +171,13 @@ public:
   /** the tag */
   inline TermTag tag() const { return static_cast<TermTag>(_tag()); }
   /** the term list is empty */
-  inline bool isEmpty() const
+  inline bool isFun() const
   { return tag() == FUN; }
+  inline bool isEmpty() const
+  { return isFun(); }
   /** the term list is non-empty */
   inline bool isNonEmpty() const
-  { return tag() != FUN; }
+  { return !isEmpty(); }
   /** next term in this list */
   inline TermList* next()
   { return this-1; }
@@ -199,6 +201,8 @@ public:
   { ASS(isTerm()); return _term(); }
   inline Term* term()
   { ASS(isTerm()); return _term(); }
+  inline unsigned fun() const
+  { ASS(isFun()); return _content / 4; }
   /** True of the terms have the same content. Useful for comparing
    * arguments of shared terms. */
   inline bool sameContent(const TermList* t) const
@@ -219,6 +223,8 @@ public:
   /** make the term into a special variable with a given number */
   inline void makeSpecialVar(unsigned vnumber)
   { _content = vnumber * 4 + SPEC_VAR; }
+  inline void makeFun(unsigned fun)
+  { _content = fun * 4 + FUN; }
   /** create an term empty (so that isEmpty() returns true)
    *  (can just be the default constructor now)
    */
@@ -413,16 +419,16 @@ std::ostream& operator<<(std::ostream& out, SpecialFunctor const& self);
 class alignas(8) Term : public FlexibleTail<Term, TermList>
 {
 public:
-
-  static constexpr unsigned SPECIAL_FUNCTOR_LOWER_BOUND  =  std::numeric_limits<unsigned>::max() - unsigned(SPECIAL_FUNCTOR_LAST);
+  static constexpr unsigned SPECIAL_FUNCTOR_UPPER_BOUND = (std::numeric_limits<unsigned>::max() / 4);
+  static constexpr unsigned SPECIAL_FUNCTOR_LOWER_BOUND = SPECIAL_FUNCTOR_UPPER_BOUND - unsigned(SPECIAL_FUNCTOR_LAST);
   static SpecialFunctor toSpecialFunctor(unsigned f) {
     ASS_GE(f, SPECIAL_FUNCTOR_LOWER_BOUND);
-    unsigned result = std::numeric_limits<unsigned>::max() - f;
+    unsigned result = SPECIAL_FUNCTOR_UPPER_BOUND - f;
     ASS_LE(result, unsigned(SPECIAL_FUNCTOR_LAST))
     return SpecialFunctor(result);
   }
   static unsigned toNormalFunctor(SpecialFunctor f) 
-  { return std::numeric_limits<unsigned>::max() - static_cast<unsigned>(f); }
+  { return SPECIAL_FUNCTOR_UPPER_BOUND - static_cast<unsigned>(f); }
 
   class SpecialTermData
   {
@@ -501,8 +507,7 @@ public:
   size_t getPreDataSize() { return isSpecial() ? sizeof(SpecialTermData) : 0; }
 
   /** Function or predicate symbol of a term */
-  const unsigned functor() const { return _functor; }
-
+  unsigned functor() const { return _head.fun(); }
 
   SpecialFunctor specialFunctor() const 
   { return toSpecialFunctor(functor()); }
@@ -619,7 +624,7 @@ public:
    * @since 28/12/2007 Manchester
    */
   unsigned hash() const 
-  { return termHash(_functor, [&](auto i) { return *nthArgument(i); }, _arity); }
+  { return termHash(functor(), [&](auto i) { return *nthArgument(i); }, _arity); }
 
   /** return the arity */
   unsigned arity() const
@@ -628,7 +633,7 @@ public:
   /** make the term into a symbol term */
   void makeSymbol(unsigned number,unsigned arity)
   {
-    _functor = number;
+    _head.makeFun(number);
     _arity = arity;
   }
   void destroy();
@@ -932,8 +937,8 @@ protected:
     info()._setOrder(val);
   }
 
-  /** The number of this symbol in a signature */
-  unsigned _functor;
+  /** The head of this term */
+  TermList _head;
   /** Arity of the symbol */
   unsigned _arity : 27;
   /** Evaluation cache bit, @see isEvalNormalForm() */
@@ -1005,7 +1010,7 @@ public:
 
   AtomicSort(unsigned functor,unsigned arity) throw()
   {
-    _functor = functor;
+    _head.makeFun(functor);
     _arity = arity;
     info()._setLiteral(false);
     info()._setSort(true);
@@ -1071,7 +1076,7 @@ public:
    */
   Literal(unsigned functor,unsigned arity,bool polarity) throw()
   {
-    _functor = functor;
+    _head.makeFun(functor);
     _arity = arity;
     info()._setPolarity(polarity);
     info()._setSort(false);
@@ -1083,13 +1088,13 @@ public:
    * the number of the predicate symbol.
    */
   unsigned header() const
-  { return 2*_functor + polarity(); }
+  { return 2*functor() + polarity(); }
   /**
    * Header of the complementary literal, 2*p+1 is negative and 2*p
    * if positive where p is the number of the predicate symbol.
    */
   unsigned complementaryHeader() const
-  { return 2*_functor + 1 - polarity(); }
+  { return 2*functor() + 1 - polarity(); }
 
   static bool headersMatch(Literal* l1, Literal* l2, bool complementary);
   /** set polarity to true or false */
