@@ -415,7 +415,7 @@ unsigned EqualityProxy::getProxyPredicate(TermList sort)
   Formula* defForm = new BinaryFormula(IFF, new AtomicFormula(proxyLit), new AtomicFormula(eqLit));
   Formula* quantDefForm = Formula::quantify(defForm);
 
-  FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::EQUALITY_PROXY_DEFINITION));
+  FormulaUnit* defUnit = new FormulaUnit(quantDefForm,NonspecificInference0(GoalAffinity::AXIOM,InferenceRule::EQUALITY_PROXY_DEFINITION));
 
   if (_poly) {
     _proxyPredicate = newPred;

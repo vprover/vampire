@@ -765,7 +765,7 @@ FunctionDefinition::~FunctionDefinition ()
 FunctionDefinition::Def*
 FunctionDefinition::isFunctionDefinition (Unit& unit)
 {
-  if(unit.derivedFromGoal() && env.options->ignoreConjectureInPreprocessing()){
+  if(unit.goalAffinity() >= GoalAffinity::CONJECTURE && env.options->ignoreConjectureInPreprocessing()){
     return 0;
   }
 

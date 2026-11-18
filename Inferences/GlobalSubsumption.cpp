@@ -184,8 +184,8 @@ Clause* GlobalSubsumption::perform(Clause* cl, Stack<Unit*>& prems)
         // CAREFUL:
         // FromSatRefutation does not automatically propagate age
         inf.setAge(cl->age());
-        // also, let's not propagate inputType from the whole big (non-minimized) set of premises (which probably already contains a piece of the conjecture)
-        inf.setInputType(cl->inputType());
+        // also, let's not propagate goal affinity from the whole big (non-minimized) set of premises (which probably already contains a piece of the conjecture)
+        inf.setGoalAffinity(cl->goalAffinity());
         // Splitter will set replacement's splitSet, so we don't have to do it here
 
         Clause* replacement = Clause::fromIterator(LiteralStack::BottomFirstIterator(survivors),inf);

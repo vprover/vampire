@@ -342,20 +342,6 @@ const char* languageName(Language language)
 std::ostream& operator<<(std::ostream& out, Language language)
 { return out << languageName(language); }
 
-const char* inputRole(UnitInputType type)
-{
-  switch (type) {
-  case UnitInputType::ASSUMPTION:
-    return Role::HYPOTHESIS;
-  case UnitInputType::CONJECTURE:
-    return Role::CONJECTURE;
-  case UnitInputType::NEGATED_CONJECTURE:
-    return Role::NEGATED_CONJECTURE;
-  default:
-    return Role::AXIOM;
-  }
-}
-
 std::ostream& operator<<(std::ostream& out, SplitLiteral self)
 {
   return out << Saturation::Splitter::getFormulaStringFromLiteral(self.literal);

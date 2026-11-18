@@ -56,8 +56,7 @@ bool FOOLElimination::needsElimination(FormulaUnit* unit)
       case Options::CNFOnTheFly::EAGER:
         break;
       case Options::CNFOnTheFly::CONJ_EAGER:
-        if (unit->inputType() != UnitInputType::NEGATED_CONJECTURE &&
-            unit->inputType() != UnitInputType::CONJECTURE) {
+        if (unit->goalAffinity() < GoalAffinity::CONJECTURE) {
           return true;
         }
         break;
@@ -158,9 +157,7 @@ FormulaUnit* FOOLElimination::apply(FormulaUnit* unit) {
 
   SortHelper::collectVariableSorts(formula, _varSorts);
 
-  bool isConjecture =
-    unit->inputType() == UnitInputType::NEGATED_CONJECTURE ||
-    unit->inputType() == UnitInputType::CONJECTURE;
+  bool isConjecture = unit->goalAffinity() >= GoalAffinity::CONJECTURE;
 
   // The old implementation (combinator implementation) had a check !_polymorphic
   // I've removed it here, but if we start seeing issues on polymorphic problems, that
@@ -617,7 +614,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
         Formula* jointDef = new JunctionFormula(AND, FormulaList::cons(thenImplication, FormulaList::singleton(elseImplication)));
 
         // add the joint definitions
-        FormulaUnit* defUnit = new FormulaUnit(jointDef,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_ITE_DEFINITION));
+        FormulaUnit* defUnit = new FormulaUnit(jointDef,NonspecificInference0(_unit->goalAffinity(),InferenceRule::FOOL_ITE_DEFINITION));
         addDefinition(defUnit);
         InferenceStore::instance()->recordIntroducedSymbol(defUnit, context == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
 
@@ -854,7 +851,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
         // add the introduced definition
         FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
-            NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_LET_DEFINITION));
+            NonspecificInference0(_unit->goalAffinity(),InferenceRule::FOOL_LET_DEFINITION));
         addDefinition(defUnit);
 
         TermList contents = *term->nthArgument(0); // deliberately unprocessed here
@@ -937,7 +934,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
 
           // add the introduced definition
           FormulaUnit* defUnit = new FormulaUnit(freshSymbolDefinition,
-            NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_FORMULA_DEFINITION));
+            NonspecificInference0(_unit->goalAffinity(),InferenceRule::FOOL_FORMULA_DEFINITION));
           addDefinition(defUnit);
 
           InferenceStore::instance()->recordIntroducedSymbol(defUnit, env.signature->getFunction(freshSymbol));
@@ -1014,7 +1011,7 @@ void FOOLElimination::process(Term* term, Context context, TermList& termResult,
             }
             impl = new QuantifiedFormula(FORALL, vsfifo.list(), impl);
           }
-          FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FOOL_MATCH_DEFINITION));
+          FormulaUnit* defUnit = new FormulaUnit(impl,NonspecificInference0(_unit->goalAffinity(),InferenceRule::FOOL_MATCH_DEFINITION));
           addDefinition(defUnit);
           InferenceStore::instance()->recordIntroducedSymbol(defUnit,context == FORMULA_CONTEXT ? env.signature->getPredicate(freshSymbol) : env.signature->getFunction(freshSymbol));
         }

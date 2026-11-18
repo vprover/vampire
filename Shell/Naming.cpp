@@ -81,6 +81,7 @@ FormulaUnit* Naming::apply(FormulaUnit* unit, UnitList*& defs) {
   }
 
   _defs = UnitList::empty();
+  _affinity = unit->goalAffinity();
 
   // The original recursive call was here:
 
@@ -1186,7 +1187,7 @@ Formula* Naming::introduceDefinition(Formula* f, bool iff) {
     }
     def = new QuantifiedFormula(FORALL, vsfifo.list(), def);
   }
-  Unit* definition = new FormulaUnit(def, NonspecificInference0(UnitInputType::AXIOM,InferenceRule::PREDICATE_DEFINITION));
+  Unit* definition = new FormulaUnit(def, NonspecificInference0(_affinity,InferenceRule::PREDICATE_DEFINITION));
 
   InferenceStore::instance()->recordIntroducedSymbol(definition, sym);
 

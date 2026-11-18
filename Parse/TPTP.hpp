@@ -555,12 +555,15 @@ private:
   UnitList::FIFO _units;
   /** stack of unprocessed states */
   Stack<State> _states;
-  /** input type of the last read unit */ // it must be int since -1 can be used as a value
-  UnitInputType _lastInputType;
+  /** goal affinity of the last read unit, as given by its formula role */
+  GoalAffinity _lastGoalAffinity = GoalAffinity::AXIOM;
   /** the top-level dialect the unit currently being read came from;
    *  CNF and TCF units must end up being clauses, FOF and TCF units must be closed */
   enum class Dialect { CNF, FOF, TCF };
   Dialect _lastDialect;
+  /** true if the last read unit is a conjecture (or a question), which tag() negates;
+   *  a negated_conjecture has the same goal affinity but is taken as it is */
+  bool _isConjecture = false;
   /** true if the last read unit is a question */
   bool _isQuestion = false;
   /** true if the last read unit is a claim, see processClaimFormula() */

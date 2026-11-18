@@ -258,7 +258,7 @@ void Preprocess::preprocess(Problem& prb)
     }
 
     // just to initialize ``env.clauseSineLevels'' or ``env.predicateSineLevels''
-    SineSelector(false,_options.sineToAgeTolerance(),0,
+    SineSelector(_options.sineToAgeTolerance(),0,
         _options.sineToAgeGeneralityThreshold(),true).perform(prb);
   }
 
@@ -867,7 +867,7 @@ void Preprocess::clausify(Problem& prb)
 void Preprocess::findAbstractions(UnitList*& units)
 {
   for (const auto& u : iterTraits(UnitList::RefIterator(units))) {
-    if (!u->derivedFromGoal()) {
+    if (u->goalAffinity() < GoalAffinity::CONJECTURE) {
       continue;
     }
 

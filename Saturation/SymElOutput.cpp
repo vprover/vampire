@@ -72,7 +72,7 @@ void SymElOutput::onNonRedundantClause(Clause* c)
       outputSymbolElimination(_symElColors.get(src->number()), c);
     }
   }
-  //if(c->color()==COLOR_TRANSPARENT && c->inputType()!=Clause::AXIOM && !c->skip()) {
+  //if(c->color()==COLOR_TRANSPARENT && c->goalAffinity()!=Clause::AXIOM && !c->skip()) {
   //  cout<<"Interesting: "<<c->toNiceString()<<endl;
   //}
 }

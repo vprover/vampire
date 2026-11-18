@@ -30,7 +30,6 @@
  */
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/TermIterators.hpp"
@@ -167,18 +166,9 @@ class Definizator : public BottomUpTermTransformer {
 
           // (we don't care the definition is not rectified, as long as it's correct)
           // it is correct, because the lhs below is t and not key
-          auto equation = Literal::createEquality(true, res, TermList(t), SortHelper::getResultSort(res.term()));
-          Inference inference(NonspecificInference0(UnitInputType::AXIOM,InferenceRule::FUNCTION_DEFINITION));
           Unit* intro;
-
-          // unflip equation first if needed to document original orientation for TSTP
-          if (res == equation->termArg(0)) {
-            newDef = Clause::fromLiterals({ equation }, inference);
-            intro = newDef;
-          } else {
-            intro = new FormulaUnit(new AtomicFormula(equation, /*flipForPrinting=*/true), inference);
-            newDef = Clause::fromLiterals({ equation }, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, intro));
-          }
+          newDef = Clause::definitionKeepingOrientation(res, TermList(t), SortHelper::getResultSort(res.term()),
+              NonspecificInference0(GoalAffinity::AXIOM,InferenceRule::FUNCTION_DEFINITION), intro);
 
           InferenceStore::instance()->recordIntroducedSymbol(intro, newSym);
         } else {
@@ -226,7 +216,7 @@ void Shell::TweeGoalTransformation::apply(Problem &prb, bool groundOnly)
   UnitList::RefIterator uit(prb.units());
   while (uit.hasNext()) {
     Unit* &u = uit.next();
-    if (!u->derivedFromGoal())
+    if (u->goalAffinity() < GoalAffinity::CONJECTURE)
       continue;
 
     ASS(u->isClause());

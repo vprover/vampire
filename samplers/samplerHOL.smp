@@ -55,7 +55,8 @@ pel!=off > peltl ~uf 0.9,5.0
 tgt!=off > tsa ~cat on:4,off:1
 
 # sine_selection
-intent=unsat > ss ~cat off:1182,included:135,axioms:392
+intent=unsat > ss ~cat off:1182,on:527
+ss=on > ssat ~cat axiom:135,assumption:300,conjecture:92
 
 # sine_depth
 intent=unsat ss!=off > sd ~cat 0:45,1:13,2:12,3:5,4:4,5:4,7:3,10:2,12:1,15:1
@@ -76,7 +77,9 @@ intent=unsat > sa ~cat lrs:600,discount:572,otter:236
 intent=sat > sa ~cat otter:60,discount:28
 
 # set_of_support
-intent=unsat > sos ~cat off:80,on:17,all:10
+intent=unsat > sos ~cat off:80,on:27
+sos=on > sosts ~cat off:17,on:10
+sos=on > sosat ~cat assumption:3,conjecture:1,axiom:1
 
 # lrs_first_time_check
 > $lftc ~cat N:5,Y:1
@@ -125,6 +128,7 @@ sa=lrs > lrd ~cat off:1,on:1
 > $nwc ~cat 1:2,666:1
 $nwc=1 > nwc ~cat 1:1
 $nwc!=1 > nwc ~uf 0.5,15.0
+$nwc!=1 > nwat ~cat conjecture:2,assumption:3,axiom:1
 # TODO: we will most likely want a new distribution here for ($nwc!=1) just above!
 
 

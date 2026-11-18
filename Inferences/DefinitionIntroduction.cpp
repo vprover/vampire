@@ -14,7 +14,6 @@
 #include "DefinitionIntroduction.hpp"
 
 #include "Kernel/Clause.hpp"
-#include "Kernel/FormulaUnit.hpp"
 #include "Kernel/HOL/HOL.hpp"
 #include "Kernel/TermIterators.hpp"
 #include "Kernel/InferenceStore.hpp"
@@ -160,19 +159,9 @@ void DefinitionIntroduction<higherOrder>::introduceDefinitionFor(Term *t) {
   } else {
     def = Term::create(functor, type_arity + term_arity, variables.data());
   }
-  Literal *eq = Literal::createEquality(true, TermList(def), TermList(t), range_sort);
-
-  // unflip equation first if needed to document original orientation for TSTP
-  Clause* definition;
   Unit* intro;
-  NonspecificInference0 inf(UnitInputType::AXIOM, InferenceRule::FUNCTION_DEFINITION);
-  if (TermList(def) == eq->termArg(0)) {
-    definition = Clause::fromLiterals({eq}, inf);
-    intro = definition;
-  } else {
-    intro = new FormulaUnit(new AtomicFormula(eq, /*flipForPrinting=*/true), inf);
-    definition = Clause::fromLiterals({eq}, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, intro));
-  }
+  Clause* definition = Clause::definitionKeepingOrientation(TermList(def), TermList(t), range_sort,
+      NonspecificInference0(GoalAffinity::AXIOM, InferenceRule::FUNCTION_DEFINITION), intro);
 
   // record definition
   InferenceStore::instance()->recordIntroducedSymbol(intro, env.signature->getFunction(functor));
@@ -209,8 +198,8 @@ void DefinitionIntroduction<higherOrder>::process(Term *t) {
 
 template<bool higherOrder>
 void DefinitionIntroduction<higherOrder>::process(Clause *cl) {
-  // don't process our own clauses
-  if(cl->inference().rule() == InferenceRule::FUNCTION_DEFINITION)
+  // don't process our own clauses (nor Twee's), also when stored reoriented
+  if(cl->originalInference().rule() == InferenceRule::FUNCTION_DEFINITION)
     return;
 
   // this can happen with e.g. induction or CNFOnTheFly introducing new symbols

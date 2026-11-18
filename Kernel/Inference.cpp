@@ -27,30 +27,26 @@ using namespace Kernel;
 
 
 /**
- * Return UnitInputType of which should be a formula that has
- * units of types @c t1 and @c t2 as premises.
+ * A child is as close to the goal as its closest parent.
  */
-UnitInputType Kernel::getInputType(UnitInputType t1, UnitInputType t2)
+GoalAffinity Kernel::childAffinity(GoalAffinity t1, GoalAffinity t2)
 {
-  return static_cast<UnitInputType>(std::max(toNumber(t1), toNumber(t2)));
+  return std::max(t1, t2);
 }
 
 /**
- * Return UnitInputType of which should be a formula that has
- * @c units as premises.
- *
- * @c units must be a non-empty list.
+ * The binary childAffinity() folded over @c units, which must be a non-empty list.
  */
-UnitInputType Kernel::getInputType(UnitList* units)
+GoalAffinity Kernel::childAffinity(UnitList* units)
 {
   ASS(units);
 
   UnitList::Iterator uit(units);
   ALWAYS(uit.hasNext());
-  UnitInputType res = uit.next()->inputType();
+  GoalAffinity res = uit.next()->goalAffinity();
 
   while(uit.hasNext()) {
-    res = Kernel::getInputType(res, uit.next()->inputType());
+    res = Kernel::childAffinity(res, uit.next()->goalAffinity());
   }
   return res;
 }
@@ -261,9 +257,8 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
   }
   // TODO get rid of intermediate string generation by ruleName
   out << ruleName(self._rule);
-  out << "), it: " << toNumber(self._inputType);
+  out << "), ga: " << self.goalAffinity();
 
-  out << ", incl: " << self._included;
   out << ", ptd: " << self._isPureTheoryDescendant;
   out << ", sl: " << self._sineLevel;
   out << ", age: " << self._age;
@@ -271,9 +266,9 @@ std::ostream& Kernel::operator<<(std::ostream& out, Inference const& self)
 }
 
 
-void Inference::init0(UnitInputType inputType, InferenceRule r)
+void Inference::init0(GoalAffinity affinity, InferenceRule r)
 {
-  initDefault(inputType,r);
+  initDefault(affinity,r);
   _kind = Kind::INFERENCE_012;
   _ptr1 = nullptr;
   _ptr2 = nullptr;
@@ -286,7 +281,7 @@ void Inference::init0(UnitInputType inputType, InferenceRule r)
 
 void Inference::init1(InferenceRule r, Unit* premise)
 {
-  initDefault(premise->inputType(),r);
+  initDefault(premise->goalAffinity(),r);
 
   _kind = Kind::INFERENCE_012;
   _ptr1 = premise;
@@ -302,7 +297,7 @@ void Inference::init1(InferenceRule r, Unit* premise)
 
 void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
 {
-  initDefault(getInputType(premise1->inputType(),premise2->inputType()),r);
+  initDefault(childAffinity(premise1->goalAffinity(),premise2->goalAffinity()),r);
 
   _kind = Kind::INFERENCE_012;
   _ptr1 = premise1;
@@ -319,7 +314,7 @@ void Inference::init2(InferenceRule r, Unit* premise1, Unit* premise2)
 
 void Inference::initMany(InferenceRule r, UnitList* premises)
 {
-  initDefault(UnitInputType::AXIOM /* the minimal element; we later compute maximum over premises*/,r);
+  initDefault(MIN_AFFINITY /* we later compute maximum over premises*/,r);
 
   _kind = Kind::INFERENCE_MANY;
   _ptr1 = premises;
@@ -336,7 +331,7 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
     it=premises;
     while(it) {
       const Inference& inf = it->head()->inference();
-      _inputType = getInputType(_inputType,inf.inputType());
+      _goalAffinity = childAffinity(_goalAffinity,inf.goalAffinity());
       _isPureTheoryDescendant &= inf.isPureTheoryDescendant();
       _sineLevel = min(_sineLevel,inf.getSineLevel());
       it=it->tail();
@@ -349,11 +344,15 @@ void Inference::initMany(InferenceRule r, UnitList* premises)
 }
 
 Inference::Inference(const FromInput& fi) {
-  init0(fi.inputType,InferenceRule::INPUT);
+  init0(fi.affinity,InferenceRule::INPUT);
+}
+
+Inference::Inference(const InputConjecture&) {
+  init0(GoalAffinity::CONJECTURE,InferenceRule::INPUT_CONJECTURE);
 }
 
 Inference::Inference(const TheoryAxiom& ta) {
-  init0(UnitInputType::AXIOM,ta.rule);
+  init0(GoalAffinity::AXIOM,ta.rule);
   ASS_REP(isTheoryAxiom(), ruleName(ta.rule));
 }
 
@@ -361,8 +360,6 @@ Inference::Inference(const FormulaClauseTransformation& ft) {
   init1(ft.rule,ft.premise);
 
   ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
-
-  _included = ft.premise->included();
 }
 
 Inference::Inference(const FormulaClauseTransformationMany& ft) {
@@ -370,8 +367,6 @@ Inference::Inference(const FormulaClauseTransformationMany& ft) {
 
   ASS_REP(isFormulaClauseTransformation(ft.rule),ruleName(ft.rule));
   ASS_NEQ(ft.premises,UnitList::empty());
-
-  _included = ft.premises->head()->included();
 }
 
 Inference::Inference(const GeneratingInference1& gi) {
@@ -438,7 +433,7 @@ Inference::Inference(const SimplifyingInferenceMany& si) {
 }
 
 Inference::Inference(const NonspecificInference0& gi) {
-  init0(gi.inputType,gi.rule);
+  init0(gi.affinity,gi.rule);
 
   ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
 }
@@ -459,14 +454,6 @@ Inference::Inference(const NonspecificInferenceMany& gi) {
   initMany(gi.rule,gi.premises);
 
   ASS_REP(isNonSpecificInferenceRule(gi.rule), ruleName(gi.rule));
-}
-
-std::string Inference::name() const {
-  if (_rule == InferenceRule::INPUT) {
-    return ruleName(_rule)+"("+inputTypeName(_inputType)+")";
-  } else {
-    return ruleName(_rule);
-  }
 }
 
 void Inference::minimizePremises()
@@ -517,21 +504,24 @@ void Inference::minimizePremises()
 }
 
 
-std::string Kernel::inputTypeName(UnitInputType type)
+std::string Kernel::goalAffinityName(GoalAffinity type)
 {
   switch (type) {
-    case UnitInputType::AXIOM:
+    case GoalAffinity::DISTANT_AXIOM:
+      return "distant axiom";
+    case GoalAffinity::AXIOM:
       return "axiom";
-    case UnitInputType::ASSUMPTION:
+    case GoalAffinity::ASSUMPTION:
       return "assumption";
-    case UnitInputType::CONJECTURE:
+    case GoalAffinity::CONJECTURE:
       return "conjecture";
-    case UnitInputType::NEGATED_CONJECTURE:
-      return "negated conjecture";
   default:
       return "unknown";
   }
 }
+
+std::ostream& Kernel::operator<<(std::ostream& out, GoalAffinity type)
+{ return out << goalAffinityName(type); }
 
 /**
  * Return the rule name, such as "binary_resolution".
@@ -542,6 +532,8 @@ std::string Kernel::ruleName(InferenceRule rule)
   switch (rule) {
   case InferenceRule::INPUT:
     return "input";
+  case InferenceRule::INPUT_CONJECTURE:
+    return "input_conjecture";
   case InferenceRule::CONJECTURE_NEGATION:
     return "conjecture_negation";
   case InferenceRule::ANSWER_LITERAL_INJECTION:
@@ -990,5 +982,5 @@ std::string Kernel::ruleName(InferenceRule rule)
   }
 
   INVALID_OPERATION("invalid inference rule");
-} // Inference::name()
+} // ruleName()
 

@@ -146,15 +146,24 @@ void UIHelper::outputAllPremises(std::ostream& out, UnitList* units, std::string
 }
 
 /**
- * The TPTP role of @b unit in the output modes: its input role, except that a unit
- * derived from the conjecture stems from the negated conjecture.
+ * The TPTP role of @b unit in the output modes, decided by its goal affinity.
+ *
+ * The parsers negate a stated conjecture right away (see InferenceRule::INPUT_CONJECTURE),
+ * so any other unit at the conjecture level is a negated conjecture or derived from one.
  */
 const char* UIHelper::outputRole(const Unit* unit)
 {
-  if (unit->inputType() == UnitInputType::CONJECTURE && unit->inference().rule() != InferenceRule::INPUT) {
-    return TPTPOutput::Role::NEGATED_CONJECTURE;
+  if (unit->inference().rule() == InferenceRule::INPUT_CONJECTURE) {
+    return TPTPOutput::Role::CONJECTURE;
   }
-  return TPTPOutput::inputRole(unit->inputType());
+  switch (unit->goalAffinity()) {
+  case GoalAffinity::ASSUMPTION:
+    return TPTPOutput::Role::HYPOTHESIS;
+  case GoalAffinity::CONJECTURE:
+    return TPTPOutput::Role::NEGATED_CONJECTURE;
+  default:
+    return TPTPOutput::Role::AXIOM;
+  }
 }
 
 
@@ -434,7 +443,7 @@ void UIHelper::outputResult(std::ostream& out)
     /**
      * Making explicit what was previously only done during proof printing.
      *
-     * However, we need to know the correct input type to decide whether to print "Theorem" vs "ContradictoryAxioms" below
+     * However, we need to know the correct goal affinity to decide whether to print "Theorem" vs "ContradictoryAxioms" below
      * (and this is not correctly set in inference by Global subsumtions for heuristic reasons).
      *
      * So it makes sense to call this even if minimizeSatProofs is false.
@@ -447,7 +456,7 @@ void UIHelper::outputResult(std::ostream& out)
 
     if (szsOutputMode()) {
       out << "% SZS status " <<
-        (UIHelper::haveConjecture() ? ( refutation->derivedFromGoal() ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
+        (UIHelper::haveConjecture() ? ( (refutation->goalAffinity() >= GoalAffinity::CONJECTURE) ? "Theorem" : "ContradictoryAxioms" ) : "Unsatisfiable")
 	      << " for " << env.options->problemName << endl;
     }
     if (env.options->proof() != Options::Proof::OFF) {

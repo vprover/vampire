@@ -264,7 +264,7 @@ void FunctionRelationshipInference::addClaimForFunction(TermList x, TermList y, 
 void FunctionRelationshipInference::addClaim(Formula* conjecture, ClauseList*& newClauses)
 {
     FormulaUnit* fu = new FormulaUnit(conjecture,
-                      FromInput(UnitInputType::CONJECTURE)); //TODO create new Inference kind?
+                      FromInput(GoalAffinity::CONJECTURE)); //TODO create new Inference kind?
 
     fu = Rectify::rectify(fu);
     fu = NNF::ennf(fu);

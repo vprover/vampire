@@ -140,7 +140,7 @@ Unit* TPTP::parseFormulaFromString(const std::string& str)
 {
   std::stringstream input(str+")."); // to fake endFOF, which creates the clause
   Parse::TPTP parser(input, "<string>");
-  parser._lastInputType = UnitInputType::AXIOM;
+  parser._lastGoalAffinity = GoalAffinity::AXIOM;
   parser._lastDialect = Dialect::FOF; // what fof/tff normally records (but we start "from the middle")
   parser._strings.push("dummy_name");
   parser._states.push(END_FOF);  // this is what does the clause building
@@ -361,31 +361,36 @@ void TPTP::parseImpl(State initialState)
 
 void TPTP::parseInputType(const std::string& tp)
 {
+  _isConjecture = false;
   _isQuestion = false;
   _isClaim = false;
   if(_modelDefinition){
     // the role of a model definition is ignored, see isModelDefinition()
-    _lastInputType = UnitInputType::AXIOM;
+    _lastGoalAffinity = GoalAffinity::AXIOM;
   }
   else if (tp == "axiom" || tp == "plain" || tp == "definition") {
-    _lastInputType = UnitInputType::AXIOM;
+    // an axiom from an include() file is background knowledge, further from the goal than
+    // the axioms of the problem file itself
+    _lastGoalAffinity = restoreFiles.empty() ? GoalAffinity::AXIOM : GoalAffinity::DISTANT_AXIOM;
   }
   else if (tp == "conjecture") {
-    _lastInputType = UnitInputType::CONJECTURE;
+    _isConjecture = true;
+    _lastGoalAffinity = GoalAffinity::CONJECTURE;
   }
   else if (tp == "question") {
+    _isConjecture = true;
     _isQuestion = true;
-    _lastInputType = UnitInputType::CONJECTURE;
+    _lastGoalAffinity = GoalAffinity::CONJECTURE;
   }
   else if (tp == "negated_conjecture") {
-    _lastInputType = UnitInputType::NEGATED_CONJECTURE;
+    _lastGoalAffinity = GoalAffinity::CONJECTURE;
   }
   else if (tp == "hypothesis" || tp == "theorem" || tp == "lemma") {
-    _lastInputType = UnitInputType::ASSUMPTION;
+    _lastGoalAffinity = GoalAffinity::ASSUMPTION;
   }
   else if (tp == "claim") {
     _isClaim = true;
-    _lastInputType = UnitInputType::AXIOM;
+    _lastGoalAffinity = GoalAffinity::AXIOM;
   }
   else if (tp == "assumption" || tp == "unknown" || tp == "logic") {
     // MS: we were silently dropping these until now. I wonder why...
@@ -1384,7 +1389,7 @@ void TPTP::unitList()
  * Process fof() or cnf() declaration. Does the following:
  * <ol>
  *  <li>add 0 to _formulas</li>
- *  <li>save the input type to _lastInputType</li>
+ *  <li>save the goal affinity to _lastGoalAffinity</li>
  *  <li>add unit name to _strings</li>
  *  <li>add to _states END_FOF,FORMULA</li>
  *  <li>records in _lastDialect whether this is fof or cnf</li>
@@ -1421,7 +1426,7 @@ void TPTP::fof(bool fo)
  * Process tff(), thf() or tcf() declaration. Does the following:
  * <ol>
  *  <li>add 0 to _formulas</li>
- *  <li>save the input type to _lastInputType</li>
+ *  <li>save the goal affinity to _lastGoalAffinity</li>
  *  <li>add unit name to _strings</li>
  *  <li>add to _states END_FOF,FORMULA</li>
  *  <li>records in _lastDialect whether this is tcf (which must end up a clause) or not</li>
@@ -3949,7 +3954,7 @@ void TPTP::endFof()
     _curQuestionVarNames.reset();
     return;
   }
-  if (_lastInputType == UnitInputType::CONJECTURE) {
+  if (_isConjecture) {
     // count the conjecture only now, once the unit is known not to be
     // filtered out by an include() formula selection
     // (containsConjecture() decides between SZS Theorem and Unsatisfiable)
@@ -3963,7 +3968,8 @@ void TPTP::endFof()
 
   Unit *unit, *original;
   if (!mustBeClause) { // fof() or tff()
-    original = unit = new FormulaUnit(f,FromInput(_lastInputType));
+    original = unit = new FormulaUnit(f,
+        _isConjecture ? Inference(InputConjecture()) : Inference(FromInput(_lastGoalAffinity)));
     unit->setInheritedColor(_currentColor);
   }
   else { // cnf() or tcf()
@@ -4025,14 +4031,8 @@ void TPTP::endFof()
         USER_ERROR("input formula not in CNF: " + f->toString());
       }
     }
-    if(needsFlipDocumenting) {
-      FormulaUnit *fu = new FormulaUnit(f, FromInput(_lastInputType));
-      original = fu;
-      FormulaClauseTransformation transform(InferenceRule::REORIENT_EQUATIONS, fu);
-      unit = Clause::fromStack(lits, transform);
-    }
-    else
-      original = unit = Clause::fromStack(lits, FromInput(_lastInputType));
+    unit = Clause::fromStackKeepingOrientation(lits, FromInput(_lastGoalAffinity),
+        needsFlipDocumenting ? f : nullptr, original);
     unit->setInheritedColor(_currentColor);
   }
 
@@ -4045,28 +4045,17 @@ void TPTP::endFof()
 #if DEBUG_SHOW_UNITS
   cout << "Unit: " << unit->toString() << "\n";
 #endif
-  if (!restoreFiles.empty()) {
-    unit->inference().markIncluded();
-  }
-
-  switch (_lastInputType) {
-  case UnitInputType::CONJECTURE:
+  if (_isConjecture) {
     // negating a clause does not give a clause
     if(mustBeClause) USER_ERROR("conjecture is not allowed in ",
         _lastDialect == Dialect::CNF ? "cnf" : "tcf");
-    {
-      ASS_EQ(freeVariables(f),VList::empty())
-      f = new NegatedFormula(f);
-      unit = new FormulaUnit(f,
-			     FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION,unit));
-      if (_isQuestion) {
-        _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
-      }
+    ASS_EQ(freeVariables(f),VList::empty())
+    f = new NegatedFormula(f);
+    unit = new FormulaUnit(f,
+			   FormulaClauseTransformation(InferenceRule::CONJECTURE_NEGATION,unit));
+    if (_isQuestion) {
+      _questionVariableNames.insert(unit->number(),std::move(_curQuestionVarNames));
     }
-    break;
-
-  default:
-    break;
   }
   if (_isClaim) {
     unit = processClaimFormula(unit,f,nm);

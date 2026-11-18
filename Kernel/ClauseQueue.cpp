@@ -34,13 +34,13 @@ ClauseQueue::ClauseQueue()
 }
 
 /**
- * Clauses with equal keys go first by input type (a larger one first),
+ * Clauses with equal keys go first by goal affinity (a larger one first),
  * then by number.
  */
 bool ClauseQueue::tieLessThan(Clause* c1, Clause* c2)
 {
-  if (c1->inputType() != c2->inputType()) {
-    return c2->inputType() < c1->inputType();
+  if (c1->goalAffinity() != c2->goalAffinity()) {
+    return c2->goalAffinity() < c1->goalAffinity();
   }
   return c1->number() < c2->number();
 }

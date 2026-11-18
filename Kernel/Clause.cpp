@@ -29,6 +29,8 @@
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
 
+#include "Formula.hpp"
+#include "FormulaUnit.hpp"
 #include "Inference.hpp"
 #include "Term.hpp"
 #include "SortHelper.hpp"
@@ -125,6 +127,37 @@ Clause* Clause::fromClause(Clause* c)
   }
 
   return res;
+}
+
+Clause* Clause::fromStackKeepingOrientation(const Stack<Literal*>& lits, const Inference& inf,
+                                            Formula* written, Unit*& origin)
+{
+  if (!written) {
+    Clause* res = fromStack(lits, inf);
+    origin = res;
+    return res;
+  }
+  origin = new FormulaUnit(written, inf);
+  return fromStack(lits, FormulaClauseTransformation(InferenceRule::REORIENT_EQUATIONS, origin));
+}
+
+Clause* Clause::definitionKeepingOrientation(TermList lhs, TermList rhs, TermList sort,
+                                             const Inference& inf, Unit*& origin)
+{
+  Literal* eq = Literal::createEquality(true, lhs, rhs, sort);
+  Formula* written = eq->termArg(0) == lhs ? nullptr : new AtomicFormula(eq, /*flipForPrinting=*/true);
+  return fromStackKeepingOrientation(Stack<Literal*>{eq}, inf, written, origin);
+}
+
+const Inference& Clause::originalInference() const
+{
+  const Inference& inf = inference();
+  if (inf.rule() != InferenceRule::REORIENT_EQUATIONS) {
+    return inf;
+  }
+  auto it = inf.iterator();
+  ALWAYS(inf.hasNext(it));
+  return inf.next(it)->inference();
 }
 
 bool Clause::shouldBeDestroyed()
@@ -390,9 +423,8 @@ std::string Clause::toString() const
       result += std::string(",col:") + Int::toString(color());
     }
 
-    if(derivedFromGoal()){
-      result += std::string(",goal:1");
-    }
+    result += std::string(",ga:") + Int::toString(toNumber(goalAffinity()));
+
     if(env.maxSineLevel > 1) { // this is a cryptic way of saying "did we run Sine to compute sine levels?"
       result += std::string(",sine:")+Int::toString((unsigned)_inference.getSineLevel());
     }
@@ -568,24 +600,22 @@ unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
     numeralWeight = getNumeralWeight();
   }
 
-  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, Unit::derivedFromGoal(), opt);
+  return Clause::computeWeightForClauseSelection(w, splWeight, numeralWeight, goalAffinity(), opt);
 }
 
 /*
  * note: we currently assume in Clause::computeWeightForClauseSelection(opt) that numeralWeight is only used here if
  * the option increasedNumeralWeight() is set to true.
  */
-unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, bool derivedFromGoal, const Shell::Options& opt)
+unsigned Clause::computeWeightForClauseSelection(unsigned w, unsigned splitWeight, unsigned numeralWeight, GoalAffinity affinity, const Shell::Options& opt)
 {
-  static unsigned nongoalWeightCoeffNum = opt.nongoalWeightCoefficientNumerator();
-  static unsigned nongoalWeightCoefDenom = opt.nongoalWeightCoefficientDenominator();
-
   w += splitWeight;
 
   if (opt.increasedNumeralWeight()) {
     w = (2 * w + numeralWeight);
   }
-  return w * ( !derivedFromGoal ? nongoalWeightCoeffNum : nongoalWeightCoefDenom);
+  bool countsAsGoal = affinity >= opt.nongoalWeightAffinityThreshold();
+  return w * (countsAsGoal ? opt.nongoalWeightCoefficientDenominator() : opt.nongoalWeightCoefficientNumerator());
 }
 
 void Clause::collectVars(DHSet<unsigned, FnvHash, IdentityHash>& acc)

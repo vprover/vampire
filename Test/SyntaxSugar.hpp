@@ -685,7 +685,7 @@ inline Clause* clause(Stack<Lit> ls, Inference inf) {
 }
 
 inline Clause* clause(Stack<Lit> ls)
-{ return clause(ls, FromInput(UnitInputType::ASSUMPTION)); }
+{ return clause(ls, FromInput(GoalAffinity::ASSUMPTION)); }
 
 inline Clause* clause(std::initializer_list<Lit> ls)
 { return clause(Stack<Lit>(ls)); }
