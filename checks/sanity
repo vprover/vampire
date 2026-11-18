@@ -502,6 +502,13 @@ check_exact_output fmb/bceflip.out --input_syntax tptp --statistics none -sa fmb
 check_exact_output fmb/cond.out --input_syntax tptp --statistics none -sa fmb fmb/cond.p
 check_exact_output fmb/cond.check.out --input_syntax tptp --mode model_check fmb/cond.check.p
 
+# FMB: a sort with no domain in the model, mentioned by symbols that are printed anyway
+# (see fmb/domainless-sort.p). Exact output, because the defect was a crash while printing
+# the model, i.e. after the SZS status line; and the round-trip, because the singleton
+# printed for that sort is what makes the model readable at all
+check_exact_output fmb/domainless-sort.out --input_syntax tptp --statistics none -sa fmb fmb/domainless-sort.p
+check_exact_output fmb/domainless-sort.check.out --input_syntax tptp --mode model_check fmb/domainless-sort.check.p
+
 
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2

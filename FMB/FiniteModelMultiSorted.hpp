@@ -55,8 +55,9 @@ private:
  */
 class FiniteModelMultiSorted {
   // the domain size of each vampire sort; 0 means this model has nothing to say about that
-  // sort (it is not printed, and no represented symbol mentions it) -- where a value of such
-  // a sort is nevertheless called for, it behaves as a one-element domain (cf. domainSize)
+  // sort (no represented symbol mentions it) -- where a value of such a sort is nevertheless
+  // called for, it behaves as a one-element domain (cf. domainSize), and that is also how it
+  // is printed when an unrepresented symbol mentions it (see toString)
   DArray<unsigned> _sizes;
 
   // per-symbol stacks of interpretation layers, bottom-up (see ModelLayer.hpp); the model

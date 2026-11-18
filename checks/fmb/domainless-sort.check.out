@@ -1,0 +1,16 @@
+Finite domain axiom found:
+2. ! [X0 : s] : (X0 = fmb_s_1) [input]
+Finite domain axiom found:
+3. ! [X0 : t] : ((X0 = fmb_t_1) | (X0 = fmb_t_2)) [input]
+Loading model...
+Detected model with 2 sorts.
+  domain for t of size 2, domain elements are:
+    fmb_t_1
+    fmb_t_2
+  domain for s of size 1, domain elements are:
+    fmb_s_1
+Model loaded
+Checking formulas...
+Checking 1. c != d [input]...
+Evaluates to True
+All formulas evaluated to True!

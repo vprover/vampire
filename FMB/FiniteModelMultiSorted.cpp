@@ -422,10 +422,45 @@ std::string FiniteModelMultiSorted::toString()
   static DArray<DArray<std::string>> cnames;
   cnames.ensure(env.signature->typeCons());
 
+  // which symbols get printed below; the loops over functions and predicates ask the same
+  auto funPrinted = [&](unsigned f) {
+    if (!printIntroduced && env.signature->getFunction(f)->introduced()) return false;
+    // the boolean domain elements are named after these two, so their definitions
+    // would just be the tautologies $true = $true and $false = $false
+    return !env.signature->isFoolConstantSymbol(true,f) && !env.signature->isFoolConstantSymbol(false,f);
+  };
+  auto predPrinted = [&](unsigned p) {
+    return printIntroduced || !env.signature->getPredicate(p)->introduced();
+  };
+
+  // A sort with no domain in this model (size 0, see the comment on _sizes) still needs one
+  // in print as soon as a printed symbol mentions it -- an unused symbol can, and every one
+  // is printed, if only with its trivial value. Print it as the singleton the evaluation, and
+  // hence the self-check, has used for it all along (domainSize), so that what we print is
+  // the model that was checked. A sort that no printed symbol mentions stays unprinted.
+  DArray<bool> sortPrinted(env.signature->typeCons());
+  for(unsigned s=0;s<sortPrinted.size();s++){
+    sortPrinted[s] = (_sizes[s] > 0);
+  }
+  auto mentionSortsOf = [&](OperatorType* ot, bool withResult) {
+    for(unsigned i=0;i<ot->arity();i++){
+      sortPrinted[ot->arg(i).term()->functor()] = true;
+    }
+    if (withResult) {
+      sortPrinted[ot->result().term()->functor()] = true;
+    }
+  };
+  for(unsigned f=0;f<env.signature->functions();f++){
+    if (funPrinted(f)) mentionSortsOf(env.signature->getFunction(f)->type(),/*withResult=*/true);
+  }
+  for(unsigned p=1;p<env.signature->predicates();p++){
+    if (predPrinted(p)) mentionSortsOf(env.signature->getPredicate(p)->type(),/*withResult=*/false);
+  }
+
   //Output sorts and their sizes
   for(unsigned s=0;s<env.signature->typeCons();s++){
-    unsigned size = _sizes[s];
-    if(size==0) continue;
+    if(!sortPrinted[s]) continue;
+    unsigned size = domainSize(_sizes,s);
 
     // don't output interpreted sorts at all, we know what they are
     // ($o is the exception: FMB models it like any other sort -- FOOL elimination and
@@ -504,12 +539,9 @@ std::string FiniteModelMultiSorted::toString()
 
   // Functions (including constants)
   for(unsigned f=0;f<env.signature->functions();f++){
+    if(!funPrinted(f)) continue;
     const Signature::Symbol* symb = env.signature->getFunction(f);
     unsigned arity = symb->arity();
-    if(!printIntroduced && symb->introduced()) continue;
-    // the boolean domain elements are named after these two, so their definitions
-    // would just be the tautologies $true = $true and $false = $false
-    if(env.signature->isFoolConstantSymbol(true,f) || env.signature->isFoolConstantSymbol(false,f)) continue;
     std::string name = symb->name();
 
     OperatorType* ot = symb->type();
@@ -611,9 +643,9 @@ std::string FiniteModelMultiSorted::toString()
 
   //Predicates (including propositions)
   for(unsigned p=1;p<env.signature->predicates();p++){
+    if(!predPrinted(p)) continue;
     const Signature::Symbol* symb = env.signature->getPredicate(p);
     unsigned arity = symb->arity();
-    if(!printIntroduced && symb->introduced()) continue;
     std::string name = symb->name();
     OperatorType* ot = symb->type();
     modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": "; //"(";
