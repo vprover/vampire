@@ -104,19 +104,19 @@ void InferenceReplayer::runForwardsSimp(const ClauseStack& context)
   runForwardsSimp(rule, context);
 }
 
-void InferenceReplayer::replayInference(Unit* goal)
+const InferenceReplayInformation* InferenceReplayer::replayInference(Unit* goal)
 {
-  if (!goal->isClause()) { return; }
-  InferenceRecorder::instance()->setCurrentGoal(goal->asClause());
+  if (!goal->isClause()) { return nullptr; }
+  InferenceRecorder recorder(goal->asClause());
   ClauseStack context;
   auto parents = goal->getParents();
   while (parents.hasNext()) {
     Unit* parent = parents.next();
-    if (!parent->isClause()) { return; }
+    if (!parent->isClause()) { return nullptr; }
     context.push(parent->asClause());
   }
   Lib::ScopedLet<bool> reconstruction(env.reconstruction, true);
-  if (context.isEmpty()) { return; }
+  if (context.isEmpty()) { return nullptr; }
 
   switch (goal->inference().rule()) {
   case InferenceRule::RESOLUTION:
@@ -136,6 +136,12 @@ void InferenceReplayer::replayInference(Unit* goal)
   default:
     break;
   }
+  auto info = recorder.takeInformation();
+  if (!info) { return nullptr; }
+  auto result = info->findComponent<Inferences::InferenceReplayInformation>();
+  ASS(result);
+  env.proofExtra.replace(goal, std::move(info));
+  return result;
 }
 
 void InferenceReplayer::runGenerating(GeneratingInferenceEngine& rule,

@@ -49,7 +49,7 @@ private:
   std::shared_ptr<SuperpositionLHSIndex> _lhsIndex;
 };
 
-using SuperpositionExtra = TwoLiteralRewriteInferenceExtra;
+using SuperpositionExtra = LiteralRewriteExtra;
 
 };
 

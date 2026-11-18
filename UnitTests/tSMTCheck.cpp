@@ -73,7 +73,7 @@ TEST_FUN(resolution_eliminated_variable)
   auto left = clause({positive, q(y)});
   auto right = clause({negative});
   auto conclusion = clause({q(y)}, GeneratingInference2(InferenceRule::RESOLUTION, left, right));
-  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(positive, negative));
+  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(Inferences::twoLiteralExtra(positive, negative)));
   checkStep(conclusion);
 }
 
@@ -89,7 +89,7 @@ TEST_FUN(resolution_reordered_conclusion)
   auto left = clause({positive, q(x,y)});
   auto right = clause({negative, r(z)});
   auto conclusion = clause({r(x), q(z,y)}, GeneratingInference2(InferenceRule::RESOLUTION, left, right));
-  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(positive, negative));
+  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(Inferences::twoLiteralExtra(positive, negative)));
   checkStep(conclusion);
 }
 
@@ -101,7 +101,7 @@ TEST_FUN(resolution_empty_conclusion)
   Literal *positive = p(x), *negative = ~p(x);
   auto left = clause({positive}), right = clause({negative});
   auto conclusion = clause(Stack<Lit>(), GeneratingInference2(InferenceRule::RESOLUTION, left, right));
-  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(positive, negative));
+  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(Inferences::twoLiteralExtra(positive, negative)));
   checkStep(conclusion);
 }
 
@@ -115,7 +115,7 @@ TEST_FUN(factoring_renamed_conclusion)
   Literal *selected = p(x), *other = p(y);
   auto premise = clause({selected, other, q(z)});
   auto conclusion = clause({q(x), p(y)}, GeneratingInference1(InferenceRule::FACTORING, premise));
-  env.proofExtra.insert(conclusion, new Inferences::FactoringExtra(selected, other));
+  env.proofExtra.insert(conclusion, new Inferences::FactoringExtra(Inferences::twoLiteralExtra(selected, other)));
   checkStep(conclusion);
 }
 
@@ -143,7 +143,7 @@ TEST_FUN(resolution_duplicate_literals)
   Literal *positive = p(x), *negative = ~p(y);
   auto left = clause({positive, q(x)}), right = clause({negative, q(y)});
   auto conclusion = clause({q(z), q(z)}, GeneratingInference2(InferenceRule::RESOLUTION, left, right));
-  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(positive, negative));
+  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(Inferences::twoLiteralExtra(positive, negative)));
   checkStep(conclusion);
 }
 
@@ -157,7 +157,7 @@ TEST_FUN(resolution_multiple_candidates)
   Literal *positive = p(x), *negative = ~p(x);
   auto left = clause({positive, q(x,x), q(x,f(x))}), right = clause({negative});
   auto conclusion = clause({q(z,f(z)), q(z,z)}, GeneratingInference2(InferenceRule::RESOLUTION, left, right));
-  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(positive, negative));
+  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(Inferences::twoLiteralExtra(positive, negative)));
   checkStep(conclusion);
 }
 
@@ -170,6 +170,6 @@ TEST_FUN(resolution_equality_arguments)
   Literal *positive = p(x), *negative = ~p(x);
   auto left = clause({positive, f(x) == y}), right = clause({negative});
   auto conclusion = clause({x == f(z)}, GeneratingInference2(InferenceRule::RESOLUTION, left, right));
-  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(positive, negative));
+  env.proofExtra.insert(conclusion, new Inferences::BinaryResolutionExtra(Inferences::twoLiteralExtra(positive, negative)));
   checkStep(conclusion);
 }

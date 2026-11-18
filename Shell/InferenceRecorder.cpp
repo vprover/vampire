@@ -31,10 +31,16 @@ namespace Shell {
 
 namespace { unsigned literalPosition(Clause* clause, Literal* literal); }
 
+InferenceRecorder* InferenceRecorder::_active = nullptr;
+
+InferenceRecorder::InferenceRecorder(Clause* goal)
+  : _activation(_active, this), _currentGoal(goal)
+{}
+
 InferenceRecorder* InferenceRecorder::instance()
 {
-  static InferenceRecorder recorder;
-  return &recorder;
+  ASS(_active);
+  return _active;
 }
 
 Substitution InferenceRecorder::goalAlphaRenaming(const std::unordered_map<unsigned, unsigned>& varMap)
@@ -69,14 +75,14 @@ TermList InferenceRecorder::alphaRenameToGoal(TermList term, Substitution& renam
   return SubstHelper::apply(term, renaming);
 }
 
-InferenceRecorder::InferenceInformation* InferenceRecorder::record(Clause* conclusion, std::vector<Clause*> premises,
+std::optional<InferenceRecorder::InferenceInformation> InferenceRecorder::record(Clause* conclusion, std::vector<Clause*> premises,
                                Substitutions substitutions, Substitution* outputRenaming)
 {
   ASS_EQ(substitutions.size(), premises.size());
   VariableMap varMap;
-  if (!isSameAsProofStep(conclusion, _currentGoal, varMap)) { return nullptr; }
-  auto info = std::make_unique<InferenceInformation>();
-  info->conclusion = conclusion;
+  if (!isSameAsProofStep(conclusion, _currentGoal, varMap)) { return std::nullopt; }
+  auto info = std::make_optional<InferenceInformation>();
+  info->conclusion = _currentGoal;
   info->premises = std::move(premises);
   info->substitutionForBanksSub.resize(info->premises.size());
   Substitution renaming = goalAlphaRenaming(varMap);
@@ -94,23 +100,30 @@ InferenceRecorder::InferenceInformation* InferenceRecorder::record(Clause* concl
     }
   }
   if (outputRenaming) { *outputRenaming = std::move(renaming); }
-  auto result = info.get();
-  _lastInference = std::move(info);
-  return result;
+  return info;
 }
 
 void InferenceRecorder::superposition(Clause* conclusion, Clause* main,
     Clause* equality, Substitutions substitutions,
-    Literal* rewrittenLiteral, Literal* equalityLiteral, TermList from, TermList to,
+    Literal* rewrittenLiteral, Literal* equalityLiteral, TermList lhs, TermList target,
     unsigned constraintCount)
 {
   Substitution renaming;
   auto info = record(conclusion, {main, equality}, substitutions, &renaming);
   if (!info) { return; }
-  auto& details = info->details.emplace<SuperpositionInformation>();
-  recordRewrite(*info, details.rewrite, rewrittenLiteral, equalityLiteral, from, 0, to, 1);
+  using Extra = Inferences::CompositeInferenceExtra<
+      Inferences::LiteralRewriteExtra,
+      InferenceInformation, ConstraintInformation>;
+  const auto mainPosition = literalPosition(main, rewrittenLiteral);
+  const auto equalityPosition = literalPosition(equality, equalityLiteral);
+  auto extra = std::make_unique<Extra>(
+      Inferences::LiteralRewriteExtra(
+          Inferences::twoLiteralExtra(rewrittenLiteral, equalityLiteral, mainPosition, equalityPosition),
+          Inferences::rewriteExtra(lhs, target, equalityPosition, mainPosition)),
+      std::move(*info), ConstraintInformation{});
   ASS_LE(constraintCount, conclusion->length());
-  recordConstraints(*info, details.constraints, renaming, conclusion->length() - constraintCount, constraintCount);
+  recordConstraints(conclusion, extra->get<ConstraintInformation>(), renaming, conclusion->length() - constraintCount, constraintCount);
+  _information = std::move(extra);
 }
 
 void InferenceRecorder::resolution(Clause* conclusion, Clause* left, Clause* right,
@@ -121,40 +134,56 @@ void InferenceRecorder::resolution(Clause* conclusion, Clause* left, Clause* rig
   auto info = record(conclusion, {left, right},
       substitutions, &renaming);
   if (!info) { return; }
-  auto& details = info->details.emplace<ResolutionInformation>();
-  details.resolvedLiterals.left = {0, literalPosition(left, resolvedLeft)};
-  details.resolvedLiterals.right = {1, literalPosition(right, resolvedRight)};
-  recordConstraints(*info, details.constraints, renaming, 0, constraintCount);
+  using Extra = Inferences::CompositeInferenceExtra<
+      Inferences::TwoLiteralInferenceExtra, InferenceInformation, ConstraintInformation>;
+  auto extra = std::make_unique<Extra>(
+      Inferences::twoLiteralExtra(resolvedLeft, resolvedRight,
+          literalPosition(left, resolvedLeft),
+          literalPosition(right, resolvedRight)),
+      std::move(*info), ConstraintInformation{});
+  recordConstraints(conclusion, extra->get<ConstraintInformation>(), renaming, 0, constraintCount);
+  _information = std::move(extra);
 }
 
-void InferenceRecorder::recordConstraints(const InferenceInformation& info,
+void InferenceRecorder::recordConstraints(Clause* candidate,
     ConstraintInformation& constraints, const Substitution& renaming,
     unsigned first, unsigned count)
 {
-  ASS_LE(first + count, info.conclusion->length());
+  ASS_LE(first + count, candidate->length());
   for (unsigned i = first; i < first + count; ++i) {
-    constraints.literals.push_back(SubstHelper::apply((*info.conclusion)[i], renaming));
+    constraints.literals.push_back(SubstHelper::apply((*candidate)[i], renaming));
   }
 }
 
 void InferenceRecorder::factoring(Clause* conclusion, Clause* premise,
-                                 Substitutions substitutions, Literal* removedLiteral)
+                                 Substitutions substitutions, Literal* selectedLiteral, Literal* removedLiteral)
 {
   auto info = record(conclusion, {premise}, substitutions);
   if (info) {
-    auto& details = info->details.emplace<FactoringInformation>();
-    details.removedLiteral = {0, literalPosition(premise, removedLiteral)};
+    using Extra = Inferences::CompositeInferenceExtra<
+        Inferences::TwoLiteralInferenceExtra, InferenceInformation>;
+    auto extra = std::make_unique<Extra>(
+        Inferences::twoLiteralExtra(selectedLiteral, removedLiteral,
+            literalPosition(premise, selectedLiteral),
+            literalPosition(premise, removedLiteral)),
+        std::move(*info));
+    _information = std::move(extra);
   }
 }
 
 void InferenceRecorder::forwardDemodulation(Clause* conclusion, Clause* premise,
     Clause* equality, Substitutions substitutions, Literal* rewrittenLiteral,
-    TermList lhs, TermList rhs)
+    TermList lhs, TermList target)
 {
   auto info = record(conclusion, {premise, equality}, substitutions);
   if (info) {
-    auto& details = info->details.emplace<ForwardDemodulationInformation>();
-    recordRewrite(*info, details.rewrite, rewrittenLiteral, (*equality)[0], lhs, 1, rhs, 1);
+    using Extra = Inferences::CompositeInferenceExtra<
+        Inferences::RewriteInferenceExtra, InferenceInformation>;
+    auto extra = std::make_unique<Extra>(
+        Inferences::rewriteExtra(lhs, target, 0,
+            literalPosition(premise, rewrittenLiteral)),
+        std::move(*info));
+    _information = std::move(extra);
   }
 }
 
@@ -216,16 +245,6 @@ bool sameLiteralOccurrences(Clause* clause, Clause* goal, const Substitution& re
   }
   return true;
 }
-}
-
-void InferenceRecorder::recordRewrite(const InferenceInformation& info,
-    RewriteInformation& rewrite, Literal* rewrittenLiteral, Literal* equality,
-    TermList from, unsigned fromBank, TermList to, unsigned toBank)
-{
-  rewrite.rewrittenLiteral = {0, literalPosition(info.premises[0], rewrittenLiteral)};
-  rewrite.equality = {1, literalPosition(info.premises[1], equality)};
-  rewrite.from = SubstHelper::apply(from, info.substitutionForBanksSub[fromBank]);
-  rewrite.to = SubstHelper::apply(to, info.substitutionForBanksSub[toBank]);
 }
 
 bool InferenceRecorder::isSameAsProofStep(Clause *clause, Clause *goal, std::unordered_map<unsigned int, unsigned int> &outVarMap)

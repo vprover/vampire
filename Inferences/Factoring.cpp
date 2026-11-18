@@ -102,12 +102,12 @@ public:
 
     Clause *cl = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::FACTORING,_cl));
     if(env.options->proofExtra() == Options::ProofExtra::FULL){
-      env.proofExtra.insert(cl, new FactoringExtra(l1, l2));
+      env.proofExtra.insert(cl, new FactoringExtra(twoLiteralExtra(l1, l2)));
     }
     if(env.reconstruction){
       using Recorder = Shell::InferenceRecorder;
       BankApplicator applicator(subst, 0);
-      Recorder::instance()->factoring(cl, _cl, {&applicator}, l2);
+      Recorder::instance()->factoring(cl, _cl, {&applicator}, l1, l2);
     }
 
     return cl;

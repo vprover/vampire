@@ -157,7 +157,7 @@ struct BackwardDemodulation<higherOrder>::ResultFn
       SimplifyingInference2(InferenceRule::BACKWARD_DEMODULATION, qr.data->clause, _cl)
     );
     if(env.options->proofExtra() == Options::ProofExtra::FULL)
-      env.proofExtra.insert(replacement, new BackwardDemodulationExtra(lhs, lhsS));
+      env.proofExtra.insert(replacement, new BackwardDemodulationExtra(rewriteExtra(lhs, lhsS)));
     return BwSimplificationRecord(qr.data->clause, replacement);
   }
 private:

@@ -16,6 +16,8 @@
 
 #include <memory>
 
+namespace Inferences { struct InferenceReplayInformation; }
+
 namespace Shell {
 class InferenceReplayer
 {
@@ -23,9 +25,12 @@ public:
   InferenceReplayer();
   ~InferenceReplayer();
 
-  /** Replay only the recorded parents. The recorder accepts candidates that
-   * reproduce the goal, including its variable names and literal occurrences. */
-  void replayInference(Kernel::Unit* u);
+  /** Replay only the recorded parents, accepting candidates that reproduce the
+   * goal, including its variable names and literal occurrences.
+   * On success, replace the goal's proof extra and return a borrowed pointer to
+   * it, valid until replacement or clause destruction. On failure, return
+   * nullptr and leave the existing extra untouched. */
+  const Inferences::InferenceReplayInformation* replayInference(Kernel::Unit* u);
   void makeInferenceEngine(Kernel::OrderingSP ordering);
 
 private:

@@ -16,35 +16,40 @@
  */
 
 #include "ProofExtra.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Inferences {
 
-void LiteralInferenceExtra::output(std::ostream &out) const {
-  out << "selected=(" << selectedLiteral->toString() << ')';
+void InferenceReplayInformation::output(std::ostream& out) const {
+  out << "conclusion=" << conclusion->number() << ",parents=[";
+  for (unsigned bank = 0; bank < premises.size(); ++bank) {
+    if (bank) { out << ','; }
+    out << premises[bank]->number() << ':' << substitutionForBanksSub[bank];
+  }
+  out << ']';
 }
 
-void TwoLiteralInferenceExtra::output(std::ostream &out) const {
-  selectedLiteral.output(out);
-  out << ",other=(" << otherLiteral->toString() << ')';
-  if (synthesisExtra.condition) {
-    out << ",condition=(" << synthesisExtra.condition->toString() << ")";
+void SynthesisInferenceExtra::output(std::ostream& out) const {
+  if (condition) {
+    out << "condition=(" << condition->toString() << ')';
   }
-  if (synthesisExtra.thenLit) {
-    out << ",thenLit=(" << synthesisExtra.thenLit->toString() << "," << synthesisExtra.thenLit << ")";
+  if (thenLit) {
+    if (condition) { out << ','; }
+    out << "thenLit=(" << thenLit->toString() << ',' << thenLit << ')';
   }
-  if (synthesisExtra.elseLit) {
-    out << ",elseLit=(" << synthesisExtra.elseLit->toString() << "," << synthesisExtra.elseLit << ")";
+  if (elseLit) {
+    if (condition || thenLit) { out << ','; }
+    out << "elseLit=(" << elseLit->toString() << ',' << elseLit << ')';
   }
 }
 
-void RewriteInferenceExtra::output(std::ostream &out) const {
-  out << "lhs=" << lhs << ",target=" << rewritten;
-}
-
-void TwoLiteralRewriteInferenceExtra::output(std::ostream &out) const {
-  selected.output(out);
-  out << ',';
-  rewrite.output(out);
+void ConstraintInformation::output(std::ostream& out) const {
+  out << "constraints=[";
+  for (unsigned i = 0; i < literals.size(); ++i) {
+    if (i) { out << ','; }
+    out << *literals[i];
+  }
+  out << ']';
 }
 
 } // namespace Inferences

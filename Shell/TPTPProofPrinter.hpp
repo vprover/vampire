@@ -20,7 +20,6 @@
 #include <tuple>
 
 #include "Lib/Output.hpp"
-#include "Shell/InferenceReplay.hpp"
 #include "Kernel/InferenceStore.hpp"
 #include "SAT/SATClause.hpp"
 #include "Shell/TPTPConstants.hpp"
@@ -169,7 +168,6 @@ protected:
   std::ostream& printInference(std::ostream& out, Unit* unit);
   /** Print status and, when enabled, substitutions recovered by proof replay. */
   std::ostream& printAnnotations(std::ostream& out, Unit* unit);
-  std::unique_ptr<Shell::InferenceReplayer> _replayer;
   std::ostream& printStatus(std::ostream& out, Unit* unit);
   std::ostream& printPremises(std::ostream& out, Unit* unit);
   bool hasNewSymbols(Unit* unit);

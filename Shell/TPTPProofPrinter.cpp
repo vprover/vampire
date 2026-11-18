@@ -15,7 +15,7 @@
 #include <functional>
 #include <algorithm>
 #include <sstream>
-#include "Shell/InferenceRecorder.hpp"
+#include "Inferences/ProofExtra.hpp"
 
 #include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
@@ -279,26 +279,7 @@ std::ostream& InferenceStore::TPTPProofPrinter::printInference(std::ostream& out
 
 std::ostream& InferenceStore::TPTPProofPrinter::printAnnotations(std::ostream& out, Unit* unit)
 {
-  if (!env.options->replay() || !unit->isClause()) { return printStatus(out, unit); }
-  switch (unit->inference().rule()) {
-  case InferenceRule::RESOLUTION:
-  case InferenceRule::CONSTRAINED_RESOLUTION:
-  case InferenceRule::SUPERPOSITION:
-  case InferenceRule::CONSTRAINED_SUPERPOSITION:
-  case InferenceRule::FACTORING:
-  case InferenceRule::FORWARD_DEMODULATION:
-    break;
-  default:
-    return printStatus(out, unit);
-  }
-  if (!_replayer) {
-    // Proof search retains the ordering used by its inference engines.
-    if (!_is->ordering) { return printStatus(out, unit); }
-    _replayer = std::make_unique<Shell::InferenceReplayer>();
-    _replayer->makeInferenceEngine(_is->ordering);
-  }
-  _replayer->replayInference(unit);
-  const auto* info = Shell::InferenceRecorder::instance()->getLastRecordedInferenceInformation();
+  const auto* info = replayInference(unit);
   if (!info) { return printStatus(out, unit); }
   std::ostringstream status;
   printStatus(status, unit);

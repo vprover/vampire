@@ -475,29 +475,25 @@ Clause* Superposition<higherOrder>::performSuperposition(
   Literal *rwAnsLit, *eqAnsLit;
   if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) &&
       (rwAnsLit = rwClause->getAnswerLiteral()) && (eqAnsLit = eqClause->getAnswerLiteral())) {
-    env.proofExtra.insert(clause, new SuperpositionExtra(
-      rwLit,
-      eqLit,
-      eqLHS,
-      rwTerm,
-      subst->apply(eqLit, eqIsResult),
-      rwAnsLit ? subst->apply(rwAnsLit, !eqIsResult) : nullptr,
-      eqAnsLit ? subst->apply(eqAnsLit, eqIsResult) : nullptr
-    ));
+    env.proofExtra.insert(clause, new CompositeInferenceExtra(
+      SuperpositionExtra(
+        twoLiteralExtra(rwLit, eqLit),
+        rewriteExtra(eqLHS, rwTerm)),
+      SynthesisInferenceExtra(
+        subst->apply(eqLit, eqIsResult),
+        rwAnsLit ? subst->apply(rwAnsLit, !eqIsResult) : nullptr,
+        eqAnsLit ? subst->apply(eqAnsLit, eqIsResult) : nullptr)));
   } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
     env.proofExtra.insert(clause, new SuperpositionExtra(
-      rwLit,
-      eqLit,
-      eqLHS,
-      rwTerm
-    ));
+      twoLiteralExtra(rwLit, eqLit),
+      rewriteExtra(eqLHS, rwTerm)));
   }
   if(env.reconstruction){
     using Recorder = Shell::InferenceRecorder;
     ResultApplicator mainSubst(*subst, !eqIsResult);
     ResultApplicator equalitySubst(*subst, eqIsResult);
     Recorder::instance()->superposition(clause, rwClause, eqClause, {&mainSubst, &equalitySubst},
-        rwLit, eqLit, rwTerm, tgtTerm, constraints->size());
+        rwLit, eqLit, eqLHS, rwTerm, constraints->size());
   }
 
   return clause;

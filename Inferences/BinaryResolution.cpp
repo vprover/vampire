@@ -220,15 +220,14 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     Literal* sqAnsLit = subs->applyToQuery(qAnsLit);
     Literal* srAnsLit = subs->applyToResult(rAnsLit);
     bool queryNeg = queryLit->isNegative();
-    env.proofExtra.insert(cl, new BinaryResolutionExtra(
-      queryLit,
-      resultLit,
-      queryNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit),
-      queryNeg ? sqAnsLit : srAnsLit,
-      queryNeg ? srAnsLit : sqAnsLit
-    ));
+    env.proofExtra.insert(cl, new CompositeInferenceExtra(
+      twoLiteralExtra(queryLit, resultLit),
+      SynthesisInferenceExtra(
+        queryNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit),
+        queryNeg ? sqAnsLit : srAnsLit,
+        queryNeg ? srAnsLit : sqAnsLit)));
   } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
-    env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
+    env.proofExtra.insert(cl, new BinaryResolutionExtra(twoLiteralExtra(queryLit, resultLit)));
   }
 
   if (env.reconstruction) {

@@ -42,7 +42,7 @@ private:
   const bool _uwaFixedPointIteration;
 };
 
-using EqualityFactoringExtra = TwoLiteralRewriteInferenceExtra;
+using EqualityFactoringExtra = LiteralRewriteExtra;
 };
 
 #endif /* __EqualityFactoring__ */
