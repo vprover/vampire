@@ -484,9 +484,6 @@ public:
     return Term::create(fn, *stack); 
   }
   static Term* create(Term* t,TermList* args);
-  static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
-  static Term* createNonShared(Term* t,TermList* args);
-  static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
 
   /** Create a new constant and insert in into the sharing structure */
@@ -1019,7 +1016,6 @@ public:
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
   static AtomicSort* create(AtomicSort const* t,TermList* args);
-  static AtomicSort* createNonShared(AtomicSort const* sort,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
   static AtomicSort* createConstant(const std::string& name);
 
@@ -1049,10 +1045,6 @@ public:
   static TermList intSort();
   static TermList realSort();
   static TermList rationalSort();
-
-private:
-
-  static AtomicSort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
 };
 
 /**
