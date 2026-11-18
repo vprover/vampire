@@ -1703,14 +1703,6 @@ Term::Term() throw()
   info()._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
 
-Literal::Literal()
-{
-}
-
-AtomicSort::AtomicSort()
-{
-}
-
 #if VDEBUG
 std::string Term::headerToString() const
 {

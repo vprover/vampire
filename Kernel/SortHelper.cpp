@@ -862,16 +862,9 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
  */
 bool SortHelper::allTopLevelArgsAreSorts(AtomicSort* sort)
 {
-  for(unsigned i = 0; i < sort->arity(); i++){
-    TermList arg = *sort->nthArgument(i);
-    if(arg.isVar()){
-      continue;
-    }
-    if(!arg.term()->isSort()){
-      return false;
-    }
-  }
-  return true;
+  return anyArgIter(sort).all([](TermList arg) {
+    return arg.isVar() || arg.term()->isSort();
+  });
 }
 
 TermList SortHelper::getIndexSort(TermList arraySort)
