@@ -1293,7 +1293,7 @@ SplitLevel Splitter::addGroundComponent(Literal* lit, Clause* orig, Clause*& com
 
 /**
  * @param orig original clause (one being split) used to determine goal affinity of the component.
- *             Can be zero, in that case the goal affinity is GoalAffinity::AXIOM
+ *             Must not be null.
  * @param comp Component (Record) that we're getting the name for
  * @param compCl The clause that will be used to represent this component - to be filled
  *
@@ -1306,7 +1306,7 @@ SplitLevel Splitter::tryGetComponentNameOrAddNew(const LiteralStack& comp, Claus
 
 /**
  * @param orig original clause (one being split) used to determine goal affinity of the component.
- *             Can be zero, in that case the goal affinity is GoalAffinity::AXIOM
+ *             Must not be null.
  * @param size The number of literals in the component
  * @param lits The component to be named (as an array of literals)
  * @param compCl The clause that will be used to represent this component - to be filled
