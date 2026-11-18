@@ -265,7 +265,6 @@ public:
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
-  static bool allShared(TermList* args);
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
   /** if not var, the inner term must be shared */
   unsigned weight() const;
@@ -298,16 +297,11 @@ public:
   TermList rhs() const;
   TermList lambdaBody() const;
   TermList head() const;
-  std::pair<TermList, TermList> asPair() const;
   TermList domain() const;
   TermList result() const;
   TermList resultSort() const;
   TermList replaceSubterm(TermList what, TermList by, bool liftFreeIndices = false) const;
   /* End higher-order terms */
-
-#if VDEBUG
-  void assertValid() const;
-#endif
 
   inline bool operator==(const TermList& t) const
   { return _content==t._content; }
@@ -803,12 +797,6 @@ public:
     return res;
   }
 
-#if VDEBUG
-  std::string headerToString() const;
-  void assertValid() const;
-#endif
-
-
   static TermIterator getVariableIterator(TermList tl);
 
   // the number of _distinct_ variables within the term
@@ -824,16 +812,6 @@ public:
       ASS_L(info()._distinctVars(),0x100000);
       return info()._distinctVars();
     }
-  }
-
-  bool couldBeInstanceOf(Term* t)
-  {
-    ASS(shared());
-    ASS(t->shared());
-    if(t->functor()!=functor()) {
-      return false;
-    }
-    return true;
   }
 
   bool containsSubterm(TermList v) const;
@@ -1012,7 +990,6 @@ public:
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
   static AtomicSort* create(AtomicSort const* t,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
-  static AtomicSort* createConstant(const std::string& name);
 
   /** True if the sort is a higher-order arrow sort */
   bool isArrowSort() const;

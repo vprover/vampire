@@ -65,8 +65,6 @@ BackwardSubsumptionDemodulation<higherOrder>::BackwardSubsumptionDemodulation(Sa
 template<bool higherOrder>
 void BackwardSubsumptionDemodulation<higherOrder>::perform(Clause* sideCl, BwSimplificationRecordIterator& simplifications)
 {
-  ASSERT_VALID(*sideCl);
-
   TIME_TRACE("backward subsumption demodulation");
 
   simplifications = BwSimplificationRecordIterator::getEmpty();

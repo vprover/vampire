@@ -314,7 +314,7 @@ public:
   SortSugar(const char* name, Stack<SortSugar> as_)
   {
     if(as_.isEmpty()){
-      _sugaredExpr = TermList(AtomicSort::createConstant(name));
+      _sugaredExpr = TermList(AtomicSort::createConstant(env.signature->addTypeCon(name, 0)->number()));
     } else {
       Stack<SortId> as;
       for (auto a : as_){ as.push(a.sugaredExpr()); }
@@ -323,7 +323,7 @@ public:
   }
 
   SortSugar(const char* name)
-    : SortSugar(TermList(AtomicSort::createConstant(name)))
+    : SortSugar(TermList(AtomicSort::createConstant(env.signature->addTypeCon(name, 0)->number())))
   {  }
 };
 
@@ -503,8 +503,7 @@ inline Lit isReal(TermSugar trm) { return syntaxSugarGlobals().isReal(true, trm)
 
 inline Lit operator~(Lit lit)
 {
-  Literal* l = lit;
-  return Literal::create(l, !l->polarity());
+  return Literal::complementaryLiteral(lit);
 }
 
 inline Lit operator!=(SortedTermSugar lhs, TermSugar rhs) { return ~(lhs == rhs); }

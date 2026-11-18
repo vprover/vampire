@@ -138,8 +138,6 @@ public:
   inline bool isFromPreprocessing()
   { return !_firstNonPreprocessingNumber || _number<_firstNonPreprocessingNumber; }
 
-  void assertValid();
-
   static void onPreprocessingEnd();
   static void onParsingEnd(){ _lastParsingNumber = _lastNumber;}
   static unsigned getLastParsingNumber(){ return _lastParsingNumber;}

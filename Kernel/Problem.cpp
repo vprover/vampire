@@ -546,17 +546,3 @@ bool Problem::hasNonDefaultSorts() const
   if(!_hasNonDefaultSorts.known()) { refreshProperty(); }
   return _hasNonDefaultSorts.value();
 }
-
-#if VDEBUG
-///////////////////////
-// debugging
-//
-void Problem::assertValid()
-{
-  UnitList::Iterator uit(units());
-  while(uit.hasNext()) {
-    Unit* u = uit.next();
-    ASSERT_VALID(*u);
-  }
-}
-#endif

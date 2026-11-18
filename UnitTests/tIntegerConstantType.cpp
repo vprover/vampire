@@ -41,7 +41,6 @@ TEST_FUN(list_1)
   ALWAYS(dit.next()==1);
   dit.del();
   ASS_EQ(lst->head(), 0);
-  ASS_ALLOC_TYPE(lst, "List");
 }
 
 inline auto ict(int i) -> IntegerConstantType { return IntegerConstantType(i); }

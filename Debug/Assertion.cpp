@@ -67,17 +67,4 @@ void Assertion::violatedStrEquality(Location loc, const char* val1Str,
   abortAfterViolation();
 }
 
-/**
- * Called when an exception is thrown as part of the ASSERT_VALID call.
- * Simply print the location and argument of the ASSERT_VALID statement.
- */
-void Assertion::reportAssertValidException(Location loc, const char* obj)
-{
-  if (outputAllowed(true)) {
-    std::cout << "An exception was thrown by ASSERT_VALID on object " << obj
-         << " at location " << loc << ".\n";
-  }
-  abortAfterViolation();
-} // Assertion::violated
-
 #endif // VDEBUG

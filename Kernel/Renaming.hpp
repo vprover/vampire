@@ -93,7 +93,6 @@ public:
   { return out << self._data; }
 
 #if VDEBUG
-  void assertValid() const;
   std::string toString() const;
 #endif
 private:

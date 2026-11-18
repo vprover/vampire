@@ -725,21 +725,6 @@ void Clause::notifyLiteralReorder()
   }
 }
 
-#if VDEBUG
-
-void Clause::assertValid()
-{
-  ASS_ALLOC_TYPE(this, "Clause");
-  if (_literalPositions) {
-    unsigned clen=length();
-    for (unsigned i = 0; i<clen; i++) {
-      ASS_EQ(getLiteralPosition((*this)[i]),i);
-    }
-  }
-}
-
-#endif
-
 bool Clause::contains(Literal* lit)
 {
   for (int i = _length-1; i >= 0; i--) {
