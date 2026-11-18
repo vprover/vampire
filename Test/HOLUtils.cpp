@@ -40,7 +40,7 @@ TypedTermList lam(std::initializer_list<TypedTermList> typedVars, TypedTermList 
 }
 
 static TermList mkAtomicSort(const std::string& name) {
-  return TermList(AtomicSort::createConstant(name));
+  return TermList(AtomicSort::createConstant(env.signature->addTypeCon(name,0)->number()));
 }
 
 static TypedTermList mkConst(const std::string& name, TermList sort) {

@@ -43,7 +43,6 @@ public:
   {
     bool fail=false;
 
-    ASSERT_VALID(*mcl);
     if (mcl->length() != _length) {
       return 0;
     }

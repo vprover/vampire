@@ -54,7 +54,6 @@ template<bool higherOrder>
 void BackwardSubsumptionAndResolution<higherOrder>::perform(Clause *cl,
                                                BwSimplificationRecordIterator &simplifications)
 {
-  ASSERT_VALID(*cl)
   ASS(_bwIndex)
   simplifications = BwSimplificationRecordIterator::getEmpty();
 

@@ -200,12 +200,6 @@ TermList TermList::head() const {
   return trm;
 }
 
-std::pair<TermList, TermList> TermList::asPair() const {
-  ASS(isArrowSort())
-
-  return {domain(), result()};
-}
-
 TermList TermList::domain() const {
   ASS(isArrowSort())
 
@@ -305,20 +299,6 @@ bool TermList::equals(TermList t1, TermList t2)
       stack.push(ss->next());
       stack.push(tt->next());
     }
-  }
-  return true;
-}
-
-/**
- * Return true if all proper terms in the @ args list are shared
- */
-bool TermList::allShared(TermList* args)
-{
-  while (args->isNonEmpty()) {
-    if (args->isTerm() && !args->term()->shared()) {
-      return false;
-    }
-    args = args->next();
   }
   return true;
 }
@@ -425,9 +405,8 @@ bool Term::containsSubterm(TermList trm) const
       stack.push(ts->next());
     }
     if (ts->isTerm()) {
-      ASSERT_VALID(*ts->term());
       if (ts->term()->arity()) {
-	stack.push(ts->term()->args());
+        stack.push(ts->term()->args());
       }
     }
     if (stack.isEmpty()) {
@@ -1261,11 +1240,6 @@ TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool f
   return res;
 }
 
-AtomicSort* AtomicSort::createConstant(const std::string& name)
-{
-  return createConstant(env.signature->addTypeCon(name,0)->number());
-}
-
 TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
 {
   unsigned array = env.signature->getArrayConstructor();
@@ -1603,37 +1577,6 @@ Term::Term() throw()
   info()._setTag(FUN);
   info()._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
-
-#if VDEBUG
-std::string Term::headerToString() const
-{
-  std::string s("functor: ");
-  s += Int::toString(functor()) + ", arity: " + Int::toString(_arity)
-    + ", weight: " + Int::toString(_weight)
-    + ", vars: " + Int::toString(_vars)
-    + ", polarity: " + Int::toString(info()._polarity())
-    + ", shared: " + Int::toString(info()._shared())
-    + ", literal: " + Int::toString(info()._literal())
-    + ", order: " + Int::toString(info()._order())
-    + ", tag: " + Int::toString(info()._tag());
-  return s;
-}
-
-void Term::assertValid() const
-{
-  ASS_ALLOC_TYPE(this, "Term");
-  ASS_EQ(info()._tag(), FUN);
-}
-
-void TermList::assertValid() const
-{
-  if (this->isTerm()) {
-    ASS_ALLOC_TYPE(_term, "Term");
-    ASS_EQ(_term()->info()._tag(), FUN);
-  }
-}
-
-#endif
 
 std::ostream& Kernel::operator<<(std::ostream& out, TermList const& tl)
 {

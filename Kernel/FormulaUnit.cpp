@@ -67,8 +67,6 @@ unsigned FormulaUnit::varCnt()
  */
 Color FormulaUnit::getColor()
 {
-  ASS_ALLOC_TYPE(this, "FormulaUnit");
-
   if (_cachedColor == COLOR_INVALID) {
     _cachedColor = this->formula()->getColor();
   }
@@ -77,8 +75,6 @@ Color FormulaUnit::getColor()
 
 unsigned FormulaUnit::weight()
 {
-  ASS_ALLOC_TYPE(this, "FormulaUnit");
-
   if (!_cachedWeight) {
     _cachedWeight = this->formula()->weight();
   }

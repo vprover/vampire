@@ -212,16 +212,6 @@ std::string Unit::inferenceAsString() const
   return result + ']';
 } // Unit::inferenceAsString()
 
-void Unit::assertValid()
-{
-  if(isClause()) {
-    ASS_ALLOC_TYPE(this,"Clause");
-  }
-  else {
-    ASS_ALLOC_TYPE(this,"FormulaUnit");
-  }
-}
-
 UnitIterator Unit::getParents() const
 {
   // The unit itself stores the inference

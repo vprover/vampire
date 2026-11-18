@@ -26,5 +26,4 @@ TEST_FUN(list1)
   ALWAYS(dit.next()==1);
   dit.del();
   ASS_EQ(lst->head(), 0);
-  ASS_ALLOC_TYPE(lst, "List");
 }

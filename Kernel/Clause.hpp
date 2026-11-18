@@ -264,9 +264,6 @@ public:
   VirtualIterator<unsigned> iterVars() const;
 
   bool contains(Literal* lit);
-#if VDEBUG
-  void assertValid();
-#endif
 
   SplitSet* splits() const { return _inference.splits(); }
   bool noSplits() const;
