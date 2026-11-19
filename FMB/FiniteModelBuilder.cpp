@@ -1445,6 +1445,9 @@ MainLoopResult FiniteModelBuilder::runImpl()
   env.statistics->phase = ExecutionPhase::FMB_CONSTRAINT_GEN;
 
   if(outputAllowed()){
+      // which sort each position of the size vectors below stands for
+      cout << "% Sorts in the size vectors: " << _sortedSignature->distinctSortNames() << endl;
+
       bool doPrinting = false;
 #if VTRACE_FMB
       doPrinting = true;
