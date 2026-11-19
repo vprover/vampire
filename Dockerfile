@@ -23,7 +23,7 @@ RUN make -j4
 
 # Build Vampire
 WORKDIR /home/vampire/build
-RUN cmake .. -DBUILD_SHARED_LIBS=0
+RUN cmake .. -DSTATIC=ON
 RUN make -j4
 
 # Create runner container
