@@ -244,7 +244,7 @@ SaturationAlgorithm::SaturationAlgorithm(Problem& prb, const Options& opt)
 
   _activationLimit = opt.activationLimit();
 
-  if (env.reconstruction) {
+  if (env.replayRecording) {
     _ordering = InferenceStore::instance()->ordering;
     ASS(_ordering);
   } else {

@@ -174,7 +174,7 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
         if(env.options->proofExtra() == Options::ProofExtra::FULL){
           env.proofExtra.insert(replacement, new ForwardDemodulationExtra(rewriteExtra(lhs, trm)));
         }
-        if(env.reconstruction){
+        if(env.replayRecording){
           ASS(qr.data->clause->length()==1);
           ASS(qr.data->clause->literals()[0]->isEquality());
           using Recorder = Shell::InferenceRecorder;

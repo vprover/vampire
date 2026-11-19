@@ -316,7 +316,7 @@ Clause* Superposition<higherOrder>::performSuperposition(
   }
 
   const auto& parRedHandler = _salg.parRedHandler();
-  if (!env.reconstruction && !unifier->usesUwa()) {
+  if (!env.replayRecording && !unifier->usesUwa()) {
     if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
       return 0;
     }
@@ -488,7 +488,7 @@ Clause* Superposition<higherOrder>::performSuperposition(
       twoLiteralExtra(rwLit, eqLit),
       rewriteExtra(eqLHS, rwTerm)));
   }
-  if(env.reconstruction){
+  if(env.replayRecording){
     using Recorder = Shell::InferenceRecorder;
     ResultApplicator mainSubst(*subst, !eqIsResult);
     ResultApplicator equalitySubst(*subst, eqIsResult);

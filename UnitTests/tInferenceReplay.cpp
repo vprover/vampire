@@ -41,14 +41,14 @@ TEST_FUN(replay_preserves_environment_and_parent_state)
   env.options->resolveAwayAutoValues0();
   env.options->resolveAwayAutoValues(problem);
   env.options->set("saturation_algorithm", "lrs");
-  env.reconstruction = false;
+  env.replayRecording = false;
   auto ordering = OrderingSP(Ordering::create(problem, *env.options));
   auto savedOrdering = OrderingSP(Ordering::create(problem, *env.options));
   InferenceStore::instance()->ordering = savedOrdering;
   {
     Shell::InferenceReplayer replayer;
     replayer.makeInferenceEngine(ordering);
-    ASS(!env.reconstruction);
+    ASS(!env.replayRecording);
     ASS_EQ(env.options->saturationAlgorithm(), Shell::Options::SaturationAlgorithm::LRS);
     ASS_EQ(&Saturation::SaturationAlgorithm::tryGetInstance()->getOrdering(), ordering.ptr());
     ASS_EQ(InferenceStore::instance()->ordering.ptr(), savedOrdering.ptr());
@@ -73,13 +73,13 @@ TEST_FUN(replay_preserves_environment_and_parent_state)
       ASS_EQ(info->substitutionForBanksSub[0].apply(0), TermList(a));
       ASS_EQ(env.getMainProblem(), &problem);
       ASS(env.initiallyHasNonDefaultSorts());
-      ASS(!env.reconstruction);
+      ASS(!env.replayRecording);
       ASS_EQ(left->store(), leftStore);
       ASS_EQ(left->age(), 17);
     }
   }
   ASS_EQ(env.getMainProblem(), &problem);
-  ASS(!env.reconstruction);
+  ASS(!env.replayRecording);
   ASS_EQ(InferenceStore::instance()->ordering.ptr(), savedOrdering.ptr());
 }
 

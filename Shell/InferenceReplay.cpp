@@ -73,7 +73,7 @@ void InferenceReplayer::makeInferenceEngine(OrderingSP ordering)
 {
   ASS(!_alg);
   _problem = std::make_unique<Problem>();
-  Lib::ScopedLet<bool> reconstruction(env.reconstruction, true);
+  Lib::ScopedLet<bool> reconstruction(env.replayRecording, true);
   Lib::ScopedLet<OrderingSP> proofOrdering(InferenceStore::instance()->ordering,
                                          ordering);
   Ordering::unsetGlobalOrdering();
@@ -98,7 +98,7 @@ void InferenceReplayer::runInference(const Unit& unit)
     }
     context.push(parent->asClause());
   }
-  Lib::ScopedLet<bool> reconstruction(env.reconstruction, true);
+  Lib::ScopedLet<bool> reconstruction(env.replayRecording, true);
   if (!premise) { return; }
   ASS(_alg);
   if constexpr (!isGenerating) {

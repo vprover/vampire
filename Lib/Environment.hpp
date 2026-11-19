@@ -50,9 +50,9 @@ public:
 
   ProofExtra proofExtra;
 
-  //Flag that indicates wheter an inference should record
+  //Flag that indicates whether an inference should record
   //what it does for proof reconstruction purposes
-  bool reconstruction = false;
+  bool replayRecording = false;
 
   /** Time remaining until the end of the time-limit in milliseconds */
   int remainingTime() const;

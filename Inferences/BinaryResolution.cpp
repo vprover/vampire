@@ -206,7 +206,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (nConstraints == 0 && parRedHandler && !env.reconstruction) {
+  if (nConstraints == 0 && parRedHandler && !env.replayRecording) {
     if (!parRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
       return 0;
     }
@@ -230,7 +230,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     env.proofExtra.insert(cl, new BinaryResolutionExtra(twoLiteralExtra(queryLit, resultLit)));
   }
 
-  if (env.reconstruction) {
+  if (env.replayRecording) {
     using Recorder = Shell::InferenceRecorder;
     ResultApplicator querySubst(*subs, false);
     ResultApplicator resultSubst(*subs, true);

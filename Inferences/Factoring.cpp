@@ -104,7 +104,7 @@ public:
     if(env.options->proofExtra() == Options::ProofExtra::FULL){
       env.proofExtra.insert(cl, new FactoringExtra(twoLiteralExtra(l1, l2)));
     }
-    if(env.reconstruction){
+    if(env.replayRecording){
       using Recorder = Shell::InferenceRecorder;
       BankApplicator applicator(subst, 0);
       Recorder::instance()->factoring(cl, _cl, {&applicator}, l1, l2);
