@@ -2325,10 +2325,17 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
 
       // between the size it starts from -- fmb_start_size as the detected bounds have
       // adjusted it, so at least the minimum -- and the detected maximum, as the other
-      // enumerators stay; that is what pins $o to its two elements here, too
-      _smtSolver.add(*_sizeConstants[i] >= _context.int_val(_distinctSortSizes[i]));
+      // enumerators stay; that is what pins $o to its two elements here, too.
+      // The bounds can disagree: under -fmbas expand every subsort of a vampire sort inherits
+      // the sort's minimum (from its distinct constants), while the maximum of a subsort with
+      // few constants can be smaller (NLP187-1: minimum 4, maximum 1). The other enumerators
+      // then just never grow that sort, so neither do we: it stays where it starts, rather
+      // than the two bounds together leaving no size at all -- which increaseModelSizes
+      // would report as "no model", and a complete run as Unsatisfiable.
+      unsigned start = _distinctSortSizes[i];
+      _smtSolver.add(*_sizeConstants[i] >= _context.int_val(start));
       if (_distinctSortMaxs[i] != UINT_MAX) {
-        _smtSolver.add(*_sizeConstants[i] <= _context.int_val(_distinctSortMaxs[i]));
+        _smtSolver.add(*_sizeConstants[i] <= _context.int_val(max(start,_distinctSortMaxs[i])));
       }
       // the weight of the first assignment tried, which is where minimizing starts from
       _lastWeight += _distinctSortSizes[i];
