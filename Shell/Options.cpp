@@ -1243,7 +1243,7 @@ Options::Options ()
       {.description = "When running in portfolio modes (including casc or smtcomp modes) specify the number of cores, set to 0 to use maximum",
        .tag = OptionTag::PORTFOLIO})
   , _slowness("slowness",this,1.0,
-      {.description = "The factor by which is multiplied the time limit of each configuration in casc/casc_sat/smtcomp/portfolio mode",
+      {.description = "The factor by which is multiplied the time limit of each configuration in casc/smtcomp/portfolio mode",
        .tag = OptionTag::PORTFOLIO})
   , _randomizeSeedForPortfolioWorkers("randomize_seed_for_portfolio_workers",this,true,
       {.description = "In portfolio mode, let each worker process start from its own independent random seed.",
