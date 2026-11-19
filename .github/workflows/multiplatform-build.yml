@@ -44,9 +44,9 @@ jobs:
       # the >- YAML operator and && are important for CR/LF reasons
       # ccache is installed but fails on the Windows server for some reason unclear to me
       # just switch it off here, it doesn't make sense anyway
+      # static linking only for Linux: not possible on macOS, Cygwin needs cygwin1.dll
       run: >-
         mkdir build &&
-        # static linking only for Linux: not possible on macOS, Cygwin needs cygwin1.dll
         cmake -B build -DCMAKE_BUILD_TYPE=Release -DCCACHE_PROGRAM=OFF ${{ runner.os == 'Linux' && '-DSTATIC=ON' || '' }} &&
         make -j4 -C build vampire
     - name: Obtain Cygwin DLL
