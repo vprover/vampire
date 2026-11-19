@@ -141,6 +141,9 @@ protected:
   auto inference(Unit* unit) {
     return fragment<&TPTPProofPrinter::printInference>(unit);
   }
+  auto annotations(Unit* unit) {
+    return fragment<&TPTPProofPrinter::printAnnotations>(unit);
+  }
   auto status(Unit* unit) {
     return fragment<&TPTPProofPrinter::printStatus>(unit);
   }
@@ -163,6 +166,8 @@ protected:
   std::ostream& printSplits(std::ostream& out, SplitSet* splits);
   std::ostream& printFormula(std::ostream& out, Unit* unit);
   std::ostream& printInference(std::ostream& out, Unit* unit);
+  /** Print status and, when enabled, substitutions recovered by proof replay. */
+  std::ostream& printAnnotations(std::ostream& out, Unit* unit);
   std::ostream& printStatus(std::ostream& out, Unit* unit);
   std::ostream& printPremises(std::ostream& out, Unit* unit);
   bool hasNewSymbols(Unit* unit);

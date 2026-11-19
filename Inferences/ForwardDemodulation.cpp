@@ -32,6 +32,7 @@
 
 #include "Saturation/SaturationAlgorithm.hpp"
 
+#include "Shell/InferenceRecorder.hpp"
 #include "Shell/Options.hpp"
 #include "Shell/Statistics.hpp"
 #include "Debug/TimeProfiling.hpp"
@@ -170,8 +171,20 @@ bool ForwardDemodulation<higherOrder>::perform(Clause* cl, Clause*& replacement,
 
         premises = pvi( getSingletonIterator(qr.data->clause));
         replacement = Clause::fromStack(*resLits, SimplifyingInference2(InferenceRule::FORWARD_DEMODULATION, cl, qr.data->clause));
-        if(env.options->proofExtra() == Options::ProofExtra::FULL)
+        if(env.options->proofExtra() == Options::ProofExtra::FULL){
           env.proofExtra.insert(replacement, new ForwardDemodulationExtra(lhs, trm));
+        }
+        if(env.replayRecording){
+          ASS(qr.data->clause->length()==1);
+          ASS(qr.data->clause->literals()[0]->isEquality());
+          using Recorder = Shell::InferenceRecorder;
+          IdentityApplicator mainSubst;
+          Recorder::DemodulationApplicator equalitySubst(subs, *qr.data);
+          if (equalitySubst.valid()) {
+            Recorder::instance()->forwardDemodulation(replacement, cl, qr.data->clause,
+                {&mainSubst, &equalitySubst}, lit, equalitySubst.lhs, trm);
+          }
+        }
         return true;
       }
     }

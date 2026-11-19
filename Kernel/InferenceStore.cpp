@@ -21,6 +21,7 @@
 #include "Lib/Stack.hpp"
 
 #include "Shell/Options.hpp"
+#include "Shell/InferenceReplay.hpp"
 #include "Shell/TPTPProofPrinter.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/SMTCheck.hpp"
@@ -96,6 +97,34 @@ void InferenceStore::recordIntroducedSplitName(Unit* u, std::string name)
   ALWAYS(_introducedSplitNames.insert(u->number(),name));
 }
 
+InferenceStore::AbstractProofPrinter::AbstractProofPrinter(std::ostream& out, InferenceStore* is)
+  : _is(is), out(out)
+{}
+
+InferenceStore::AbstractProofPrinter::~AbstractProofPrinter() = default;
+
+const Inferences::InferenceReplayInformation* InferenceStore::AbstractProofPrinter::replayInference(Unit* unit)
+{
+  if (!env.options->replay() || !unit->isClause()) { return nullptr; }
+  switch (unit->inference().rule()) {
+  case InferenceRule::RESOLUTION:
+  case InferenceRule::CONSTRAINED_RESOLUTION:
+  case InferenceRule::SUPERPOSITION:
+  case InferenceRule::CONSTRAINED_SUPERPOSITION:
+  case InferenceRule::FACTORING:
+  case InferenceRule::FORWARD_DEMODULATION:
+    break;
+  default:
+    return nullptr;
+  }
+  if (!_replayer) {
+    if (!_is->ordering) { return nullptr; }
+    _replayer = std::make_unique<Shell::InferenceReplayer>();
+    _replayer->makeInferenceEngine(_is->ordering);
+  }
+  return _replayer->replayInference(unit);
+}
+
 bool InferenceStore::AbstractProofPrinter::CompareUnits::operator()(Unit* left, Unit* right) const
 {
   return left->number() < right->number();
@@ -142,6 +171,7 @@ struct InferenceStore::ProofPrinter : public InferenceStore::AbstractSATProofPri
 protected:
   void printStep(Unit* cs) override
   {
+    replayInference(cs);
     if (cs->isClause()) {
       Clause* cl=cs->asClause();
       out << cl->toString() << "\n";
@@ -175,7 +205,7 @@ protected:
         first=false;
       }
 
-      if(env.options->proofExtra() == Options::ProofExtra::FULL) {
+      if(env.options->proofExtra() == Options::ProofExtra::FULL || env.options->replay()) {
         auto *extra = env.proofExtra.find(cs);
         if(extra)
           out

@@ -16,35 +16,81 @@
  */
 
 #include "ProofExtra.hpp"
+#include "Kernel/Clause.hpp"
 
 namespace Inferences {
 
-void LiteralInferenceExtra::output(std::ostream &out) const {
-  out << "selected=(" << selectedLiteral->toString() << ')';
+void ReplayableInferenceExtra::outputReplay(std::ostream& out) const {
+  if (replay) { out << ','; replay->output(out); }
 }
 
-void TwoLiteralInferenceExtra::output(std::ostream &out) const {
+void LiteralPairInformation::output(std::ostream& out) const {
+  main.output(out);
+  out << ',';
+  other.output(out);
+}
+
+void RewriteInformation::output(std::ostream& out) const {
+  target.output(out);
+  out << ',';
+  lhs.output(out);
+}
+
+void LiteralInferenceExtra::output(std::ostream& out) const {
   selectedLiteral.output(out);
-  out << ",other=(" << otherLiteral->toString() << ')';
-  if (synthesisExtra.condition) {
-    out << ",condition=(" << synthesisExtra.condition->toString() << ")";
-  }
-  if (synthesisExtra.thenLit) {
-    out << ",thenLit=(" << synthesisExtra.thenLit->toString() << "," << synthesisExtra.thenLit << ")";
-  }
-  if (synthesisExtra.elseLit) {
-    out << ",elseLit=(" << synthesisExtra.elseLit->toString() << "," << synthesisExtra.elseLit << ")";
-  }
+  outputReplay(out);
 }
 
-void RewriteInferenceExtra::output(std::ostream &out) const {
-  out << "lhs=" << lhs << ",target=" << rewritten;
+void TwoLiteralInferenceExtra::output(std::ostream& out) const {
+  literals.output(out);
+  if (synthesisExtra) { out << ','; synthesisExtra->output(out); }
+  outputReplay(out);
 }
 
-void TwoLiteralRewriteInferenceExtra::output(std::ostream &out) const {
-  selected.output(out);
+void RewriteInferenceExtra::output(std::ostream& out) const {
+  rewrite.output(out);
+  outputReplay(out);
+}
+
+void TwoLiteralRewriteInferenceExtra::output(std::ostream& out) const {
+  literals.output(out);
   out << ',';
   rewrite.output(out);
+  if (synthesisExtra) { out << ','; synthesisExtra->output(out); }
+  outputReplay(out);
+}
+
+void InferenceReplayInformation::output(std::ostream& out) const {
+  out << "conclusion=" << conclusion->number() << ",parents=[";
+  for (unsigned bank = 0; bank < premises.size(); ++bank) {
+    if (bank) { out << ','; }
+    out << premises[bank]->number() << ':' << substitutionForBanksSub[bank];
+  }
+  out << ']';
+  if (constraints) { out << ','; constraints->output(out); }
+}
+
+void SynthesisInferenceExtra::output(std::ostream& out) const {
+  if (condition) {
+    out << "condition=(" << condition->toString() << ')';
+  }
+  if (thenLit) {
+    if (condition) { out << ','; }
+    out << "thenLit=(" << thenLit->toString() << ',' << thenLit << ')';
+  }
+  if (elseLit) {
+    if (condition || thenLit) { out << ','; }
+    out << "elseLit=(" << elseLit->toString() << ',' << elseLit << ')';
+  }
+}
+
+void ConstraintInformation::output(std::ostream& out) const {
+  out << "constraints=[";
+  for (unsigned i = 0; i < literals.size(); ++i) {
+    if (i) { out << ','; }
+    out << *literals[i];
+  }
+  out << ']';
 }
 
 } // namespace Inferences
