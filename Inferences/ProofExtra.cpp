@@ -20,6 +20,46 @@
 
 namespace Inferences {
 
+void ReplayableInferenceExtra::outputReplay(std::ostream& out) const {
+  if (replay) { out << ','; replay->output(out); }
+}
+
+void LiteralPairInformation::output(std::ostream& out) const {
+  main.output(out);
+  out << ',';
+  other.output(out);
+}
+
+void RewriteInformation::output(std::ostream& out) const {
+  target.output(out);
+  out << ',';
+  lhs.output(out);
+}
+
+void LiteralInferenceExtra::output(std::ostream& out) const {
+  selectedLiteral.output(out);
+  outputReplay(out);
+}
+
+void TwoLiteralInferenceExtra::output(std::ostream& out) const {
+  literals.output(out);
+  if (!synthesisExtra.empty()) { out << ','; synthesisExtra.output(out); }
+  outputReplay(out);
+}
+
+void RewriteInferenceExtra::output(std::ostream& out) const {
+  rewrite.output(out);
+  outputReplay(out);
+}
+
+void TwoLiteralRewriteInferenceExtra::output(std::ostream& out) const {
+  literals.output(out);
+  out << ',';
+  rewrite.output(out);
+  if (!synthesisExtra.empty()) { out << ','; synthesisExtra.output(out); }
+  outputReplay(out);
+}
+
 void InferenceReplayInformation::output(std::ostream& out) const {
   out << "conclusion=" << conclusion->number() << ",parents=[";
   for (unsigned bank = 0; bank < premises.size(); ++bank) {
@@ -27,6 +67,7 @@ void InferenceReplayInformation::output(std::ostream& out) const {
     out << premises[bank]->number() << ':' << substitutionForBanksSub[bank];
   }
   out << ']';
+  if (constraints) { out << ','; constraints->output(out); }
 }
 
 void SynthesisInferenceExtra::output(std::ostream& out) const {

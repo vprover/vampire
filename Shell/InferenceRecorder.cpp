@@ -111,18 +111,16 @@ void InferenceRecorder::superposition(Clause* conclusion, Clause* main,
   Substitution renaming;
   auto info = record(conclusion, {main, equality}, substitutions, &renaming);
   if (!info) { return; }
-  using Extra = Inferences::CompositeInferenceExtra<
-      Inferences::LiteralRewriteExtra,
-      InferenceInformation, ConstraintInformation>;
-  const auto mainPosition = literalPosition(main, rewrittenLiteral);
-  const auto equalityPosition = literalPosition(equality, equalityLiteral);
-  auto extra = std::make_unique<Extra>(
-      Inferences::LiteralRewriteExtra(
-          Inferences::twoLiteralExtra(rewrittenLiteral, equalityLiteral, mainPosition, equalityPosition),
-          Inferences::rewriteExtra(lhs, target, equalityPosition, mainPosition)),
-      std::move(*info), ConstraintInformation{});
+  auto extra = std::make_unique<Inferences::TwoLiteralRewriteInferenceExtra>(
+      rewrittenLiteral, equalityLiteral, lhs, target);
+  extra->literals.main.position = literalPosition(main, rewrittenLiteral);
+  extra->literals.other.position = literalPosition(equality, equalityLiteral);
+  extra->rewrite.lhs.position = extra->literals.other.position;
+  extra->rewrite.target.position = extra->literals.main.position;
   ASS_LE(constraintCount, conclusion->length());
-  recordConstraints(conclusion, extra->get<ConstraintInformation>(), renaming, conclusion->length() - constraintCount, constraintCount);
+  recordConstraints(conclusion, info->constraints.emplace(), renaming,
+                    conclusion->length() - constraintCount, constraintCount);
+  extra->replay = std::make_unique<InferenceInformation>(std::move(*info));
   _information = std::move(extra);
 }
 
@@ -134,14 +132,11 @@ void InferenceRecorder::resolution(Clause* conclusion, Clause* left, Clause* rig
   auto info = record(conclusion, {left, right},
       substitutions, &renaming);
   if (!info) { return; }
-  using Extra = Inferences::CompositeInferenceExtra<
-      Inferences::TwoLiteralInferenceExtra, InferenceInformation, ConstraintInformation>;
-  auto extra = std::make_unique<Extra>(
-      Inferences::twoLiteralExtra(resolvedLeft, resolvedRight,
-          literalPosition(left, resolvedLeft),
-          literalPosition(right, resolvedRight)),
-      std::move(*info), ConstraintInformation{});
-  recordConstraints(conclusion, extra->get<ConstraintInformation>(), renaming, 0, constraintCount);
+  auto extra = std::make_unique<Inferences::TwoLiteralInferenceExtra>(resolvedLeft, resolvedRight);
+  extra->literals.main.position = literalPosition(left, resolvedLeft);
+  extra->literals.other.position = literalPosition(right, resolvedRight);
+  recordConstraints(conclusion, info->constraints.emplace(), renaming, 0, constraintCount);
+  extra->replay = std::make_unique<InferenceInformation>(std::move(*info));
   _information = std::move(extra);
 }
 
@@ -160,13 +155,10 @@ void InferenceRecorder::factoring(Clause* conclusion, Clause* premise,
 {
   auto info = record(conclusion, {premise}, substitutions);
   if (info) {
-    using Extra = Inferences::CompositeInferenceExtra<
-        Inferences::TwoLiteralInferenceExtra, InferenceInformation>;
-    auto extra = std::make_unique<Extra>(
-        Inferences::twoLiteralExtra(selectedLiteral, removedLiteral,
-            literalPosition(premise, selectedLiteral),
-            literalPosition(premise, removedLiteral)),
-        std::move(*info));
+    auto extra = std::make_unique<Inferences::TwoLiteralInferenceExtra>(selectedLiteral, removedLiteral);
+    extra->literals.main.position = literalPosition(premise, selectedLiteral);
+    extra->literals.other.position = literalPosition(premise, removedLiteral);
+    extra->replay = std::make_unique<InferenceInformation>(std::move(*info));
     _information = std::move(extra);
   }
 }
@@ -177,12 +169,10 @@ void InferenceRecorder::forwardDemodulation(Clause* conclusion, Clause* premise,
 {
   auto info = record(conclusion, {premise, equality}, substitutions);
   if (info) {
-    using Extra = Inferences::CompositeInferenceExtra<
-        Inferences::RewriteInferenceExtra, InferenceInformation>;
-    auto extra = std::make_unique<Extra>(
-        Inferences::rewriteExtra(lhs, target, 0,
-            literalPosition(premise, rewrittenLiteral)),
-        std::move(*info));
+    auto extra = std::make_unique<Inferences::RewriteInferenceExtra>(lhs, target);
+    extra->rewrite.lhs.position = 0;
+    extra->rewrite.target.position = literalPosition(premise, rewrittenLiteral);
+    extra->replay = std::make_unique<InferenceInformation>(std::move(*info));
     _information = std::move(extra);
   }
 }

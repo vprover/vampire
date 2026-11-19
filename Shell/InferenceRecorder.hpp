@@ -74,7 +74,7 @@ public:
   explicit InferenceRecorder(Kernel::Clause* goal);
 
   const Inferences::InferenceReplayInformation* information() const
-  { return _information ? _information->findComponent<Inferences::InferenceReplayInformation>() : nullptr; }
+  { return _information ? _information->replayInformation() : nullptr; }
   std::unique_ptr<Lib::InferenceExtra> takeInformation()
   { return std::move(_information); }
 

@@ -18,10 +18,8 @@
 #ifndef __Inferences_ProofExtra__
 #define __Inferences_ProofExtra__
 
+#include <memory>
 #include <optional>
-#include <tuple>
-#include <type_traits>
-#include <utility>
 #include <vector>
 
 #include "Kernel/Substitution.hpp"
@@ -30,163 +28,144 @@
 
 namespace Inferences {
 
+/** Abstraction constraints in goal variables, in recorded order. */
+struct ConstraintInformation {
+  std::vector<Kernel::Literal*> literals;
+  void output(std::ostream& out) const;
+};
+
+/** Proof clauses and substitutions, ordered by parent bank.
+ * Repeated parents have separate banks. Maps translate parent variables into
+ * the goal's namespace, freshening variables absent from the conclusion. */
+struct InferenceReplayInformation {
+  Kernel::Clause* conclusion;
+  std::vector<Kernel::Clause*> premises;
+  std::vector<Kernel::Substitution> substitutionForBanksSub;
+  std::optional<ConstraintInformation> constraints;
+
+  void output(std::ostream& out) const;
+};
+
+/** Search extras acquire replay metadata when the recorded step is replayed. */
+struct ReplayableInferenceExtra : InferenceExtra {
+  std::unique_ptr<InferenceReplayInformation> replay;
+
+  const InferenceReplayInformation* replayInformation() const override {
+    return replay.get();
+  }
+
+protected:
+  void outputReplay(std::ostream& out) const;
+};
+
 /** Main uses bank 0; Other uses bank 1, or bank 0 for unary inferences. */
 enum class ReferenceTag { Main, Other };
 
-/** Borrowed literal with an optional replay literal index.
- * Main/Other denote retained/removed literals in factoring, rewritten/equality
- * literals in superposition, and left/right resolved literals in resolution. */
+/** Parent literal with an optional zero-based index in its clause. */
 template<ReferenceTag Tag>
-struct LiteralReferenceInferenceExtra : public InferenceExtra {
-  explicit LiteralReferenceInferenceExtra(Kernel::Literal* reference,
+struct LiteralReference {
+  explicit LiteralReference(Kernel::Literal* reference,
       std::optional<unsigned> position = std::nullopt)
     : reference(reference), position(position) {}
 
   Kernel::Literal* literal() const { return reference; }
-  void output(std::ostream& out) const override {
+  void output(std::ostream& out) const {
     out << (Tag == ReferenceTag::Main ? "main" : "other")
         << "=(" << reference->toString() << ')';
-    if (position) {
-      out << '@' << *position;
-    }
+    if (position) { out << '@' << *position; }
   }
 
-  Kernel::Literal* reference; ///< Borrowed parent literal.
-  std::optional<unsigned> position; ///< Zero-based literal index, if replayed.
+  Kernel::Literal* reference;
+  std::optional<unsigned> position;
 };
 
-/** Borrowed term in its original parent variables, with an optional source-literal index.
- * Main is the target; Other is the equality LHS. */
+/** Parent term with an optional index of its containing literal.
+ * Main is the rewrite target; Other is the equality LHS. */
 template<ReferenceTag Tag>
-struct TermReferenceInferenceExtra : public InferenceExtra {
-  explicit TermReferenceInferenceExtra(Kernel::TermList reference,
+struct TermListReference {
+  explicit TermListReference(Kernel::TermList reference,
       std::optional<unsigned> position = std::nullopt)
     : reference(reference), position(position) {}
 
   Kernel::TermList term() const { return reference; }
-  void output(std::ostream& out) const override {
+  void output(std::ostream& out) const {
     out << (Tag == ReferenceTag::Main ? "main" : "other") << "=(" << reference << ')';
-    if (position) {
-      out << '@' << *position;
-    }
+    if (position) { out << '@' << *position; }
   }
 
-  Kernel::TermList reference; ///< Borrowed term handle.
-  std::optional<unsigned> position; ///< Zero-based containing-literal index, if replayed.
+  Kernel::TermList reference;
+  std::optional<unsigned> position;
 };
 
-/** Main selected literal. */
-using LiteralInferenceExtra = LiteralReferenceInferenceExtra<ReferenceTag::Main>;
-/** Side or removed literal. */
-using OtherLiteralInferenceExtra = LiteralReferenceInferenceExtra<ReferenceTag::Other>;
-/** Equality side used as the rewrite source. */
-using RewriteLhsInferenceExtra = TermReferenceInferenceExtra<ReferenceTag::Other>;
-/** Rewrite target; equality factoring uses the other equality's RHS. */
-using RewriteTargetInferenceExtra = TermReferenceInferenceExtra<ReferenceTag::Main>;
+/** Main/other denote retained/removed literals in factoring, rewritten/equality
+ * literals in superposition, and left/right resolved literals in resolution. */
+struct LiteralPairInformation {
+  LiteralPairInformation(Kernel::Literal* main, Kernel::Literal* other)
+    : main(main), other(other) {}
 
-/** Borrowed condition and answer literals for synthesis's if-then-else answer. */
-struct SynthesisInferenceExtra : public InferenceExtra {
-  SynthesisInferenceExtra(Kernel::Literal* condition, Kernel::Literal* thenLit, Kernel::Literal* elseLit)
-    : condition(condition), thenLit(thenLit), elseLit(elseLit) {}
+  LiteralReference<ReferenceTag::Main> main;
+  LiteralReference<ReferenceTag::Other> other;
+  void output(std::ostream& out) const;
+};
 
+/** Rewrite operands retain their original parent variables. */
+struct RewriteInformation {
+  RewriteInformation(Kernel::TermList lhs, Kernel::TermList target)
+    : target(target),lhs(lhs) {}
+
+  TermListReference<ReferenceTag::Main> target;
+  TermListReference<ReferenceTag::Other> lhs;
+  void output(std::ostream& out) const;
+};
+
+/** Condition and answer literals for synthesis's if-then-else answer. */
+struct SynthesisInferenceExtra {
+  Kernel::Literal* condition = nullptr;
+  Kernel::Literal* thenLit = nullptr;
+  Kernel::Literal* elseLit = nullptr;
+
+  bool empty() const { return !condition && !thenLit && !elseLit; }
+  void output(std::ostream& out) const;
+};
+
+struct LiteralInferenceExtra : ReplayableInferenceExtra {
+  explicit LiteralInferenceExtra(Kernel::Literal* selected) : selectedLiteral(selected) {}
+
+  LiteralReference<ReferenceTag::Main> selectedLiteral;
   void output(std::ostream& out) const override;
-  Kernel::Literal* condition; ///< Branch condition.
-  Kernel::Literal* thenLit; ///< Answer when condition holds.
-  Kernel::Literal* elseLit; ///< Answer otherwise.
 };
 
-// Composition and factories.
+struct TwoLiteralInferenceExtra : ReplayableInferenceExtra {
+  TwoLiteralInferenceExtra(Kernel::Literal* main, Kernel::Literal* other,
+      Kernel::Literal* condition = nullptr, Kernel::Literal* thenLit = nullptr,
+      Kernel::Literal* elseLit = nullptr)
+    : literals(main, other), synthesisExtra{condition, thenLit, elseLit} {}
 
-/** Own components by value; each provides output(std::ostream&).
- * Runtime type lookup descends into nested InferenceExtra components.
- * Use unique component types: lookup returns the first match. */
-template<class... Parts>
-class CompositeInferenceExtra : public InferenceExtra {
-public:
-  explicit CompositeInferenceExtra(Parts... parts) : _parts(std::move(parts)...) {}
-
-  using InferenceExtra::findComponent;
-
-  template<class Part> Part& get() {
-    return const_cast<Part&>(std::as_const(*this).template get<Part>());
-  }
-  template<class Part> const Part& get() const {
-    auto* part = InferenceExtra::findComponent<Part>();
-    ASS(part);
-    return *part;
-  }
-
-  const void* findComponent(const void* type) const override {
-    if (type == Lib::inferenceExtraType<CompositeInferenceExtra>()) { return this; }
-    const void* found = nullptr;
-    auto findPart = [&](const auto& part) {
-      if (found) { return; }
-      using Part = std::decay_t<decltype(part)>;
-      if (type == Lib::inferenceExtraType<Part>()) { found = &part; }
-      else if constexpr (std::is_base_of_v<InferenceExtra, Part>) {
-        found = part.findComponent(type);
-      }
-    };
-    std::apply([&](const auto&... parts) { (findPart(parts), ...); }, _parts);
-    return found;
-  }
-
-  void output(std::ostream& out) const override {
-    bool first = true;
-    auto outputPart = [&](const auto& part) {
-      if (!first) { out << ','; }
-      first = false;
-      part.output(out);
-    };
-    std::apply([&](const auto&... parts) { (outputPart(parts), ...); }, _parts);
-  }
-
-private:
-  std::tuple<Parts...> _parts; ///< Owned parts, in output order.
+  LiteralPairInformation literals;
+  SynthesisInferenceExtra synthesisExtra;
+  void output(std::ostream& out) const override;
 };
 
-/** Main and Other selected literals. */
-using TwoLiteralInferenceExtra = CompositeInferenceExtra<LiteralInferenceExtra, OtherLiteralInferenceExtra>;
-/** Target and equality LHS in Main/Other order, with optional source positions. */
-using RewriteInferenceExtra = CompositeInferenceExtra<RewriteTargetInferenceExtra, RewriteLhsInferenceExtra>;
-/** Selected literals and rewrite operands. */
-using LiteralRewriteExtra = CompositeInferenceExtra<TwoLiteralInferenceExtra, RewriteInferenceExtra>;
+struct RewriteInferenceExtra : ReplayableInferenceExtra {
+  RewriteInferenceExtra(Kernel::TermList lhs, Kernel::TermList target)
+    : rewrite(lhs, target) {}
 
-/** Build a Main/Other literal pair with optional source positions. */
-inline TwoLiteralInferenceExtra twoLiteralExtra(Kernel::Literal* main, Kernel::Literal* other,
-    std::optional<unsigned> mainPosition = std::nullopt,
-    std::optional<unsigned> otherPosition = std::nullopt)
-{
-  return TwoLiteralInferenceExtra(LiteralInferenceExtra(main, mainPosition),
-      OtherLiteralInferenceExtra(other, otherPosition));
-}
-
-/** Build lhs/target operands; positions locate their respective source literals. */
-inline RewriteInferenceExtra rewriteExtra(Kernel::TermList lhs, Kernel::TermList target,
-    std::optional<unsigned> equality = std::nullopt,
-    std::optional<unsigned> rewrittenLiteral = std::nullopt)
-{
-  return RewriteInferenceExtra(RewriteTargetInferenceExtra(target, rewrittenLiteral),
-      RewriteLhsInferenceExtra(lhs, equality));
-}
-
-// Replay metadata and rule-specific details.
-
-/** Borrowed proof clauses and owned substitutions, ordered by parent bank.
- * Repeated parents have separate banks. Maps translate parent variables into
- * the goal's namespace, freshening variables absent from the conclusion. */
-struct InferenceReplayInformation {
-  Kernel::Clause* conclusion; ///< Original proof goal.
-  std::vector<Kernel::Clause*> premises; ///< Parents in bank order.
-  std::vector<Kernel::Substitution> substitutionForBanksSub; ///< Owned map for each parent bank.
-
-  void output(std::ostream& out) const;
+  RewriteInformation rewrite;
+  void output(std::ostream& out) const override;
 };
 
-/** Borrowed abstraction constraints in goal variables; empty if none were produced. */
-struct ConstraintInformation {
-  std::vector<Kernel::Literal*> literals; ///< Constraints in recorded order.
-  void output(std::ostream& out) const;
+struct TwoLiteralRewriteInferenceExtra : ReplayableInferenceExtra {
+  TwoLiteralRewriteInferenceExtra(Kernel::Literal* main, Kernel::Literal* other,
+      Kernel::TermList lhs, Kernel::TermList target,
+      Kernel::Literal* condition = nullptr, Kernel::Literal* thenLit = nullptr,
+      Kernel::Literal* elseLit = nullptr)
+    : literals(main, other), rewrite(lhs, target),
+      synthesisExtra{condition, thenLit, elseLit} {}
+
+  LiteralPairInformation literals;
+  RewriteInformation rewrite;
+  SynthesisInferenceExtra synthesisExtra;
+  void output(std::ostream& out) const override;
 };
 
 }

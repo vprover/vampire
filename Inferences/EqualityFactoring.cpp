@@ -92,7 +92,7 @@ Clause* unifierToClause(Clause* cl, TermList srt, Literal* sLit, TermList sLHS, 
   auto res = Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::EQUALITY_FACTORING, cl));
   if(env.options->proofExtra() == Options::ProofExtra::FULL)
     env.proofExtra.insert(res, new EqualityFactoringExtra(
-        twoLiteralExtra(sLit, fLit), rewriteExtra(sLHS, fRHS)));
+        sLit, fLit, sLHS, fRHS));
   return res;
 }
 

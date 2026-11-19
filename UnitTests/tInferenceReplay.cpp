@@ -109,15 +109,13 @@ TEST_FUN(replay_preserves_environment_and_parent_state)
       for (unsigned i = 0; i < 2; ++i) {
         auto info = replayer->replayInference(goal);
         ASS(info);
-        ASS_EQ(env.proofExtra.find(goal)->findComponent<Inferences::InferenceReplayInformation>(), info);
+        ASS_EQ(env.proofExtra.find(goal)->replayInformation(), info);
         ASS_EQ(info->conclusion, goal);
-        ASS_EQ(&env.proofExtra.get<InferenceReplayInformation>(goal), info);
-        ASS(!env.proofExtra.find(goal)->findComponent<Inferences::RewriteInferenceExtra>());
         const auto& extra = env.proofExtra.get<Inferences::TwoLiteralInferenceExtra>(goal);
-        ASS_EQ(extra.get<Inferences::LiteralInferenceExtra>().literal(), (*left)[0]);
-        ASS_EQ(extra.get<Inferences::OtherLiteralInferenceExtra>().literal(), (*left)[1]);
-        const auto& kept = extra.get<Inferences::LiteralInferenceExtra>().position;
-        const auto& removed = extra.get<Inferences::OtherLiteralInferenceExtra>().position;
+        ASS_EQ(extra.literals.main.literal(), (*left)[0]);
+        ASS_EQ(extra.literals.other.literal(), (*left)[1]);
+        const auto& kept = extra.literals.main.position;
+        const auto& removed = extra.literals.other.position;
         ASS(kept);
         ASS(removed);
         ASS_EQ(*kept, 0);
@@ -154,16 +152,17 @@ TEST_FUN(constrained_resolution_records_substitutions_and_constraints)
     auto info = replayer->replayInference(goal);
     ASS(info);
     const auto& extra = env.proofExtra.get<Inferences::TwoLiteralInferenceExtra>(goal);
-    const auto& constraints = env.proofExtra.get<Inferences::ConstraintInformation>(goal);
-    ASS_EQ(extra.get<Inferences::LiteralInferenceExtra>().literal(), (*left)[0]);
-    ASS_EQ(extra.get<Inferences::OtherLiteralInferenceExtra>().literal(), (*right)[0]);
+    ASS(info->constraints);
+    const auto& constraints = *info->constraints;
+    ASS_EQ(extra.literals.main.literal(), (*left)[0]);
+    ASS_EQ(extra.literals.other.literal(), (*right)[0]);
     ASS_EQ(constraints.literals.size(), 1);
     ASS_EQ(constraints.literals[0], (*goal)[1]);
     ASS_EQ(info->substitutionForBanksSub[0].apply(0), u);
     ASS_EQ(info->substitutionForBanksSub[1].apply(1), v);
     ASS_EQ(info->premises.size(), 2);
-    const auto& leftPosition = extra.get<Inferences::LiteralInferenceExtra>().position;
-    const auto& rightPosition = extra.get<Inferences::OtherLiteralInferenceExtra>().position;
+    const auto& leftPosition = extra.literals.main.position;
+    const auto& rightPosition = extra.literals.other.position;
     ASS(leftPosition);
     ASS(rightPosition);
     ASS_EQ(*leftPosition, 0);
@@ -212,28 +211,26 @@ static void replayRewriteWithIndependentParentBanks(InferenceRule rule, bool rev
     ASS_EQ(info->substitutionForBanksSub.size(), 2);
     ASS_EQ(info->substitutionForBanksSub[0].apply(0), renamed);
     ASS_EQ(info->substitutionForBanksSub[1].apply(1), renamed);
-    const Inferences::RewriteInferenceExtra* rewrite;
+    const Inferences::RewriteInformation* rewrite;
     if (rule == InferenceRule::SUPERPOSITION) {
       const auto& extra = env.proofExtra.get<Inferences::SuperpositionExtra>(goal);
-      const auto& literals = extra.get<Inferences::TwoLiteralInferenceExtra>();
-      const auto& rewritePart = extra.get<Inferences::RewriteInferenceExtra>();
-      ASS_EQ(literals.get<Inferences::LiteralInferenceExtra>().literal(), (*main)[0]);
-      ASS_EQ(literals.get<Inferences::OtherLiteralInferenceExtra>().literal(), (*equality)[0]);
-      ASS_EQ(rewritePart.get<Inferences::RewriteLhsInferenceExtra>().term(), TermList(f(y)));
-      ASS_EQ(rewritePart.get<Inferences::RewriteTargetInferenceExtra>().term(), TermList(f(x)));
-      ASS(env.proofExtra.get<Inferences::ConstraintInformation>(goal).literals.empty());
-      ASS_EQ(&env.proofExtra.get<Inferences::RewriteInferenceExtra>(goal), &rewritePart);
+      const auto& literals = extra.literals;
+      const auto& rewritePart = extra.rewrite;
+      ASS_EQ(literals.main.literal(), (*main)[0]);
+      ASS_EQ(literals.other.literal(), (*equality)[0]);
+      ASS_EQ(rewritePart.lhs.term(), TermList(f(y)));
+      ASS_EQ(rewritePart.target.term(), TermList(f(x)));
+      ASS(info->constraints);
+      ASS(info->constraints->literals.empty());
       rewrite = &rewritePart;
     } else {
       const auto& extra = env.proofExtra.get<Inferences::RewriteInferenceExtra>(goal);
-      ASS_EQ(extra.get<Inferences::RewriteLhsInferenceExtra>().term(), TermList(f(y)));
-      ASS_EQ(extra.get<Inferences::RewriteTargetInferenceExtra>().term(), TermList(f(x)));
-      rewrite = &extra;
+      ASS_EQ(extra.rewrite.lhs.term(), TermList(f(y)));
+      ASS_EQ(extra.rewrite.target.term(), TermList(f(x)));
+      rewrite = &extra.rewrite;
     }
-    const auto& targetPosition = rewrite->get<
-        Inferences::TermReferenceInferenceExtra<Inferences::ReferenceTag::Main>>().position;
-    const auto& equalityPosition = rewrite->get<
-        Inferences::TermReferenceInferenceExtra<Inferences::ReferenceTag::Other>>().position;
+    const auto& targetPosition = rewrite->target.position;
+    const auto& equalityPosition = rewrite->lhs.position;
     ASS(targetPosition);
     ASS(equalityPosition);
     ASS_EQ(*targetPosition, 0);
@@ -318,7 +315,7 @@ TEST_FUN(native_replay_prints_extras_with_proof_extra_off)
     std::ostringstream enabled;
     store->outputProof(enabled, goal);
     ASS(enabled.str().find("parents=[" + std::to_string(parent->number()) + ":[0 -> a]]") != std::string::npos);
-    ASS(env.proofExtra.find(goal)->findComponent<InferenceReplayInformation>());
+    ASS(env.proofExtra.find(goal)->replayInformation());
     ASS_EQ(env.options->proofExtra(), Shell::Options::ProofExtra::OFF);
 
     std::ostringstream repeated;
@@ -408,7 +405,7 @@ TEST_FUN(replay_replaces_existing_extra_only_on_success)
     auto info = replayer->replayInference(goal);
     ASS(info);
     ASS(replaced);
-    ASS_EQ(env.proofExtra.find(goal)->findComponent<Inferences::InferenceReplayInformation>(), info);
+    ASS_EQ(env.proofExtra.find(goal)->replayInformation(), info);
     ASS_EQ(info->conclusion, goal);
     ASS_EQ(info->premises[0], parent);
     ASS_EQ(info->substitutionForBanksSub[0].apply(0), TermList(a));
@@ -417,12 +414,12 @@ TEST_FUN(replay_replaces_existing_extra_only_on_success)
     // Each replay commits a fresh result even when an extra is already present.
     info = replayer->replayInference(goal);
     ASS(info);
-    ASS_EQ(env.proofExtra.find(goal)->findComponent<Inferences::InferenceReplayInformation>(), info);
+    ASS_EQ(env.proofExtra.find(goal)->replayInformation(), info);
     ASS_EQ(info->conclusion, goal);
     // A later failed attempt must preserve even a previously replayed extra.
     parent->setSelected(0);
     ASS(!replayer->replayInference(goal));
-    ASS_EQ(env.proofExtra.find(goal)->findComponent<Inferences::InferenceReplayInformation>(), info);
+    ASS_EQ(env.proofExtra.find(goal)->replayInformation(), info);
     parent->setSelected(1);
     ASS(!replayer->replayInference(unmatched));
     ASS(!unmatchedDestroyed);

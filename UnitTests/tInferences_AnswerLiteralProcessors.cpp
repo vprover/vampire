@@ -81,9 +81,7 @@ TEST_SIMPLIFY_MANY(two_answer_literals_binary_resolution,
     Literal *al2 = ~ans(a);
     Literal *cond = q(a);
     Clause* cl = clause({ p(x), al1, al2 }, Inference(Kernel::GeneratingInferenceMany(InferenceRule::RESOLUTION, UnitList::empty())));
-    env.proofExtra.insert(cl, new Inferences::CompositeInferenceExtra(
-      Inferences::twoLiteralExtra(q(a), ~q(a)),
-      Inferences::SynthesisInferenceExtra(cond, al1, al2)));
+    env.proofExtra.insert(cl, new Inferences::TwoLiteralInferenceExtra(q(a), ~q(a), cond, al1, al2));
     env.options->set("question_answering", "synthesis");
     Clause* exp1 = clause({ p(x), static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->makeITEAnswerLiteral(cond, al1, al2) });
     Clause* exp2 = clause({ p(x), f(x) != a, al1 });
@@ -97,10 +95,7 @@ TEST_SIMPLIFY_MANY(two_answer_literals_superposition,
     Literal *al2 = ~ans(a);
     Literal *cond = g(a)==f(x);
     Clause* cl = clause({ p(g(a)), al1, al2 }, Inference(Kernel::GeneratingInferenceMany(InferenceRule::SUPERPOSITION, UnitList::empty())));
-    env.proofExtra.insert(cl, new Inferences::CompositeInferenceExtra(
-      Inferences::twoLiteralExtra(p(f(x)), cond),
-      Inferences::rewriteExtra(g(a), f(x)),
-      Inferences::SynthesisInferenceExtra(cond, al1, al2)));
+    env.proofExtra.insert(cl, new Inferences::TwoLiteralRewriteInferenceExtra(p(f(x)), cond, g(a), f(x), cond, al1, al2));
     env.options->set("question_answering", "synthesis");
     Clause* exp1 = clause({ p(g(a)), static_cast<Shell::SynthesisALManager*>(Shell::SynthesisALManager::getInstance())->makeITEAnswerLiteral(cond, al1, al2) });
     Clause* exp2 = clause({ p(g(a)), f(x) != a, al1 });
@@ -114,9 +109,7 @@ TEST_SIMPLIFY_MANY(twice_the_same_answer_literal_binary_resolution,
     Literal *al2 = ~ans(f(x));
     Literal *cond = q(a);
     Clause* cl = clause({ p(x), al1, al2 }, Inference(Kernel::GeneratingInferenceMany(InferenceRule::RESOLUTION, UnitList::empty())));
-    env.proofExtra.insert(cl, new Inferences::CompositeInferenceExtra(
-      Inferences::twoLiteralExtra(q(a), ~q(a)),
-      Inferences::SynthesisInferenceExtra(cond, al1, al2)));
+    env.proofExtra.insert(cl, new Inferences::TwoLiteralInferenceExtra(q(a), ~q(a), cond, al1, al2));
     Simplification::SuccessMany()
       .input(cl)
       .expected({ clause({ p(x), al1 }) })

@@ -19,28 +19,17 @@
 #define __Lib_ProofExtra__
 
 #include "Lib/DHMap.hpp"
-#include <type_traits>
+
+namespace Inferences { struct InferenceReplayInformation; }
 
 namespace Lib {
 
-/** Process-local type identity for lookup without RTTI. */
-template<class T> const void* inferenceExtraType() {
-  static char identity;
-  return &identity;
-}
-
-/** Owned proof-extra payload with debug output and optional component lookup.
- * Referenced proof objects are borrowed. */
+/** Owned proof-extra payload with debug output and optional replay metadata. */
 struct InferenceExtra {
   virtual ~InferenceExtra() {};
 
-  /** Find a nested component or composite by type; return a borrowed pointer or nullptr. */
-  virtual const void* findComponent(const void*) const { return nullptr; }
-
-  /** Typed lookup; the result shares the payload's lifetime. */
-  template<class T> const T* findComponent() const {
-    return static_cast<const T*>(findComponent(inferenceExtraType<T>()));
-  }
+  /** Replay metadata, if this payload has been replayed. */
+  virtual const Inferences::InferenceReplayInformation* replayInformation() const { return nullptr; }
 
   // for debug printing only, specific output formats should downcast and handle individually
   virtual void output(std::ostream &out) const = 0;
@@ -58,7 +47,7 @@ inline std::ostream &operator<<(std::ostream &out, const InferenceExtra &extra) 
 }
 
 /** Own extras by proof unit. insert() requires an unused key; replace() discards
- * the old payload. get<T>() requires a matching component or compatible root. */
+ * the old payload. get<T>() requires a compatible payload type. */
 class ProofExtra {
   DHMap<Kernel::Unit *, std::unique_ptr<InferenceExtra>, UnitHash, UnitNumberHash> extras;
 
@@ -92,12 +81,7 @@ public:
   T &get(Kernel::Unit *unit) {
     auto &found = extras.get(unit);
     ASS(found)
-    auto* component = found->findComponent<T>();
-    if constexpr (std::is_base_of_v<InferenceExtra, T>) {
-      if (!component) { return static_cast<T &>(*found); }
-    }
-    ASS(component);
-    return *const_cast<T*>(component);
+    return static_cast<T&>(*found);
   }
 };
 }

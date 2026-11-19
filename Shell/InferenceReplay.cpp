@@ -138,7 +138,7 @@ const InferenceReplayInformation* InferenceReplayer::replayInference(Unit* goal)
   }
   auto info = recorder.takeInformation();
   if (!info) { return nullptr; }
-  auto result = info->findComponent<Inferences::InferenceReplayInformation>();
+  auto result = info->replayInformation();
   ASS(result);
   env.proofExtra.replace(goal, std::move(info));
   return result;
