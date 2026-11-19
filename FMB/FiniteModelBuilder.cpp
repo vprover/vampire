@@ -64,15 +64,6 @@ namespace FMB
 
 using namespace std;
 
-// Does distinct sort ds stand for $o and nothing else? $o is then a sort of exactly two
-// elements, $true and $false. Merged with other sorts (-fmbas predicate / function) the
-// position is theirs as well, and its size is not determined by $o.
-static bool standsForBoolAlone(const SortedSignature* sig, unsigned ds)
-{
-  Stack<unsigned>* vs = sig->distinctToVampire.get(ds);
-  return vs->size() == 1 && env.signature->isBoolCon((*vs)[0]);
-}
-
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0), _clauses(0),
                       _isAppropriate(true)
@@ -607,11 +598,15 @@ void FiniteModelBuilder::init()
       if(epr){
         unsigned c = dConstants[s];
         if(c==0) continue; //size of 0 does not make sense... maybe we should set it to 1 here? TODO
-        // TODO not sure about this second condition, if c < current max what would happen?
-        // why are we looking for the 'biggest' max?
-        if(_distinctSortMaxs[s]==UINT_MAX || c > _distinctSortMaxs[s]){
-          _distinctSortMaxs[s]=c;
-        }
+        // A sort nothing maps into needs no more elements than it has constants. That is a
+        // bound like the one already in place (from the subsorts' sortBounds, e.g. a clause
+        // X = t_1 | ... | X = t_n), so the tighter of the two wins. Raising the maximum above
+        // the subsorts' bounds would be worse than useless: grounding caps every variable of a
+        // subsort at its bound, so the elements beyond it occur in no clause, and the model is
+        // then reported with elements its own clauses never constrained (PUZ134_20 with
+        // -fmbss 6: knowheyan bounded to 5 by its domain-closure axiom, raised to 6 by its
+        // 6 constants, and a "model" with a sixth knowheyan none of a..e denotes).
+        _distinctSortMaxs[s] = min(_distinctSortMaxs[s],c);
       }
     }
 
@@ -649,18 +644,6 @@ void FiniteModelBuilder::init()
 #if VTRACE_FMB
         cout << "Setting min for " << env.signature->typeConName(s) << " to " << max << endl;
 #endif
-      }
-    }
-
-    // $o has exactly two elements, but nothing above knows that much: its minimum comes from
-    // $true != $false, and its maximum from the EPR rule, i.e. from however many $o constants
-    // there are -- FOOL elimination's names for formulas in term position among them
-    // (PUZ152_1 got 5). Neither is wrong, but the loose maximum let a start size above 2
-    // try, and find, a "model" with three booleans, which the model printing then rejects.
-    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
-      if(standsForBoolAlone(_sortedSignature,s)){
-        _distinctSortMins[s] = 2;
-        _distinctSortMaxs[s] = 2;
       }
     }
 
@@ -2325,7 +2308,7 @@ bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<uns
 
       // between the size it starts from -- fmb_start_size as the detected bounds have
       // adjusted it, so at least the minimum -- and the detected maximum, as the other
-      // enumerators stay; that is what pins $o to its two elements here, too.
+      // enumerators stay; that is what keeps $o at its two elements here, too.
       // The bounds can disagree: under -fmbas expand every subsort of a vampire sort inherits
       // the sort's minimum (from its distinct constants), while the maximum of a subsort with
       // few constants can be smaller (NLP187-1: minimum 4, maximum 1). The other enumerators

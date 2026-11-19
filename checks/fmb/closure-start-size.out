@@ -1,0 +1,35 @@
+% Sorts in the size vectors: [k]
+% Detected minimum model sizes of [3]
+% Detected maximum model sizes of [3]
+% TRYING [3]
+% Finite Model Found!
+% SZS status Satisfiable for closure-start-size
+% FMB model self-check passed (4 units checked)
+% SZS output start FiniteModel for closure-start-size
+tff(declare_k,type,k:$tType).
+tff(declare_k1,type,fmb_k_1:k).
+tff(declare_k2,type,fmb_k_2:k).
+tff(declare_k3,type,fmb_k_3:k).
+tff(finite_domain_k,axiom,
+      ! [X:k] : (
+         (X = fmb_k_1) | (X = fmb_k_2) | (X = fmb_k_3)
+      ) ).
+
+tff(distinct_domain_k,axiom,
+         fmb_k_1 != fmb_k_2 & fmb_k_1 != fmb_k_3 & fmb_k_2 != fmb_k_3
+).
+
+tff(declare_a,type,a : k).
+tff(a_definition,axiom,a = fmb_k_1).
+tff(declare_b,type,b : k).
+tff(b_definition,axiom,b = fmb_k_2).
+tff(declare_c,type,c : k).
+tff(c_definition,axiom,c = fmb_k_3).
+tff(declare_p,type,p: ( k ) > $o ).
+tff(predicate_p,axiom,
+           ~p(fmb_k_1)
+         & p(fmb_k_2)
+         & p(fmb_k_3)
+).
+
+% SZS output end FiniteModel for closure-start-size

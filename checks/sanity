@@ -516,6 +516,11 @@ check_exact_output fmb/domainless-sort.check.out --input_syntax tptp --mode mode
 check_exact_output fmb/bool-start-size.out --input_syntax tptp --statistics none -sa fmb -fmbss 3 fmb/bool-start-size.p
 check_szs_status Satisfiable -sa fmb -fmbss 16 fmb/bool.p
 
+# FMB: a sort bound by a domain-closure axiom must not be raised by the EPR rule's constant
+# count (see fmb/closure-start-size.p). Exact output, because the defect was a model the
+# self-check rejected, reported after the SZS status line
+check_exact_output fmb/closure-start-size.out --input_syntax tptp --statistics none -sa fmb -fmbss 4 fmb/closure-start-size.p
+
 
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2
