@@ -32,12 +32,11 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 message(STATUS "CMAKE_BUILD_TYPE: " ${CMAKE_BUILD_TYPE} " (options: Release (default), Debug, RelWithDebInfo)")
 
-option(BUILD_SHARED_LIBS "build Vampire with dynamic linking" ON)
-if (NOT BUILD_SHARED_LIBS)
-  set(CMAKE_FIND_LIBRARY_SUFFIXES .a)
-  set(CMAKE_EXE_LINKER_FLAGS -static)
+option(STATIC "link Vampire statically (Linux only)" OFF)
+if(STATIC)
+  add_link_options(-static)
 endif()
-message(STATUS "BUILD_SHARED_LIBS: " ${BUILD_SHARED_LIBS})
+message(STATUS "STATIC: " ${STATIC})
 
 # enable CCache if available
 find_program(CCACHE_PROGRAM ccache)
