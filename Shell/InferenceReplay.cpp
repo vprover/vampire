@@ -21,9 +21,11 @@
 #include "Kernel/Problem.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/ScopedLet.hpp"
+#include "Lib/Stack.hpp"
 #include "Saturation/Discount.hpp"
 
 #include <unordered_set>
+#include <type_traits>
 #include <vector>
 
 namespace Shell {
@@ -32,36 +34,31 @@ using namespace Inferences;
 
 namespace {
 /** Keep replay's index membership temporary, even when an engine throws.
- * Preserve the proof parents' search-time stores and ages. Repeated parent
+ * Preserve the proof parents' search-time stores. Repeated parent
  * positions remain separate substitution banks but enter the index once. */
 class ReplayContext {
 public:
   explicit ReplayContext(Saturation::SaturationAlgorithm& alg)
     : _active(*alg.getActiveClauseContainer()) {}
 
-  void activate(Clause* clause, bool resetAge = false)
+  void activate(Clause* clause)
   {
     if (!_activated.insert(clause).second) { return; }
-    _parents.push_back({clause, clause->store(), clause->age()});
-    // Index removal can release a clause. Hold it until its store is restored.
-    clause->incRefCnt();
+    _parents.push_back({clause, clause->store()});
     clause->setStore(Clause::ACTIVE);
-    if (resetAge) { clause->setAge(0); }
     _active.add(clause);
   }
 
   ~ReplayContext()
   {
-    for (auto [clause, store, age] : _parents) {
+    for (auto [clause, store] : _parents) {
       _active.remove(clause);
-      clause->setAge(age);
       clause->setStore(store);
-      clause->decRefCnt();
     }
   }
 
 private:
-  struct Parent { Clause* clause; Clause::Store store; unsigned age; };
+  struct Parent { Clause* clause; Clause::Store store; };
   Saturation::ActiveClauseContainer& _active;
   std::unordered_set<Clause*> _activated;
   std::vector<Parent> _parents;
@@ -77,9 +74,6 @@ void InferenceReplayer::makeInferenceEngine(OrderingSP ordering)
   ASS(!_alg);
   _problem = std::make_unique<Problem>();
   Lib::ScopedLet<bool> reconstruction(env.reconstruction, true);
-  // Each replay constructs its own rule. Only DISCOUNT's active container and
-  // indexes are needed; installing all search engines would change options
-  // and create engines that are never run.
   Lib::ScopedLet<OrderingSP> proofOrdering(InferenceStore::instance()->ordering,
                                          ordering);
   Ordering::unsetGlobalOrdering();
@@ -89,49 +83,55 @@ void InferenceReplayer::makeInferenceEngine(OrderingSP ordering)
 }
 
 template<typename Engine>
-void InferenceReplayer::runGenerating(const ClauseStack& context)
+void InferenceReplayer::runInference(const Unit& unit)
 {
+  constexpr bool isGenerating = std::is_base_of_v<GeneratingInferenceEngine, Engine>;
+  Clause* premise = nullptr;
+  ClauseStack context;
+  for (const auto& parent : iterTraits(unit.getParents())) {
+    if (!parent->isClause()) { return; }
+    if (!premise) {
+      premise = parent->asClause();
+      if constexpr (!isGenerating) {
+        continue;
+      }
+    }
+    context.push(parent->asClause());
+  }
+  Lib::ScopedLet<bool> reconstruction(env.reconstruction, true);
+  if (!premise) { return; }
   ASS(_alg);
+  if constexpr (!isGenerating) {
+    ASS_EQ(context.size(), 1);
+  }
   Engine rule(*_alg);
-  runGenerating(rule, context);
-}
-
-template<typename Engine>
-void InferenceReplayer::runForwardsSimp(const ClauseStack& context)
-{
-  ASS(_alg);
-  Engine rule(*_alg);
-  runForwardsSimp(rule, context);
+  ReplayContext active(*_alg);
+  for (Clause* clause : context) { active.activate(clause); }
+  if constexpr (isGenerating) {
+    runGenerating(rule, premise);
+  } else {
+    runForwardsSimp(rule, premise);
+  }
 }
 
 const InferenceReplayInformation* InferenceReplayer::replayInference(Unit* goal)
 {
   if (!goal->isClause()) { return nullptr; }
   InferenceRecorder recorder(goal->asClause());
-  ClauseStack context;
-  auto parents = goal->getParents();
-  while (parents.hasNext()) {
-    Unit* parent = parents.next();
-    if (!parent->isClause()) { return nullptr; }
-    context.push(parent->asClause());
-  }
-  Lib::ScopedLet<bool> reconstruction(env.reconstruction, true);
-  if (context.isEmpty()) { return nullptr; }
-
   switch (goal->inference().rule()) {
   case InferenceRule::RESOLUTION:
   case InferenceRule::CONSTRAINED_RESOLUTION:
-    runGenerating<BinaryResolution>(context); break;
+    runInference<BinaryResolution>(*goal); break;
   case InferenceRule::SUPERPOSITION:
   case InferenceRule::CONSTRAINED_SUPERPOSITION:
-    if (env.higherOrder()) { runGenerating<Superposition<true>>(context); }
-    else { runGenerating<Superposition<false>>(context); }
+    if (env.higherOrder()) { runInference<Superposition<true>>(*goal); }
+    else { runInference<Superposition<false>>(*goal); }
     break;
   case InferenceRule::FACTORING:
-    runGenerating<Factoring>(context); break;
+    runInference<Factoring>(*goal); break;
   case InferenceRule::FORWARD_DEMODULATION:
-    if (env.higherOrder()) { runForwardsSimp<ForwardDemodulation<true>>(context); }
-    else { runForwardsSimp<ForwardDemodulation<false>>(context); }
+    if (env.higherOrder()) { runInference<ForwardDemodulation<true>>(*goal); }
+    else { runInference<ForwardDemodulation<false>>(*goal); }
     break;
   default:
     break;
@@ -145,25 +145,18 @@ const InferenceReplayInformation* InferenceReplayer::replayInference(Unit* goal)
 }
 
 void InferenceReplayer::runGenerating(GeneratingInferenceEngine& rule,
-                                     const ClauseStack& context)
+                                     Clause* premise)
 {
-  ReplayContext active(*_alg);
-  for (Clause* parent : context) { active.activate(parent, /*resetAge=*/true); }
-  auto result = rule.generateSimplify(context[0]);
-  // Iterators perform inference work lazily. Drain them while the parents are
-  // indexed; the recorder retains only candidates matching the proof goal.
+  auto result = rule.generateSimplify(premise);
   while (result.clauses.hasNext()) { result.clauses.next(); }
 }
 
 void InferenceReplayer::runForwardsSimp(ForwardSimplificationEngine& rule,
-                                      const ClauseStack& context)
+                                      Clause* premise)
 {
-  ASS_EQ(context.size(), 2);
-  ReplayContext active(*_alg);
-  active.activate(context[1]);
   Clause* replacement = nullptr;
   ClauseIterator premises;
-  rule.perform(context[0], replacement, premises);
+  rule.perform(premise, replacement, premises);
 }
 
 } // namespace Shell

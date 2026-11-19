@@ -12,7 +12,6 @@
 #define __INFERENCE_REPLAY__
 
 #include "Forwards.hpp"
-#include "Lib/Stack.hpp"
 
 #include <memory>
 
@@ -39,10 +38,9 @@ private:
   std::unique_ptr<Kernel::Problem> _problem;
   std::unique_ptr<Saturation::SaturationAlgorithm> _alg;
 
-  template<typename Engine> void runGenerating(const Kernel::ClauseStack& context);
-  template<typename Engine> void runForwardsSimp(const Kernel::ClauseStack& context);
-  void runForwardsSimp(Inferences::ForwardSimplificationEngine& rule, const Kernel::ClauseStack& context);
-  void runGenerating(Inferences::GeneratingInferenceEngine& rule, const Kernel::ClauseStack& context);
+  template<typename Engine> void runInference(const Kernel::Unit& unit);
+  void runForwardsSimp(Inferences::ForwardSimplificationEngine& rule, Kernel::Clause* premise);
+  void runGenerating(Inferences::GeneratingInferenceEngine& rule, Kernel::Clause* premise);
 };
 }
 #endif /* __INFERENCE_REPLAY__ */
