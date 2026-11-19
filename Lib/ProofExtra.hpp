@@ -20,16 +20,22 @@
 
 #include "Lib/DHMap.hpp"
 
-namespace Inferences { struct InferenceReplayInformation; }
+namespace Inferences {
+struct InferenceReplayInformation;
+struct SynthesisInferenceExtra;
+}
 
 namespace Lib {
 
-/** Owned proof-extra payload with debug output and optional replay metadata. */
+/** Owned proof-extra payload with debug output and optional replay and synthesis metadata. */
 struct InferenceExtra {
   virtual ~InferenceExtra() {};
 
   /** Replay metadata, if this payload has been replayed. */
   virtual const Inferences::InferenceReplayInformation* replayInformation() const { return nullptr; }
+
+  /** Synthesis metadata, if this inference combines answer literals. */
+  virtual const Inferences::SynthesisInferenceExtra* synthesisInformation() const { return nullptr; }
 
   // for debug printing only, specific output formats should downcast and handle individually
   virtual void output(std::ostream &out) const = 0;

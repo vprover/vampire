@@ -476,9 +476,10 @@ Clause* Superposition<higherOrder>::performSuperposition(
   if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) &&
       (rwAnsLit = rwClause->getAnswerLiteral()) && (eqAnsLit = eqClause->getAnswerLiteral())) {
     env.proofExtra.insert(clause, new SuperpositionExtra(rwLit, eqLit, eqLHS, rwTerm,
+      std::make_unique<SynthesisInferenceExtra>(
         subst->apply(eqLit, eqIsResult),
         rwAnsLit ? subst->apply(rwAnsLit, !eqIsResult) : nullptr,
-        eqAnsLit ? subst->apply(eqAnsLit, eqIsResult) : nullptr));
+        eqAnsLit ? subst->apply(eqAnsLit, eqIsResult) : nullptr)));
   } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
     env.proofExtra.insert(clause, new SuperpositionExtra(rwLit, eqLit, eqLHS, rwTerm));
   }

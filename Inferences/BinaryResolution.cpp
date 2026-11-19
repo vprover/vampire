@@ -221,9 +221,10 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     Literal* srAnsLit = subs->applyToResult(rAnsLit);
     bool queryNeg = queryLit->isNegative();
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit,
+      std::make_unique<SynthesisInferenceExtra>(
         queryNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit),
         queryNeg ? sqAnsLit : srAnsLit,
-        queryNeg ? srAnsLit : sqAnsLit));
+        queryNeg ? srAnsLit : sqAnsLit)));
   } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
   }

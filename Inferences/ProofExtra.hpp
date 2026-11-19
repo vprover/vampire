@@ -20,6 +20,7 @@
 
 #include <memory>
 #include <optional>
+#include <utility>
 #include <vector>
 
 #include "Kernel/Substitution.hpp"
@@ -124,7 +125,6 @@ struct SynthesisInferenceExtra {
   Kernel::Literal* thenLit = nullptr;
   Kernel::Literal* elseLit = nullptr;
 
-  bool empty() const { return !condition && !thenLit && !elseLit; }
   void output(std::ostream& out) const;
 };
 
@@ -137,12 +137,15 @@ struct LiteralInferenceExtra : ReplayableInferenceExtra {
 
 struct TwoLiteralInferenceExtra : ReplayableInferenceExtra {
   TwoLiteralInferenceExtra(Kernel::Literal* main, Kernel::Literal* other,
-      Kernel::Literal* condition = nullptr, Kernel::Literal* thenLit = nullptr,
-      Kernel::Literal* elseLit = nullptr)
-    : literals(main, other), synthesisExtra{condition, thenLit, elseLit} {}
+      std::unique_ptr<SynthesisInferenceExtra> synthesis = nullptr)
+    : literals(main, other), synthesisExtra(std::move(synthesis)) {}
+
+  const SynthesisInferenceExtra* synthesisInformation() const override {
+    return synthesisExtra.get();
+  }
 
   LiteralPairInformation literals;
-  SynthesisInferenceExtra synthesisExtra;
+  std::unique_ptr<SynthesisInferenceExtra> synthesisExtra;
   void output(std::ostream& out) const override;
 };
 
@@ -157,14 +160,17 @@ struct RewriteInferenceExtra : ReplayableInferenceExtra {
 struct TwoLiteralRewriteInferenceExtra : ReplayableInferenceExtra {
   TwoLiteralRewriteInferenceExtra(Kernel::Literal* main, Kernel::Literal* other,
       Kernel::TermList lhs, Kernel::TermList target,
-      Kernel::Literal* condition = nullptr, Kernel::Literal* thenLit = nullptr,
-      Kernel::Literal* elseLit = nullptr)
+      std::unique_ptr<SynthesisInferenceExtra> synthesis = nullptr)
     : literals(main, other), rewrite(lhs, target),
-      synthesisExtra{condition, thenLit, elseLit} {}
+      synthesisExtra(std::move(synthesis)) {}
+
+  const SynthesisInferenceExtra* synthesisInformation() const override {
+    return synthesisExtra.get();
+  }
 
   LiteralPairInformation literals;
   RewriteInformation rewrite;
-  SynthesisInferenceExtra synthesisExtra;
+  std::unique_ptr<SynthesisInferenceExtra> synthesisExtra;
   void output(std::ostream& out) const override;
 };
 

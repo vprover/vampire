@@ -161,14 +161,9 @@ Option<ClauseIterator> SynthesisAnswerLiteralProcessor::simplifyMany(Clause* cl)
 
   // Get synthesis information
   SynthesisALManager* synthMan = static_cast<SynthesisALManager*>(SynthesisALManager::getInstance());
-  const SynthesisInferenceExtra* synExtra;
-  if (cl->inference().rule() == InferenceRule::SUPERPOSITION) {
-    const auto& extra = env.proofExtra.get<TwoLiteralRewriteInferenceExtra>(cl);
-    ASS(extra.literals.other.literal()->isEquality());
-    synExtra = &extra.synthesisExtra;
-  } else {
-    synExtra = &env.proofExtra.get<TwoLiteralInferenceExtra>(cl).synthesisExtra;
-  }
+  const auto* extra = env.proofExtra.find(cl);
+  ASS(extra);
+  const auto* synExtra = extra->synthesisInformation();
   ASS(synExtra != nullptr);
   Literal *thenLit = synExtra->thenLit, *elseLit = synExtra->elseLit, *condition = synExtra->condition;
   ASS(condition != nullptr);

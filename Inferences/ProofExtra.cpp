@@ -43,7 +43,7 @@ void LiteralInferenceExtra::output(std::ostream& out) const {
 
 void TwoLiteralInferenceExtra::output(std::ostream& out) const {
   literals.output(out);
-  if (!synthesisExtra.empty()) { out << ','; synthesisExtra.output(out); }
+  if (synthesisExtra) { out << ','; synthesisExtra->output(out); }
   outputReplay(out);
 }
 
@@ -56,7 +56,7 @@ void TwoLiteralRewriteInferenceExtra::output(std::ostream& out) const {
   literals.output(out);
   out << ',';
   rewrite.output(out);
-  if (!synthesisExtra.empty()) { out << ','; synthesisExtra.output(out); }
+  if (synthesisExtra) { out << ','; synthesisExtra->output(out); }
   outputReplay(out);
 }
 
