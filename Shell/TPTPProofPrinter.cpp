@@ -13,7 +13,6 @@
  */
 
 #include <functional>
-#include <algorithm>
 #include <sstream>
 #include "Inferences/ProofExtra.hpp"
 
@@ -277,6 +276,30 @@ std::ostream& InferenceStore::TPTPProofPrinter::printInference(std::ostream& out
   return out << inferenceAnnotation(tptpRuleName(rule), annotations(unit), premises(unit));
 }
 
+namespace {
+
+std::ostream& printSubstitution(
+    std::ostream& out, const Inferences::InferenceReplayInformation* info, unsigned bank)
+{
+  auto variables = Stack<unsigned>::fromIterator(info->premises[bank]->getVariableIterator());
+  variables.sort();
+  auto bindings = iterTraits(variables.iter()).filter([&](unsigned variable) {
+    return info->substitutionForBanksSub[bank].apply(variable) != TermList::var(variable);
+  });
+  return out << unitRef(info->premises[bank]) << ','
+      << bracketed(commaSeparatedWith(bindings, [&](std::ostream& out, unsigned variable) {
+    TermList term = info->substitutionForBanksSub[bank].apply(variable);
+    out << 'b' << parenthesized(Output::deferred([&](std::ostream& out) -> std::ostream& {
+      out << 'X' << variable << ',';
+      // Generic annotations require higher-order expressions to be embedded.
+      if (env.higherOrder() && !term.isVar()) { return out << "$thf" << parenthesized(term); }
+      return out << term;
+    }));
+  }));
+}
+
+} // namespace
+
 std::ostream& InferenceStore::TPTPProofPrinter::printAnnotations(std::ostream& out, Unit* unit)
 {
   const auto* info = replayInference(unit);
@@ -284,30 +307,17 @@ std::ostream& InferenceStore::TPTPProofPrinter::printAnnotations(std::ostream& o
   std::ostringstream status;
   printStatus(status, unit);
   if (!status.str().empty()) { out << status.str() << ','; }
-  out << "unifier([";
-  for (unsigned bank = 0; bank < info->premises.size(); ++bank) {
-    if (bank) { out << ','; }
-    out << "subs(" << unitRef(info->premises[bank]) << ",[";
-    std::vector<unsigned> variables;
-    auto iterator = info->premises[bank]->getVariableIterator();
-    while (iterator.hasNext()) { variables.push_back(iterator.next()); }
-    std::sort(variables.begin(), variables.end());
-    bool first = true;
-    for (unsigned variable : variables) {
-      TermList term = info->substitutionForBanksSub[bank].apply(variable);
-      if (term == TermList::var(variable)) { continue; }
-      if (!first) { out << ','; }
-      first = false;
-      out << "b(X" << variable << ',';
-      // Generic annotations require higher-order expressions to be embedded.
-      if (env.higherOrder() && !term.isVar()) { out << "$thf(" << term << ')'; }
-      else { out << term; }
-      out << ')';
-    }
-    out << "])";
-  }
-  return out << "])";
+  auto substitutions = commaSeparatedWith(range(0, info->premises.size()),
+      [&](std::ostream& out, unsigned bank) {
+    out << "subs" << parenthesized(Output::deferred(
+        [info, bank](std::ostream& out) -> std::ostream& {
+      return printSubstitution(out, info, bank);
+    }));
+  });
+  return out << "unifier" << parenthesized(bracketed(substitutions));
 }
+
+
 
 std::ostream& InferenceStore::TPTPProofPrinter::printStatus(std::ostream& out, Unit* unit)
 {
