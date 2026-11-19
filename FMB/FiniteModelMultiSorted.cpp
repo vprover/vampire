@@ -369,6 +369,9 @@ std::string FiniteModelMultiSorted::toString()
     return !env.signature->isFoolConstantSymbol(true,f) && !env.signature->isFoolConstantSymbol(false,f);
   };
   auto predPrinted = [&](unsigned p) {
+    // a $distinct marker is TPTP's defined $distinct, not a symbol of the problem: it has no
+    // interpretation to print, and a declaration of it would not even parse
+    if (env.signature->getPredicate(p)->distinctPred()) return false;
     return printIntroduced || !env.signature->getPredicate(p)->introduced();
   };
 
@@ -808,6 +811,20 @@ bool FiniteModelMultiSorted::evaluateLiteral(Literal* lit, const DHMap<unsigned,
 
   if(lit->isEquality()){
     return (args[0]==args[1]) == lit->polarity();
+  }
+
+  // A $distinct marker (cf. Signature::getDistinctPredicate) only occurs in the parsed input,
+  // which the self-check reads: preprocessing replaces it by disequalities or a distinct
+  // group, so the model has nothing to say about the marker predicate itself. It holds iff
+  // the arguments denote pairwise different elements.
+  if(env.signature->getPredicate(p)->distinctPred()){
+    bool allDifferent = true;
+    for(unsigned i=0;i<arity && allDifferent;i++){
+      for(unsigned j=i+1;j<arity;j++){
+        if(args[i]==args[j]){ allDifferent = false; break; }
+      }
+    }
+    return allDifferent == lit->polarity();
   }
 
   // throws if the model does not say what p is on these arguments
