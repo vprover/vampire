@@ -48,13 +48,15 @@ std::string SortedSignature::distinctSortNames() const
   std::string res = "[";
   for(unsigned i=0;i<distinctSorts;i++){
     Stack<unsigned>* vs = distinctToVampire.get(i);
-    ASS(vs->isNonEmpty());
-    if(vs->size()>1) res += "{";
+    // A position can stand for no vampire sort at all: with no non-ground clauses, sort
+    // inference is skipped, and under -fmbas predicate / function the one collapsed sort is
+    // created up front, before it is known whether any sort is used. It prints as "{}".
+    if(vs->size()!=1) res += "{";
     for(unsigned j=0;j<vs->size();j++){
       if(j>0) res += ",";
       res += env.signature->typeConName((*vs)[j]);
     }
-    if(vs->size()>1) res += "}";
+    if(vs->size()!=1) res += "}";
     if(i+1<distinctSorts) res += ",";
   }
   return res + "]";

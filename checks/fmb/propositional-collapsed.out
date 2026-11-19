@@ -1,0 +1,16 @@
+% The problem is propositional so there are no sorts!
+% Sorts in the size vectors: [{}]
+% TRYING [1]
+% Finite Model Found!
+% SZS status Satisfiable for propositional-collapsed
+% FMB model self-check passed (5 units checked)
+% SZS output start FiniteModel for propositional-collapsed
+tff(declare_p,type,p: $o ).
+tff(p_definition,axiom,p).
+tff(declare_q,type,q: $o ).
+tff(q_definition,axiom,~q).
+tff(declare_r,type,r: $o ).
+tff(r_definition,axiom,~r).
+tff(declare_s,type,s: $o ).
+tff(s_definition,axiom,~s).
+% SZS output end FiniteModel for propositional-collapsed
