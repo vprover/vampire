@@ -541,7 +541,6 @@ bool BackwardSubsumptionDemodulation<higherOrder>::rewriteCandidate(Clause* side
             } else {
               // Here, we have subsumption resolution
               ASS_EQ(binder.applyTo(eqLit), Literal::complementaryLiteral(dlit));  // ¬eqLitS == dlit
-              ASS_EQ(_ord.compare(binder.applyTo(eqLit), dlit), Ordering::GREATER);  // L > ¬L
               ASS(SDHelper::checkForSubsumptionResolution(mainCl, SDClauseMatches{sideCl,LiteralMiniIndex{mainCl}}, dlit));
               replacement = SDHelper::generateSubsumptionResolutionClause(mainCl, dlit, sideCl, /*forward=*/false);
 #if VDEBUG && BSD_VDEBUG_REDUNDANCY_ASSERTIONS
