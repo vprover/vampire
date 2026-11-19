@@ -10,11 +10,11 @@ jobs:
         # suggest we keep the oldest one available for a given OS/arch combination,
         # as the resulting binary is usually forwards but not backwards-compatible
         os:
-          - ubuntu-22.04      # Linux   x64
-          - ubuntu-22.04-arm  # Linux   ARM
-          - macos-15-intel    # macOS   x64
-          - macos-14          # macOS   ARM
-          - windows-2022      # Windows x64
+          - ubuntu-26.04      # Linux   x64
+          - ubuntu-26.04-arm  # Linux   ARM
+          - macos-26-intel    # macOS   x64
+          - macos-26          # macOS   ARM
+          - windows-2025      # Windows x64
           - windows-11-arm    # Windows ARM
 
     runs-on: ${{ matrix.os }}
