@@ -1506,7 +1506,7 @@ MainLoopResult FiniteModelBuilder::runImpl()
   }
 
   if (!_xmass) {
-    if (!_dsaEnumerator->init(_startModelSize,_distinctSortSizes,_distinct_sort_constraints,_strict_distinct_sort_constraints)) {
+    if (!_dsaEnumerator->init(_startModelSize,_distinctSortSizes,_distinctSortMaxs,_distinct_sort_constraints,_strict_distinct_sort_constraints)) {
       goto gave_up;
     }
   }
@@ -2310,26 +2310,29 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
 
 
 #if VZ3
-bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<unsigned>& _distinctSortSizes,
+bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<unsigned>& _distinctSortSizes, DArray<unsigned>& _distinctSortMaxs,
       Stack<std::pair<unsigned,unsigned>>& _distinct_sort_constraints, Stack<std::pair<unsigned,unsigned>>& _strict_distinct_sort_constraints)
 {
   _skippedSomeSizes = (_startModelSize > 1);
 
   try {
-    // initialize the smt solver
-    z3::expr zero = _context.int_val(_startModelSize-1);
-
     _sizeConstants.ensure(_distinctSortSizes.size());
+    _lastWeight = 0;
     // _distinctSortSizes.size() - many int variables
     for(unsigned i=0;i<_sizeConstants.size();i++) {
       _sizeConstants[i] = new z3::expr(_context);
       *_sizeConstants[i] = _context.int_const((std::string("s")+Int::toString(i)).c_str());
 
-      // asserted to be greater than zero
-      _smtSolver.add(*_sizeConstants[i] > zero);
+      // between the size it starts from -- fmb_start_size as the detected bounds have
+      // adjusted it, so at least the minimum -- and the detected maximum, as the other
+      // enumerators stay; that is what pins $o to its two elements here, too
+      _smtSolver.add(*_sizeConstants[i] >= _context.int_val(_distinctSortSizes[i]));
+      if (_distinctSortMaxs[i] != UINT_MAX) {
+        _smtSolver.add(*_sizeConstants[i] <= _context.int_val(_distinctSortMaxs[i]));
+      }
+      // the weight of the first assignment tried, which is where minimizing starts from
+      _lastWeight += _distinctSortSizes[i];
     }
-
-    _lastWeight = _distinctSortSizes.size()*_startModelSize;
 
     // also add (_strict)_distinct_sort_constraints
     Stack<std::pair<unsigned,unsigned>>::Iterator it1(_distinct_sort_constraints);

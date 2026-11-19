@@ -250,7 +250,9 @@ private:
 
   class DSAEnumerator { // Domain Size Assignment Enumerator - for the point-wise encoding case
   public:
-    virtual bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) { return true; }
+    // the initial sizes, and the maxima the detected bounds allow, come in as the sizes to start
+    // from and the sizes never to exceed; an enumerator is to stay within both
+    virtual bool init(unsigned, DArray<unsigned>&, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) { return true; }
     virtual void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) = 0;
     virtual bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) = 0;
     virtual bool isFmbComplete(unsigned noDomains) { return false; }
@@ -297,7 +299,7 @@ private:
   public:
     HackyDSAE(bool keepOldGenerators) : _maxWeightSoFar(0), _keepOldGenerators(keepOldGenerators) {}
 
-    bool init(unsigned _startSize, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
+    bool init(unsigned _startSize, DArray<unsigned>&, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>& dsc, Stack<std::pair<unsigned,unsigned>>& sdsc) override {
       _skippedSomeSizes = (_startSize > 1);
       _distinct_sort_constraints = &dsc;
       _strict_distinct_sort_constraints = &sdsc;
@@ -322,7 +324,7 @@ private:
   public:
     SmtBasedDSAE() : _smtSolver(_context) {}
 
-    bool init(unsigned, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) override;
+    bool init(unsigned, DArray<unsigned>&, DArray<unsigned>&, Stack<std::pair<unsigned,unsigned>>&, Stack<std::pair<unsigned,unsigned>>&) override;
     void learnNogood(Constraint_Generator_Vals& nogood, unsigned weight) override;
     bool increaseModelSizes(DArray<unsigned>& newSortSizes, DArray<unsigned>& sortMaxes) override;
     bool isFmbComplete(unsigned) override { return !_skippedSomeSizes; }
