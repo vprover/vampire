@@ -804,7 +804,7 @@ Options::Options ()
        .tag = OptionTag::THEORIES})
   , _fmbStartSize("fmb_start_size",this,1,
       {.short_name = "fmbss",
-       .description = "Set the initial model size for finite model building",
+       .description = "Suggest the initial model size for finite model building (sorts with deteceted model side bounds clamp this value to stay within)",
        .tag = OptionTag::FMB})
   , _fmbSymmetryRatio("fmb_symmetry_ratio",this,1.0,
       {.short_name = "fmbsr",

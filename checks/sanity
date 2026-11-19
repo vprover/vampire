@@ -509,6 +509,13 @@ check_exact_output fmb/cond.check.out --input_syntax tptp --mode model_check fmb
 check_exact_output fmb/domainless-sort.out --input_syntax tptp --statistics none -sa fmb fmb/domainless-sort.p
 check_exact_output fmb/domainless-sort.check.out --input_syntax tptp --mode model_check fmb/domainless-sort.check.p
 
+# FMB: $o has exactly two elements, and fmb_start_size is only a suggestion against a
+# detected maximum (see fmb/bool-start-size.p). Exact output, because the defect was a
+# crash while printing a model with three booleans, after the SZS status line; and a start
+# size above every maximum must still find bool.p's model rather than give up
+check_exact_output fmb/bool-start-size.out --input_syntax tptp --statistics none -sa fmb -fmbss 3 fmb/bool-start-size.p
+check_szs_status Satisfiable -sa fmb -fmbss 16 fmb/bool.p
+
 
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2

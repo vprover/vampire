@@ -1,0 +1,66 @@
+% Sorts in the size vectors: [$i,$o]
+% Detected minimum model sizes of [1,2]
+% Detected maximum model sizes of [max,2]
+% TRYING [3,2]
+% TRYING [4,2]
+% TRYING [5,2]
+% Finite Model Found!
+% SZS status Satisfiable for bool-start-size
+% FMB model self-check passed (4 units checked)
+% SZS output start FiniteModel for bool-start-size
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('declare_$i2',type,'fmb_$i_2':$i).
+tff('declare_$i3',type,'fmb_$i_3':$i).
+tff('declare_$i4',type,'fmb_$i_4':$i).
+tff('declare_$i5',type,'fmb_$i_5':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1') | (X = 'fmb_$i_2') | (X = 'fmb_$i_3') | (X = 'fmb_$i_4') | (X = 'fmb_$i_5')
+      ) ).
+
+tff('distinct_domain_$i',axiom,
+         'fmb_$i_1' != 'fmb_$i_2' & 'fmb_$i_1' != 'fmb_$i_3' & 'fmb_$i_1' != 'fmb_$i_4' & 'fmb_$i_1' != 'fmb_$i_5' & 'fmb_$i_2' != 'fmb_$i_3' & 
+         'fmb_$i_2' != 'fmb_$i_4' & 'fmb_$i_2' != 'fmb_$i_5' & 'fmb_$i_3' != 'fmb_$i_4' & 'fmb_$i_3' != 'fmb_$i_5' & 'fmb_$i_4' != 'fmb_$i_5'
+).
+
+tff(finite_domain_bool,axiom,
+      ! [X:$o] : (
+         (X = $false) | (X = $true)
+      ) ).
+
+tff(distinct_domain_bool,axiom,
+         $false != $true
+).
+
+tff(declare_e,type,e : $i).
+tff(e_definition,axiom,e = 'fmb_$i_1').
+tff(declare_f,type,f : ( $i ) > $i).
+tff(function_f,axiom,
+           f('fmb_$i_1') = 'fmb_$i_2'
+         & f('fmb_$i_2') = 'fmb_$i_4'
+         & f('fmb_$i_3') = 'fmb_$i_1'
+         & f('fmb_$i_4') = 'fmb_$i_5'
+         & f('fmb_$i_5') = 'fmb_$i_3'
+).
+
+tff(declare_p,type,p: ( $i * $o ) > $o ).
+tff(predicate_p,axiom,
+           p('fmb_$i_1',$false)
+         & ~p('fmb_$i_2',$false)
+         & ~p('fmb_$i_3',$false)
+         & ~p('fmb_$i_4',$false)
+         & ~p('fmb_$i_5',$false)
+         & ~p('fmb_$i_1',$true)
+         & p('fmb_$i_2',$true)
+         & p('fmb_$i_3',$true)
+         & p('fmb_$i_4',$true)
+         & p('fmb_$i_5',$true)
+).
+
+tff(declare_q,type,q: $o ).
+tff(q_definition,axiom,~q).
+tff(declare_r,type,r: $o ).
+tff(r_definition,axiom,r).
+tff(declare_s,type,s: $o ).
+tff(s_definition,axiom,~s).
+% SZS output end FiniteModel for bool-start-size

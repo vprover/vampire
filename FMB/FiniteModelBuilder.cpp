@@ -64,6 +64,15 @@ namespace FMB
 
 using namespace std;
 
+// Does distinct sort ds stand for $o and nothing else? $o is then a sort of exactly two
+// elements, $true and $false. Merged with other sorts (-fmbas predicate / function) the
+// position is theirs as well, and its size is not determined by $o.
+static bool standsForBoolAlone(const SortedSignature* sig, unsigned ds)
+{
+  Stack<unsigned>* vs = sig->distinctToVampire.get(ds);
+  return vs->size() == 1 && env.signature->isBoolCon((*vs)[0]);
+}
+
 FiniteModelBuilder::FiniteModelBuilder(Problem& prb, const Options& opt)
 : MainLoop(prb, opt), _sortedSignature(0), _groundClauses(0), _clauses(0),
                       _isAppropriate(true)
@@ -640,6 +649,18 @@ void FiniteModelBuilder::init()
 #if VTRACE_FMB
         cout << "Setting min for " << env.signature->typeConName(s) << " to " << max << endl;
 #endif
+      }
+    }
+
+    // $o has exactly two elements, but nothing above knows that much: its minimum comes from
+    // $true != $false, and its maximum from the EPR rule, i.e. from however many $o constants
+    // there are -- FOOL elimination's names for formulas in term position among them
+    // (PUZ152_1 got 5). Neither is wrong, but the loose maximum let a start size above 2
+    // try, and find, a "model" with three booleans, which the model printing then rejects.
+    for(unsigned s=0;s<_sortedSignature->distinctSorts;s++){
+      if(standsForBoolAlone(_sortedSignature,s)){
+        _distinctSortMins[s] = 2;
+        _distinctSortMaxs[s] = 2;
       }
     }
 
@@ -1474,13 +1495,11 @@ MainLoopResult FiniteModelBuilder::runImpl()
   _sortModelSizes.ensure(_sortedSignature->sorts);
   _distinctSortSizes.ensure(_sortedSignature->distinctSorts);
   for(unsigned i=0;i<_distinctSortSizes.size();i++){
-     _distinctSortSizes[i]=max(_startModelSize,_distinctSortMins[i]);
-     if (_startModelSize > _distinctSortMaxs[i]) {
-      if(outputAllowed()){
-        cout << "% fmb_start_size (= " << _startModelSize << ") larger than a detected sort maximum size!" << endl;
-      }
-      return MainLoopResult(TerminationReason::REFUTATION_NOT_FOUND);
-     }
+     // fmb_start_size is only a suggestion: a sort known to be smaller (its detected maximum,
+     // e.g. $o's 2) starts at that maximum instead -- larger sizes have no model to find there
+     // -- and one known to be bigger starts at its minimum. Skipping sizes keeps the run
+     // incomplete as before (the enumerators' _skippedSomeSizes looks at fmb_start_size alone).
+     _distinctSortSizes[i]=max(min(_startModelSize,_distinctSortMaxs[i]),_distinctSortMins[i]);
   }
   for(unsigned s=0;s<_sortedSignature->sorts;s++) {
     _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
