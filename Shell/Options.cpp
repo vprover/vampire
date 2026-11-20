@@ -850,6 +850,13 @@ Options::Options ()
       {.short_name = "fmbuss",
        .description = "Allow the SAT solver to internally simplify the instance.",
        .tag = OptionTag::FMB})
+  , _fmbModelPrinting("fmb_model_printing",this,FMBModelPrinting::EXPLICIT,{"explicit","layered"},
+      {.short_name = "fmbmp",
+       .description = "How a found model is printed. With <explicit>, each symbol is printed by its final interpretation"
+       " alone: as a table, unless a recorded definition still describes it. With <layered>, each step of the"
+       " model's reconstruction is printed as it is: earlier versions of a symbol get names of their own"
+       " (f_$1, f_$2, ...) and later versions are defined from them.",
+       .tag = OptionTag::FMB})
   , _forbiddenOptions("forbidden_options",this,"",
       {.description = "If some of the specified options are set to a forbidden state, vampire will fail to start, or in portfolio modes it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>",
        .tag = OptionTag::INPUT})
@@ -2321,6 +2328,8 @@ Options::Options ()
 
     _fmbUseSimplifyingSolver.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbUseSimplifyingSolver.onlyUsefulWith(_satSolver.is(equal(SatSolver::MINISAT)));
+
+    _fmbModelPrinting.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _selection.onlyUsefulWith2(ProperSaturationAlgorithm());
 
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());

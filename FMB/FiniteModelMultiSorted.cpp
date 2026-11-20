@@ -32,6 +32,7 @@
 #include "Lib/Random.hpp"
 #include "Lib/DHMap.hpp"
 
+#include "Shell/Options.hpp"
 #include "Shell/Rectify.hpp"
 #include "Shell/SimplifyFalseTrue.hpp"
 #include "Shell/Flattening.hpp"
@@ -353,6 +354,22 @@ bool FiniteModelMultiSorted::symbolStillCurrent(const Stack<FunLayer*>& st, Time
 }
 
 std::string FiniteModelMultiSorted::toString()
+{
+  switch (env.options->fmbModelPrinting()) {
+    case Options::FMBModelPrinting::EXPLICIT:
+      return toStringExplicit();
+    case Options::FMBModelPrinting::LAYERED:
+      return toStringLayered();
+  }
+  ASSERTION_VIOLATION;
+}
+
+std::string FiniteModelMultiSorted::toStringLayered()
+{
+  USER_ERROR("-fmb_model_printing layered is not implemented yet");
+}
+
+std::string FiniteModelMultiSorted::toStringExplicit()
 {
   std::ostringstream modelStm;
 

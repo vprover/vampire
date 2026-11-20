@@ -490,6 +490,10 @@ public:
     PREDICATE,
     FUNCTION
   };
+  enum class FMBModelPrinting : unsigned int {
+    EXPLICIT,
+    LAYERED
+  };
   enum class FMBEnumerationStrategy : unsigned int {
     SBMEAM,
 #if VZ3
@@ -1239,6 +1243,7 @@ public:
   FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
   bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
   bool fmbUseSimplifyingSolver() const { return _fmbUseSimplifyingSolver.actualValue; }
+  FMBModelPrinting fmbModelPrinting() const { return _fmbModelPrinting.actualValue; }
 
   Mode mode() const { return _mode.actualValue; }
   void setMode(Mode mode) { _mode.actualValue = mode; }
@@ -1728,6 +1733,7 @@ private:
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
   BoolOptionValue _fmbKeepSbeamGenerators;
   BoolOptionValue _fmbUseSimplifyingSolver;
+  ChoiceOptionValue<FMBModelPrinting> _fmbModelPrinting;
 
   StringOptionValue _forbiddenOptions;
   StringOptionValue _forcedOptions;

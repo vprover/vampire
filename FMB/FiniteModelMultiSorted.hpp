@@ -154,9 +154,16 @@ public:
   void eliminateSortFunctionsAndPredicates(const Stack<unsigned>& sortFunctions, const Stack<unsigned>& sortPredicates);
   void restoreEliminatedDefinitions(Kernel::Problem* prob);
 
+  // the model as TPTP, in the style -fmb_model_printing asks for
   std::string toString();
 
 private:
+  // every symbol as its top layer: a symbolic definition while its body still describes the
+  // printed model, a table otherwise
+  std::string toStringExplicit();
+  // every needed version of every symbol, each printed as its own top layer
+  std::string toStringLayered();
+
   // walk a symbol's layer stack from the top, taking the first layer that has a value for
   // args; a layer with nothing to say falls through to the one below. Falling off the
   // bottom means the model does not say what the symbol is here
