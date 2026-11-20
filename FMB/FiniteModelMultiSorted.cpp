@@ -455,11 +455,13 @@ static bool funPrintable(unsigned f)
   return !env.signature->isFoolConstantSymbol(true,f) && !env.signature->isFoolConstantSymbol(false,f);
 }
 
-// a $distinct marker is TPTP's defined $distinct, not a symbol of the problem: it has no
-// interpretation to print, and a declaration of it would not even parse
+// Two predicates the parser puts in the signature are not symbols of the problem: a $distinct
+// marker is TPTP's defined $distinct, and := (Signature::getDefPred) is the connective of a
+// $let binding. Neither has an interpretation to print, and a declaration of either would not
+// parse -- := is even polymorphic, which FMB's sorts cannot express at all
 static bool predPrintable(unsigned p)
 {
-  return !env.signature->getPredicate(p)->distinctPred();
+  return !env.signature->getPredicate(p)->distinctPred() && !env.signature->isDefPred(p);
 }
 
 /**

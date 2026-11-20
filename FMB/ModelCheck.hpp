@@ -53,6 +53,25 @@ class ModelCheck{
   using DomainConstantSet = Set<Term*,SharedTermHash>;
 
 public:
+/**
+ * Refuse, naming it, a unit the evaluator cannot evaluate ($let, say), model and formulas to
+ * check alike: a check that has to leave a formula out has not checked the model.
+ *
+ * Called before anything else looks at the problem -- in particular before the refusal of
+ * polymorphic input, which a $let would otherwise trip over with a misleading message, as
+ * the parser writes its bindings with the polymorphic := (Signature::getDefPred).
+ */
+static void refuseUnsupported(UnitList* units)
+{
+  UnitList::Iterator uit(units);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+    if (!u->isClause() && !FiniteModelMultiSorted::evaluable(u->getFormula())) {
+      USER_ERROR("Cannot check " + u->toString() + ": it contains a construct the model checker does not support (such as $let)");
+    }
+  }
+}
+
 static void doCheck(UnitList* units)
 {
   // find model size

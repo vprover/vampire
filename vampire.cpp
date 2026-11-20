@@ -234,6 +234,7 @@ void modelCheckMode(Problem* problem)
   if (env.options->inputSyntax() == Options::InputSyntax::SMTLIB2) {
     USER_ERROR("Mode model_check only supports TPTP input");
   }
+  FMB::ModelCheck::refuseUnsupported(prb->units()); // first: see there
   if(env.getMainProblem()->hasPolymorphicSym() || env.getMainProblem()->isHigherOrder()){
     USER_ERROR("Polymorphic Vampire is not yet compatible with theory reasoning");
   }
