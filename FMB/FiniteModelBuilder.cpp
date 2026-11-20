@@ -2043,77 +2043,6 @@ void FiniteModelBuilder::onModelFound()
 
 #if FMB_CHECK_MODEL_AGAINST_INPUT
 
-// can our evaluator handle this term / formula?
-// (the original, un-preprocessed input may still contain FOOL constructs)
-static bool evaluableFormula(Formula* f);
-
-static bool evaluableTerm(TermList tl)
-{
-  if (tl.isVar()) return true;
-  Term* t = tl.term();
-  if (t->isSpecial()) {
-    // keep this in step with the special-term switch in evaluateTerm: anything admitted
-    // here must be evaluable there, and anything evaluable there is worth admitting here,
-    // or the self-check silently skips the unit instead of checking it
-    switch (t->specialFunctor()) {
-      // a formula in term position -- that is where $true and $false at term level, and a
-      // p(a) for a p declared with an $o result sort, end up
-      case SpecialFunctor::FORMULA:
-        return evaluableFormula(t->getSpecialData()->getFormula());
-      case SpecialFunctor::ITE:
-        // the condition is off to the side; the branches are checked with the arguments below
-        if (!evaluableFormula(t->getSpecialData()->getITECondition())) return false;
-        break;
-      case SpecialFunctor::COND:
-        // conditions and branches alike are ordinary arguments
-        break;
-      default: // $let and friends
-        return false;
-    }
-  }
-  for (unsigned i = 0; i < t->arity(); i++) {
-    if (!evaluableTerm(*t->nthArgument(i))) return false;
-  }
-  return true;
-}
-
-static bool evaluableFormula(Formula* f)
-{
-  switch (f->connective()) {
-    case LITERAL: {
-      Literal* l = f->literal();
-      for (unsigned i = 0; i < l->arity(); i++) {
-        if (!evaluableTerm(*l->nthArgument(i))) return false;
-      }
-      return true;
-    }
-    case AND:
-    case OR: {
-      FormulaList::Iterator it(f->args());
-      while (it.hasNext()) {
-        if (!evaluableFormula(it.next())) return false;
-      }
-      return true;
-    }
-    case IMP:
-    case IFF:
-    case XOR:
-      return evaluableFormula(f->left()) && evaluableFormula(f->right());
-    case NOT:
-      return evaluableFormula(f->uarg());
-    case FORALL:
-    case EXISTS:
-      return evaluableFormula(f->qarg());
-    case TRUE:
-    case FALSE:
-      return true;
-    case BOOL_TERM:
-      return evaluableTerm(f->getBooleanTerm());
-    default: // $ite, $let and friends
-      return false;
-  }
-}
-
 /**
  * The temporary in-run sanity check: evaluate every unit of the original (parsed,
  * un-preprocessed) input in the restored model. Every unit must hold -- note that
@@ -2133,7 +2062,7 @@ void FiniteModelBuilder::checkModelAgainstOriginalInput(FiniteModelMultiSorted& 
   UnitList::Iterator uit(original);
   while (uit.hasNext()) {
     Unit* u = uit.next();
-    if (!u->isClause() && !evaluableFormula(u->getFormula())) {
+    if (!u->isClause() && !FiniteModelMultiSorted::evaluable(u->getFormula())) {
       skipped++;
       continue;
     }

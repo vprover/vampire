@@ -123,13 +123,36 @@ public:
   unsigned applyFunDef(Problem::FunDef* fd, const DArray<unsigned>& args, Timestamp asOf);
   bool applyPredDef(Problem::PredDef* pd, const DArray<unsigned>& args, Timestamp asOf);
 
-  // Assume def is an equality literal with a
-  // function application on lhs and constant on rhs
-  void addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res);
-  // Assume def is non-equality ground literal
-  void addPredicateDefinition(unsigned f, const DArray<unsigned>& args, bool res);
+  // Set one cell of f's (or p's) table, i.e. f(args) = res (or p(args) <=> res). Return what
+  // the cell held before: FUNV_UNDEF (INTP_UNDEF) if it was not set yet, which is what lets a
+  // model loader notice a cell given two different values
+  unsigned addFunctionDefinition(unsigned f, const DArray<unsigned>& args, unsigned res);
+  char addPredicateDefinition(unsigned p, const DArray<unsigned>& args, bool res);
+
+  // For a model loader: make a symbolic definition the whole interpretation of its head
+  // symbol, which must have no layers yet. It reads the model as it stands when added, so
+  // whatever its body mentions must be in place by then -- a definition after the
+  // definitions it uses. The model keeps the definition but does not own it
+  void addSymbolicDefinition(Problem::FunDef* fd);
+  void addSymbolicDefinition(Problem::PredDef* pd);
 
   bool evaluate(Unit* unit);
+
+  // can evaluate() handle this term / formula? (a parsed unit may contain FOOL constructs
+  // it cannot, such as $let)
+  static bool evaluable(TermList tl);
+  static bool evaluable(Formula* f);
+
+  // what a definition body mentions
+  struct BodySymbols {
+    Stack<unsigned> funs;
+    Stack<unsigned> preds; // equality left out: it is not in the model
+    Stack<unsigned> sorts; // of the variables the body quantifies over
+  };
+  // false if the body contains a special term other than a formula in term position, an
+  // $ite or a $cond; then out is incomplete
+  static bool collectBodySymbols(TermList body, BodySymbols& out);
+  static bool collectBodySymbols(Formula* body, BodySymbols& out);
 
   /**
    * The parser puts $true / $false in term position into a special FORMULA term (they are
@@ -164,6 +187,26 @@ private:
   // every needed version of every symbol, each printed as its own top layer
   std::string toStringLayered();
 
+  // --- pieces both printing styles share ---
+
+  // the TPTP names of the domain elements, per sort, 1-based; filled by printDomains
+  using DomainNames = DArray<DArray<std::string>>;
+
+  // the sort declarations, domain constants, finite_domain_* and distinct_domain_* axioms of
+  // every sort sortPrinted marks
+  void printDomains(std::ostream& out, const DArray<bool>& sortPrinted, DomainNames& names);
+  void printFunType(std::ostream& out, unsigned f);
+  void printPredType(std::ostream& out, unsigned p);
+
+  // Which layer a symbol's final interpretation is printed as: DEF (its body, symbolically),
+  // TRIVIAL (the trivial layer's value, as a formula), or TABLE (spelled out cell by cell --
+  // for a table, a flip on top of anything, a stale definition, and a trivial value that has
+  // no formula rendering)
+  LayerKind funPrintKind(unsigned f);
+  LayerKind predPrintKind(unsigned p);
+  void printFunValue(std::ostream& out, unsigned f, const DomainNames& names);
+  void printPredValue(std::ostream& out, unsigned p, const DomainNames& names);
+
   // walk a symbol's layer stack from the top, taking the first layer that has a value for
   // args; a layer with nothing to say falls through to the one below. Falling off the
   // bottom means the model does not say what the symbol is here
@@ -180,6 +223,7 @@ private:
   // mentions still means at the top of its stack what it meant when the definition was born
   bool bodyStillCurrent(Term* body, Timestamp born);
   bool bodyStillCurrent(Formula* body, Timestamp born);
+  bool bodySymbolsStillCurrent(const Stack<unsigned>& funs, const Stack<unsigned>& preds, Timestamp born) const;
   bool symbolStillCurrent(const Stack<FunLayer*>& st, Timestamp born) const;
 
   std::string prepend(const char* prefix, std::string name) {

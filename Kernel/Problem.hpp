@@ -86,6 +86,7 @@ public:
   struct Interference {
     IntereferenceKind _kind;
     Interference(IntereferenceKind kind) : _kind(kind) {}
+    virtual ~Interference() = default;
 
     virtual void outputDefinition(std::ostream&) = 0;
   };

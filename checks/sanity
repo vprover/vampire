@@ -531,6 +531,22 @@ check_exact_output fmb/distinct.check.out --input_syntax tptp --mode model_check
 # no vampire sort (see fmb/propositional-collapsed.p). Exact output, because the defect was an
 # assertion while printing the "% Sorts in the size vectors:" line
 check_exact_output fmb/propositional-collapsed.out --input_syntax tptp --statistics none -sa fmb -fmbas predicate fmb/propositional-collapsed.p
+# ... and read back, although such a model has no finite_domain axiom at all
+check_exact_output fmb/propositional-collapsed.check.out --input_syntax tptp --mode model_check fmb/propositional-collapsed.check.p
+
+# FMB: -fmbmp layered prints every introduced symbol a printed definition mentions (iG1 for
+# fmb/cond.p), and model_check reads symbolic definitions back, in whatever order the file has
+# them (fmb/chaindef.layered.check.p). Exact output, so that a change to the printing shows
+check_exact_output fmb/cond.layered.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered fmb/cond.p
+check_exact_output fmb/cond.layered.check.out --input_syntax tptp --mode model_check fmb/cond.layered.check.p
+check_exact_output fmb/chaindef.layered.check.out --input_syntax tptp --mode model_check fmb/chaindef.layered.check.p
+# model_check rejects what makes a symbolic definition unusable, when it loads the model
+check_rejected "The model's definitions are cyclic: f_symbolic_definition -> g_symbolic_definition -> h2_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-cycle.p
+check_rejected "The model's definitions are cyclic: f_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-self-reference.p
+check_rejected 'the arguments of k(X0,X0) must be pairwise distinct' --input_syntax tptp --mode model_check fmb/model-bad-head.p
+check_rejected 'f is defined twice in the model, by f_symbolic_definition and by table cells in function_f' --input_syntax tptp --mode model_check fmb/model-defined-twice.p
+check_rejected 'The model gives two different values to a cell, the second time in function_f_again' --input_syntax tptp --mode model_check fmb/model-cell-conflict.p
+check_rejected 'mentions g, which the model neither tabulates nor defines' --input_syntax tptp --mode model_check fmb/model-undefined-symbol.p
 
 
 # Synthesis without and with uncomputables

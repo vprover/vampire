@@ -24,6 +24,8 @@
 #include "Lib/StringUtils.hpp"
 
 #include "Kernel/Formula.hpp"
+#include "Kernel/FormulaVarIterator.hpp"
+#include "Kernel/Problem.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
@@ -31,6 +33,8 @@
 #include "Parse/TPTP.hpp"
 
 #include "FiniteModelMultiSorted.hpp"
+
+#include <memory>
 
 namespace FMB{
 
@@ -104,17 +108,48 @@ static void doCheck(UnitList* units)
     }
   }
 
-  if (sortSizes.size() == 0) {
-    USER_ERROR("No domain definition found!\n Use vampire(model_check,model_start). MODEL_DEFINITION_FORMULAS. vampire(model_check,model_end).");
+  // A model with no domain at all is fine as long as there is a model: a propositional one
+  // (checks/fmb/propositional-collapsed.p) has nothing else to say
+  bool anyModelDefinition = false;
+  {
+    UnitList::Iterator uit(units);
+    while (uit.hasNext()) {
+      anyModelDefinition |= Parse::TPTP::isModelDefinition(uit.next());
+    }
+  }
+  if (!anyModelDefinition) {
+    USER_ERROR("No model found!\n Use vampire(model_check,model_start). MODEL_DEFINITION_FORMULAS. vampire(model_check,model_end).");
   }
 
   std::cout << "Loading model..." << std::endl;
+
+  DomainConstantSet domainConstants; // union of all the perSort ones
+  {
+    auto it = domainConstantsPerSort.items();
+    while (it.hasNext()) {
+      DomainConstantSet::Iterator dit(*it.next().second);
+      while (dit.hasNext()) {
+        domainConstants.insert(dit.next());
+      }
+    }
+  }
+
+  // The symbolic definitions first, since a symbol defined by one gets no table. They own
+  // their Problem::FunDef / PredDef, which the model's layers point to, so they have to
+  // outlive the model -- hence declared before it.
+  Stack<SymbolicDefinition> symbolic;
+  DArray<int> funDefinedBy, predDefinedBy; // index into symbolic, or -1
+  readSymbolicDefinitions(units,domainConstants,symbolic,funDefinedBy,predDefinedBy);
 
   // Which symbols the model is about: the ones its own definitions mention. A symbol that
   // only occurs in the formulas to be checked deliberately gets no table -- the model
   // saying nothing about it is exactly the partiality evaluate() is to report.
   DArray<bool> usedFunctions, usedPredicates;
   collectModelSymbols(units,usedFunctions,usedPredicates);
+  for (const SymbolicDefinition& sd : symbolic) {
+    // a symbolic definition is the whole interpretation of its head: no table under it
+    (sd.pred ? usedPredicates : usedFunctions)[sd.symbol()] = false;
+  }
 
   DArray<unsigned> sortSizesArray;
   // a sort the model file does not mention gets no domain (a well-formed model only
@@ -130,9 +165,14 @@ static void doCheck(UnitList* units)
   // TODO can we pass a reference here instead of clone()ing?
   FiniteModelMultiSorted model(sortSizesArray.clone(),std::move(usedFunctions),std::move(usedPredicates));
 
-  DomainConstantSet domainConstants; // union of all the perSort ones
   // a pure lookup, never enumerated, so hashing it by address is harmless here
   DHMap<Term*,unsigned, FnvHash, PtrIdentityHash> domainConstantNumber;
+
+  // which symbols have at least one table cell, so that a definition mentioning a symbol
+  // the model says nothing about can be reported up front
+  TableCells cells;
+  cells.fun.init(env.signature->functions(),false);
+  cells.pred.init(env.signature->predicates(),false);
 
   std::cout << "Detected model with " << sortSizes.size() << " sorts." << std::endl;
   auto it = sortSizes.items();
@@ -150,9 +190,9 @@ static void doCheck(UnitList* units)
     while(dit.hasNext()){
       Term* con = dit.next();
       std::cout << "    " << con->toString() << std::endl;
-      domainConstants.insert(con);
       domainConstantNumber.insert(con,count);
       model.addFunctionDefinition(con->functor(),DArray<unsigned>(0),count);
+      cells.fun[con->functor()] = true;
       count++;
     }
   }
@@ -162,25 +202,24 @@ static void doCheck(UnitList* units)
     while(uit.hasNext()){
       Unit* u = uit.next();
       if(!Parse::TPTP::isModelDefinition(u)) continue;
-      std::string name;
-      std::filesystem::path path;
-      ALWAYS(Parse::TPTP::findAxiomName(u,name,path));
-      if(StringUtils::starts_with(name,"finite_domain") || StringUtils::starts_with(name,"distinct_domain")) continue;
+      if(isDomainAxiom(u)) continue;
 
       // All model formulas should be conjunctions of definitions
       // TODO allow for unit clause definitions in the future
       if(u->isClause()) USER_ERROR("Expecting model to use formulas i.e. fof/tff");
       Formula* formula = u->getFormula();
+      if(isSymbolicDefinition(formula,domainConstants)) continue; // read above
 
+      TableContext ctx{u,domainConstants,domainConstantNumber,symbolic,funDefinedBy,predDefinedBy,cells};
       if(formula->connective()==Connective::NOT){
         Formula* inner = formula->uarg();
         if(inner->connective()==Connective::LITERAL){
-          addDefinition(model,inner->literal(),true,domainConstants,domainConstantNumber);
+          addDefinition(model,inner->literal(),true,ctx);
         }
         else USER_ERROR("Unexpected negation in "+formula->toString());
       }
       else if(formula->connective()==Connective::LITERAL){
-        addDefinition(model,formula->literal(),false,domainConstants,domainConstantNumber);
+        addDefinition(model,formula->literal(),false,ctx);
       }
       else{
         if(formula->connective()!=Connective::AND)
@@ -196,10 +235,13 @@ static void doCheck(UnitList* units)
           }
           if(def->connective()!=Connective::LITERAL) USER_ERROR("Badly formed definition");
           Literal* lit = def->literal();
-          addDefinition(model,lit,negated,domainConstants,domainConstantNumber);
+          addDefinition(model,lit,negated,ctx);
         }
       }
     }
+
+    addSymbolicDefinitions(model,symbolic,funDefinedBy,predDefinedBy,cells);
+
     std::cout << "Model loaded" << std::endl;
     std::cout << "Checking formulas..." << std::endl;
     {
@@ -344,10 +386,264 @@ static bool isDomainConstant(const DomainConstantSet& domainConstants, TermList 
   return t.isTerm() && t.term()->shared() && domainConstants.contains(t.term());
 }
 
-static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negated,
-                          DomainConstantSet& domainConstants,
-                          DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& domainConstantNumber)
+/**
+ * A model formula that defines its head symbol by a formula rather than cell by cell:
+ * ![Xs]: (f(Xs) = t) or ![Xs]: (p(Xs) <=> F), and for a constant or a proposition the
+ * unquantified c = t (with neither side a domain constant, or it would be a table cell) and
+ * q <=> F. The head is on the left, as FMB prints it.
+ */
+struct SymbolicDefinition {
+  Unit* unit;
+  bool pred;
+  std::unique_ptr<Problem::FunDef> fd; // exactly one of these two is set
+  std::unique_ptr<Problem::PredDef> pd;
+
+  unsigned symbol() const { return pred ? pd->_head->functor() : fd->_head->functor(); }
+  std::string symbolName() const {
+    return pred ? env.signature->predicateName(symbol()) : env.signature->functionName(symbol());
+  }
+};
+
+struct TableCells {
+  DArray<bool> fun;
+  DArray<bool> pred;
+};
+
+// what addDefinition needs to know besides the literal
+struct TableContext {
+  Unit* unit;
+  const DomainConstantSet& domainConstants;
+  DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& domainConstantNumber;
+  const Stack<SymbolicDefinition>& symbolic;
+  const DArray<int>& funDefinedBy;
+  const DArray<int>& predDefinedBy;
+  TableCells& cells;
+};
+
+static std::string unitName(Unit* u)
 {
+  std::string name;
+  std::filesystem::path path;
+  return Parse::TPTP::findAxiomName(u,name,path) ? name : u->toString();
+}
+
+static bool isDomainAxiom(Unit* u)
+{
+  std::string name = unitName(u);
+  return StringUtils::starts_with(name,"finite_domain") || StringUtils::starts_with(name,"distinct_domain");
+}
+
+// is this model formula a symbolic definition (see SymbolicDefinition), as opposed to table cells?
+static bool isSymbolicDefinition(Formula* f, const DomainConstantSet& domainConstants)
+{
+  switch (f->connective()) {
+    case Connective::FORALL:
+    case Connective::IFF:
+      return true;
+    case Connective::LITERAL: {
+      Literal* l = f->literal();
+      return l->isEquality() && l->polarity() &&
+        !isDomainConstant(domainConstants,FiniteModelMultiSorted::deFool(*l->nthArgument(0))) &&
+        !isDomainConstant(domainConstants,FiniteModelMultiSorted::deFool(*l->nthArgument(1)));
+    }
+    default:
+      return false;
+  }
+}
+
+/**
+ * Read one symbolic definition, rejecting on the spot what is malformed: the head must be a
+ * symbol applied to pairwise distinct variables, exactly the quantified ones, the body may
+ * have no other free variables, and the evaluator must be able to evaluate it.
+ */
+static SymbolicDefinition readSymbolicDefinition(Unit* u, const DomainConstantSet& domainConstants)
+{
+  auto reject = [u](const std::string& why) {
+    USER_ERROR("Cannot read the model definition " + unitName(u) + ": " + why + "\n" + u->toString());
+  };
+
+  Formula* core = u->getFormula();
+  DHSet<unsigned, FnvHash, IdentityHash> quantified;
+  unsigned numQuantified = 0;
+  while (core->connective() == Connective::FORALL) {
+    for (VSList* vs = core->vars(); vs; vs = vs->tail()) {
+      quantified.insert(vs->head().first);
+      numQuantified++;
+    }
+    core = core->qarg();
+  }
+
+  SymbolicDefinition sd;
+  sd.unit = u;
+  Term* head = nullptr;
+  if (core->connective() == Connective::LITERAL && core->literal()->isEquality() && core->literal()->polarity()) {
+    Literal* eq = core->literal();
+    // the head is the side written on the left; sharing may have swapped the two, and the
+    // parser records when it did (AtomicFormula::flipForPrinting)
+    bool flipped = static_cast<AtomicFormula*>(core)->flipForPrinting;
+    TermList lhs = *eq->nthArgument(flipped ? 1 : 0);
+    TermList rhs = *eq->nthArgument(flipped ? 0 : 1);
+    if (lhs.isVar() || lhs.term()->isSpecial() || isDomainConstant(domainConstants,lhs)) {
+      reject("the left-hand side must be the defined symbol applied to the quantified variables");
+    }
+    if (rhs.isVar()) {
+      reject("a variable as the whole right-hand side is not supported");
+    }
+    sd.pred = false;
+    sd.fd.reset(new Problem::FunDef(lhs.term(),rhs.term()));
+    head = lhs.term();
+  } else if (core->connective() == Connective::IFF && core->left()->connective() == Connective::LITERAL &&
+             !core->left()->literal()->isEquality() && core->left()->literal()->polarity()) {
+    sd.pred = true;
+    sd.pd.reset(new Problem::PredDef(core->left()->literal(),core->right()));
+    head = core->left()->literal();
+  } else {
+    reject("expected ![X0,...]: (f(X0,...) = t) or ![X0,...]: (p(X0,...) <=> F)");
+  }
+
+  DHSet<unsigned, FnvHash, IdentityHash> headVars;
+  for (unsigned i = 0; i < head->arity(); i++) {
+    TermList arg = *head->nthArgument(i);
+    if (!arg.isVar() || !quantified.contains(arg.var())) {
+      reject("the arguments of " + head->toString() + " must be the quantified variables");
+    }
+    if (!headVars.insert(arg.var())) {
+      reject("the arguments of " + head->toString() + " must be pairwise distinct");
+    }
+  }
+  if (headVars.size() != numQuantified) {
+    reject("every quantified variable must be an argument of " + head->toString());
+  }
+  VList::Iterator fvit(freeVariables(core));
+  while (fvit.hasNext()) {
+    if (!headVars.contains(fvit.next())) {
+      reject("the body has a free variable that is not an argument of " + head->toString());
+    }
+  }
+  if (!FiniteModelMultiSorted::evaluable(core)) {
+    reject("the body contains a construct the model checker cannot evaluate");
+  }
+  return sd;
+}
+
+static void readSymbolicDefinitions(UnitList* units, const DomainConstantSet& domainConstants,
+                                    Stack<SymbolicDefinition>& symbolic,
+                                    DArray<int>& funDefinedBy, DArray<int>& predDefinedBy)
+{
+  funDefinedBy.init(env.signature->functions(),-1);
+  predDefinedBy.init(env.signature->predicates(),-1);
+
+  UnitList::Iterator uit(units);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+    if (!Parse::TPTP::isModelDefinition(u) || u->isClause() || isDomainAxiom(u)) continue;
+    if (!isSymbolicDefinition(u->getFormula(),domainConstants)) continue;
+
+    symbolic.push(readSymbolicDefinition(u,domainConstants));
+    const SymbolicDefinition& sd = symbolic.top();
+    int& definedBy = (sd.pred ? predDefinedBy : funDefinedBy)[sd.symbol()];
+    if (definedBy >= 0) {
+      USER_ERROR(sd.symbolName() + " is defined twice in the model, by " +
+                 unitName(symbolic[definedBy].unit) + " and by " + unitName(u));
+    }
+    definedBy = symbolic.size()-1;
+  }
+}
+
+/**
+ * Check what the symbolic definitions mention and add them to the model, each after the
+ * definitions its body uses: a definition layer reads the model as it stands when it is
+ * added (DefFunLayer::value). The order in the file does not matter; a cycle, of any
+ * length, is an error.
+ */
+static void addSymbolicDefinitions(FiniteModelMultiSorted& model, Stack<SymbolicDefinition>& symbolic,
+                                   const DArray<int>& funDefinedBy, const DArray<int>& predDefinedBy,
+                                   const TableCells& cells)
+{
+  // the edges: which definitions each definition's body uses
+  DArray<Stack<unsigned>> uses(symbolic.size());
+  for (unsigned i = 0; i < symbolic.size(); i++) {
+    const SymbolicDefinition& sd = symbolic[i];
+    FiniteModelMultiSorted::BodySymbols syms;
+    ALWAYS(sd.pred ? FiniteModelMultiSorted::collectBodySymbols(sd.pd->_body,syms)
+                   : FiniteModelMultiSorted::collectBodySymbols(TermList(sd.fd->_body),syms));
+    for (unsigned j = 0; j < syms.funs.size(); j++) {
+      unsigned f = syms.funs[j];
+      if (funDefinedBy[f] >= 0) {
+        uses[i].push(funDefinedBy[f]);
+      } else if (!cells.fun[f]) {
+        USER_ERROR("The model definition " + unitName(sd.unit) + " mentions " + env.signature->functionName(f) +
+                   ", which the model neither tabulates nor defines");
+      }
+    }
+    for (unsigned j = 0; j < syms.preds.size(); j++) {
+      unsigned p = syms.preds[j];
+      if (predDefinedBy[p] >= 0) {
+        uses[i].push(predDefinedBy[p]);
+      } else if (!cells.pred[p]) {
+        USER_ERROR("The model definition " + unitName(sd.unit) + " mentions " + env.signature->predicateName(p) +
+                   ", which the model neither tabulates nor defines");
+      }
+    }
+  }
+
+  // depth-first, iteratively (a chain of definitions can be long); a definition is added
+  // once everything it uses has been
+  enum : char { UNSEEN, ON_PATH, ADDED };
+  DArray<char> state;
+  state.init(symbolic.size(),UNSEEN);
+  struct Frame { unsigned def; unsigned next; };
+  Stack<Frame> path;
+  for (unsigned root = 0; root < symbolic.size(); root++) {
+    if (state[root] != UNSEEN) continue;
+    state[root] = ON_PATH;
+    path.push({root,0});
+    while (path.isNonEmpty()) {
+      Frame& fr = path.top();
+      if (fr.next < uses[fr.def].size()) {
+        unsigned used = uses[fr.def][fr.next++];
+        if (state[used] == ON_PATH) {
+          // the cycle is the part of the path from used on
+          std::string chain;
+          bool onCycle = false;
+          for (unsigned k = 0; k < path.size(); k++) {
+            onCycle |= (path[k].def == used);
+            if (onCycle) chain += unitName(symbolic[path[k].def].unit) + " -> ";
+          }
+          USER_ERROR("The model's definitions are cyclic: " + chain + unitName(symbolic[used].unit));
+        }
+        if (state[used] == UNSEEN) {
+          state[used] = ON_PATH;
+          path.push({used,0});
+        }
+        continue;
+      }
+      SymbolicDefinition& sd = symbolic[fr.def];
+      if (sd.pred) model.addSymbolicDefinition(sd.pd.get());
+      else model.addSymbolicDefinition(sd.fd.get());
+      state[fr.def] = ADDED;
+      path.pop();
+    }
+  }
+}
+
+static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negated,TableContext& ctx)
+{
+  const DomainConstantSet& domainConstants = ctx.domainConstants;
+  DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& domainConstantNumber = ctx.domainConstantNumber;
+
+  // a symbolically defined symbol has no table, and must not get cells either
+  auto checkNotSymbolic = [&ctx](int definedBy, const std::string& name) {
+    if (definedBy >= 0) {
+      USER_ERROR(name + " is defined twice in the model, by " + unitName(ctx.symbolic[definedBy].unit) +
+                 " and by table cells in " + unitName(ctx.unit));
+    }
+  };
+  auto conflict = [&ctx,lit]() {
+    USER_ERROR("The model gives two different values to a cell, the second time in " + unitName(ctx.unit) +
+               ":\n" + lit->toString());
+  };
+
   if(lit->isEquality()){
     if(!lit->polarity() || negated) USER_ERROR("Cannot have negated function definition");
     // Defining a function or constant
@@ -369,6 +665,7 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
     unsigned res = domainConstantNumber.get(right.term());
     Term* fun = left.term();
     unsigned f = fun->functor();
+    checkNotSymbolic(ctx.funDefinedBy[f],env.signature->functionName(f));
     unsigned arity = env.signature->functionArity(f);
     DArray<unsigned> args(arity);
     for(unsigned i=0;i<arity;i++){
@@ -377,12 +674,15 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
         USER_ERROR("Expect term on left of definition to be grounded with domain constants");
       args[i] = domainConstantNumber.get(arg.term());
     }
-    model.addFunctionDefinition(f,args,res);
+    unsigned old = model.addFunctionDefinition(f,args,res);
+    if (old != FUNV_UNDEF && old != res) conflict();
+    ctx.cells.fun[f] = true;
   }else{
     // not sure this makes sense but...
     if(!lit->polarity()) negated=!negated;
     // Defining a predicate or proposition
     unsigned p = lit->functor();
+    checkNotSymbolic(ctx.predDefinedBy[p],env.signature->predicateName(p));
     unsigned arity = env.signature->predicateArity(p);
 
     DArray<unsigned> args(arity);
@@ -392,7 +692,9 @@ static void addDefinition(FiniteModelMultiSorted& model,Literal* lit,bool negate
         USER_ERROR("Expect term on left of definition to be grounded with domain constants");
       args[i] = domainConstantNumber.get(arg.term());
     }
-    model.addPredicateDefinition(p,args,!negated);
+    char old = model.addPredicateDefinition(p,args,!negated);
+    if (old != INTP_UNDEF && old != (negated ? INTP_FALSE : INTP_TRUE)) conflict();
+    ctx.cells.pred[p] = true;
   }
 }
 
