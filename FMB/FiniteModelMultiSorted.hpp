@@ -194,18 +194,25 @@ private:
   // the sort declarations, domain constants, finite_domain_* and distinct_domain_* axioms of
   // every sort sortPrinted marks
   void printDomains(std::ostream& out, const DArray<bool>& sortPrinted, DomainNames& names);
-  void printFunType(std::ostream& out, unsigned f);
-  void printPredType(std::ostream& out, unsigned p);
+  // the name of the i-th domain element of sort s (not of $o, whose two are $true and $false)
+  std::string domainConstantName(unsigned s, unsigned i);
+  // the type declaration and the table of f (p), under the printed name name, of the values
+  // f (p) has as of asOf
+  void printFunType(std::ostream& out, unsigned f, const std::string& name);
+  void printPredType(std::ostream& out, unsigned p, const std::string& name);
+  void printFunTable(std::ostream& out, unsigned f, const std::string& name, Timestamp asOf, const DomainNames& names);
+  void printPredTable(std::ostream& out, unsigned p, const std::string& name, Timestamp asOf, const DomainNames& names);
 
-  // Which layer a symbol's final interpretation is printed as: DEF (its body, symbolically),
-  // TRIVIAL (the trivial layer's value, as a formula), or TABLE (spelled out cell by cell --
-  // for a table, a flip on top of anything, a stale definition, and a trivial value that has
-  // no formula rendering)
-  LayerKind funPrintKind(unsigned f);
-  LayerKind predPrintKind(unsigned p);
-  // the symbol's final interpretation as its print kind says, or as a table regardless
-  void printFunValue(std::ostream& out, unsigned f, const DomainNames& names, bool tableOnly);
-  void printPredValue(std::ostream& out, unsigned p, const DomainNames& names, bool tableOnly);
+  // --- the names of the versions toStringLayered prints ---
+
+  // per symbol, the separator of its version names; empty while it has none to print
+  DArray<std::string> _funVersionSep;
+  DArray<std::string> _predVersionSep;
+  void chooseVersionSeparators(const DArray<Stack<unsigned>>& funQueued, const DArray<Stack<unsigned>>& predQueued,
+                               const DArray<bool>& sortPrinted);
+  static std::string versionName(const std::string& base, const std::string& sep, unsigned depth);
+  // the printed name of the version of a symbol whose top is the given layer of its stack
+  std::string versionName(bool pred, unsigned sym, unsigned layer);
 
   // walk a symbol's layer stack from the top, taking the first layer that has a value for
   // args; a layer with nothing to say falls through to the one below. Falling off the
@@ -219,12 +226,6 @@ private:
 
   void restoreViaCondFlip(Problem::CondFlip*);
 
-  // may a definition born at born be *printed* as it stands? Only if every symbol its body
-  // mentions still means at the top of its stack what it meant when the definition was born
-  bool bodyStillCurrent(Term* body, Timestamp born);
-  bool bodyStillCurrent(Formula* body, Timestamp born);
-  bool bodySymbolsStillCurrent(const Stack<unsigned>& funs, const Stack<unsigned>& preds, Timestamp born) const;
-  bool symbolStillCurrent(const Stack<FunLayer*>& st, Timestamp born) const;
 
   std::string prepend(const char* prefix, std::string name) {
     if (name.empty()) {

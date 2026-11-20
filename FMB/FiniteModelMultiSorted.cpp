@@ -392,51 +392,6 @@ bool FiniteModelMultiSorted::collectBodySymbols(Formula* body, BodySymbols& out)
   return true;
 }
 
-/**
- * A definition layer computes its value from the model as it stood when the definition
- * arrived, which is what makes it right. Printing its body as it stands, though, says
- * something about the model as *printed* -- the topmost version of every symbol. The two
- * agree unless some symbol in the body has acquired a layer since, which in practice means a
- * flip replayed after this definition. Where they disagree, the body must not be printed; the
- * extensional rendering, which reads through the whole stack, is right in every case.
- *
- * (The eventual fix is to print the older version under a name of its own, rather than to
- * fall back on spelling the extension out. Until then this is at least no coarser than the
- * freezing it replaces, which flattened every direct reader of every flip target.)
- */
-bool FiniteModelMultiSorted::bodySymbolsStillCurrent(const Stack<unsigned>& funs, const Stack<unsigned>& preds, Timestamp born) const
-{
-  for (unsigned i = 0; i < funs.size(); i++) {
-    if (!symbolStillCurrent(_f_layers[funs[i]],born)) {
-      return false;
-    }
-  }
-  for (unsigned i = 0; i < preds.size(); i++) {
-    const Stack<PredLayer*>& st = _p_layers[preds[i]];
-    if (st.isNonEmpty() && st.top()->_born >= born) {
-      return false;
-    }
-  }
-  return true;
-}
-
-bool FiniteModelMultiSorted::bodyStillCurrent(Term* body, Timestamp born)
-{
-  BodySymbols syms;
-  return collectBodySymbols(TermList(body),syms) && bodySymbolsStillCurrent(syms.funs,syms.preds,born);
-}
-
-bool FiniteModelMultiSorted::bodyStillCurrent(Formula* body, Timestamp born)
-{
-  BodySymbols syms;
-  return collectBodySymbols(body,syms) && bodySymbolsStillCurrent(syms.funs,syms.preds,born);
-}
-
-bool FiniteModelMultiSorted::symbolStillCurrent(const Stack<FunLayer*>& st, Timestamp born) const
-{
-  return st.isEmpty() || st.top()->_born < born;
-}
-
 std::string FiniteModelMultiSorted::toString()
 {
   switch (env.options->fmbModelPrinting()) {
@@ -479,6 +434,12 @@ static void mentionSortsOf(DArray<bool>& sortPrinted, OperatorType* ot, bool wit
   if (withResult) {
     sortPrinted[ot->result().term()->functor()] = true;
   }
+}
+
+std::string FiniteModelMultiSorted::domainConstantName(unsigned s, unsigned i)
+{
+  std::string sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : env.signature->typeConName(s);
+  return append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
 }
 
 void FiniteModelMultiSorted::printDomains(std::ostream& modelStm, const DArray<bool>& sortPrinted, DomainNames& names)
@@ -524,7 +485,7 @@ void FiniteModelMultiSorted::printDomains(std::ostream& modelStm, const DArray<b
       // Domain constant declarations
       for(unsigned i=1;i<=size;i++){
         modelStm << "tff(" << append(prepend("declare_", sortNameLabel), Int::toString(i).c_str()) << ",type,";
-        std::string cname = append(prepend("fmb_", sortNameLabel),(std::string("_")+Lib::Int::toString(i)).c_str());
+        std::string cname = domainConstantName(s,i);
         names[s][i]=cname;
         modelStm << cname << ":" << sortName << ")." << endl;
       }
@@ -565,11 +526,10 @@ void FiniteModelMultiSorted::printDomains(std::ostream& modelStm, const DArray<b
   }
 }
 
-void FiniteModelMultiSorted::printFunType(std::ostream& modelStm, unsigned f)
+void FiniteModelMultiSorted::printFunType(std::ostream& modelStm, unsigned f, const std::string& name)
 {
   const Signature::Symbol* symb = env.signature->getFunction(f);
   unsigned arity = symb->arity();
-  std::string name = symb->name();
 
   OperatorType* ot = symb->type();
   modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<" : ";
@@ -584,11 +544,10 @@ void FiniteModelMultiSorted::printFunType(std::ostream& modelStm, unsigned f)
   modelStm << ot->result().toString() << ")." << endl;
 }
 
-void FiniteModelMultiSorted::printPredType(std::ostream& modelStm, unsigned p)
+void FiniteModelMultiSorted::printPredType(std::ostream& modelStm, unsigned p, const std::string& name)
 {
   const Signature::Symbol* symb = env.signature->getPredicate(p);
   unsigned arity = symb->arity();
-  std::string name = symb->name();
   OperatorType* ot = symb->type();
   modelStm << "tff("<<prepend("declare_", name)<<",type,"<<name<<": "; //"(";
   if (arity>0) {
@@ -604,81 +563,14 @@ void FiniteModelMultiSorted::printPredType(std::ostream& modelStm, unsigned p)
   modelStm << "$o )." << endl;
 }
 
-LayerKind FiniteModelMultiSorted::funPrintKind(unsigned f)
-{
-  // A definition or a trivial value prints as a formula; anything else -- a table, or a
-  // flip stacked on one -- has to be spelled out cell by cell. Note this is not the same
-  // question as funRepresented: a flip layer has no table of its own, but what it computes
-  // has no shorter rendering either.
-  Stack<FunLayer*>& st = _f_layers[f];
-  LayerKind kind = st.isNonEmpty() ? st.top()->_kind : LayerKind::TRIVIAL;
-  if (kind == LayerKind::DEF &&
-      !bodyStillCurrent(static_cast<DefFunLayer*>(st.top())->def()->_body,st.top()->_born)) {
-    kind = LayerKind::TABLE; // the body no longer describes the printed model; spell it out
-  }
-  // A trivial value has a formula rendering only while it is a constant; under the
-  // self-check it is pseudo-random junk instead. A symbol of arity 0 goes the same way
-  // regardless: it has a single value, and printing that *is* the formula, so its rendering
-  // does not move when the self-check is switched off.
-  if (kind == LayerKind::TRIVIAL && (FMB_CHECK_MODEL_AGAINST_INPUT || env.signature->functionArity(f) == 0)) {
-    kind = LayerKind::TABLE;
-  }
-  return (kind == LayerKind::DEF || kind == LayerKind::TRIVIAL) ? kind : LayerKind::TABLE;
-}
-
-LayerKind FiniteModelMultiSorted::predPrintKind(unsigned p)
-{
-  // see funPrintKind
-  Stack<PredLayer*>& st = _p_layers[p];
-  LayerKind kind = st.isNonEmpty() ? st.top()->_kind : LayerKind::TRIVIAL;
-  if (kind == LayerKind::DEF &&
-      !bodyStillCurrent(static_cast<DefPredLayer*>(st.top())->def()->_body,st.top()->_born)) {
-    kind = LayerKind::TABLE;
-  }
-  if (kind == LayerKind::TRIVIAL && (FMB_CHECK_MODEL_AGAINST_INPUT || env.signature->predicateArity(p) == 0)) {
-    kind = LayerKind::TABLE;
-  }
-  return (kind == LayerKind::DEF || kind == LayerKind::TRIVIAL) ? kind : LayerKind::TABLE;
-}
-
-void FiniteModelMultiSorted::printFunValue(std::ostream& modelStm, unsigned f, const DomainNames& names, bool tableOnly)
+void FiniteModelMultiSorted::printFunTable(std::ostream& modelStm, unsigned f, const std::string& name, Timestamp asOf, const DomainNames& names)
 {
   const Signature::Symbol* symb = env.signature->getFunction(f);
   unsigned arity = symb->arity();
-  std::string name = symb->name();
   OperatorType* ot = symb->type();
 
-  LayerKind kind = tableOnly ? LayerKind::TABLE : funPrintKind(f);
-  if (kind != LayerKind::TABLE) {
-    // either a recorded definition speaks for f, or nothing does and the trivial layer's
-    // value has to be spelled out
-    Problem::FunDef* fd = (kind == LayerKind::DEF) ?
-      static_cast<DefFunLayer*>(_f_layers[f].top())->def() : nullptr;
-
-    modelStm << "tff("<<append(name,"_symbolic_definition")<<",axiom,";
-    if (arity>0) { // quantify
-      modelStm << "![";
-      for(unsigned i=0;i<arity;i++){
-        modelStm << (fd ? fd->_head->nthArgument(i)->toString() : varName(i));
-        modelStm << ":" << ot->arg(i).toString();
-        if(i+1 < arity) modelStm << ", ";
-      }
-      modelStm << "]: ";
-    }
-    if (fd) {
-      modelStm << fd->_head->toString() << " = " << fd->_body->toString();
-    } else {
-      modelStm << linearHead(name,arity) << " = ";
-      unsigned srt = ot->result().term()->functor();
-      modelStm << names[srt][1]; // the trivial layer's value
-    }
-
-    modelStm << ")." <<endl;
-    return;
-  }
-
   if (arity == 0) {
-    unsigned res = evalFun(f,DArray<unsigned>(0),_now);
+    unsigned res = evalFun(f,DArray<unsigned>(0),asOf);
     ASS_G(res,0)
 
     TermList srtT = ot->result();
@@ -693,7 +585,7 @@ void FiniteModelMultiSorted::printFunValue(std::ostream& modelStm, unsigned f, c
     ArgsEnumerator it(_sizes,ot,arity);
     do {
       const DArray<unsigned>& args = it.args();
-      unsigned res = evalFun(f,args,_now);
+      unsigned res = evalFun(f,args,asOf);
       ASS_G(res,0)
 
       if (!first) {
@@ -717,41 +609,14 @@ void FiniteModelMultiSorted::printFunValue(std::ostream& modelStm, unsigned f, c
   }
 }
 
-void FiniteModelMultiSorted::printPredValue(std::ostream& modelStm, unsigned p, const DomainNames& names, bool tableOnly)
+void FiniteModelMultiSorted::printPredTable(std::ostream& modelStm, unsigned p, const std::string& name, Timestamp asOf, const DomainNames& names)
 {
   const Signature::Symbol* symb = env.signature->getPredicate(p);
   unsigned arity = symb->arity();
-  std::string name = symb->name();
   OperatorType* ot = symb->type();
 
-  LayerKind kind = tableOnly ? LayerKind::TABLE : predPrintKind(p);
-  if (kind != LayerKind::TABLE) {
-    Problem::PredDef* pd = (kind == LayerKind::DEF) ?
-      static_cast<DefPredLayer*>(_p_layers[p].top())->def() : nullptr;
-
-    modelStm << "tff("<<append(name,"_symbolic_definition")<<",axiom,";
-    if (arity>0) { // quantify
-      modelStm << "![";
-      for(unsigned i=0;i<arity;i++){
-        modelStm << (pd ? pd->_head->nthArgument(i)->toString() : varName(i));
-        modelStm << ":" << ot->arg(i).toString();
-        if(i+1 < arity) modelStm << ", ";
-      }
-      modelStm << "]: (";
-    }
-    if (pd) {
-      modelStm << pd->_head->toString() << " <=> " << pd->_body->toString();
-    } else {
-      modelStm << linearHead(name,arity) << " <=> $false"; // the trivial layer's value
-    }
-    if (arity>0)
-      modelStm << ")";
-    modelStm << ")." <<endl;
-    return;
-  }
-
   if (arity==0) {
-    char res = evalPred(p,DArray<unsigned>(0),_now);
+    char res = evalPred(p,DArray<unsigned>(0),asOf);
     if(res==INTP_TRUE){
       modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<name<< ")."<<endl;
     } else { // covers (res==INTP_FALSE) as well as undefined, which defaults to false
@@ -764,7 +629,7 @@ void FiniteModelMultiSorted::printPredValue(std::ostream& modelStm, unsigned p, 
     ArgsEnumerator it(_sizes,ot,arity);
     do {
       const DArray<unsigned>& args = it.args();
-      char res = evalPred(p,args,_now);
+      char res = evalPred(p,args,asOf);
       ASS_NEQ(res,INTP_UNDEF)
 
       if (!first){
@@ -821,58 +686,245 @@ std::string FiniteModelMultiSorted::toStringExplicit()
   // Functions (including constants)
   for(unsigned f=0;f<env.signature->functions();f++){
     if(!funPrinted(f)) continue;
-    printFunType(modelStm,f);
-    printFunValue(modelStm,f,names,/*tableOnly=*/true);
+    const std::string& name = env.signature->functionName(f);
+    printFunType(modelStm,f,name);
+    printFunTable(modelStm,f,name,_now,names);
   }
 
   //Predicates (including propositions)
   for(unsigned p=1;p<env.signature->predicates();p++){
     if(!predPrinted(p)) continue;
-    printPredType(modelStm,p);
-    printPredValue(modelStm,p,names,/*tableOnly=*/true);
+    const std::string& name = env.signature->predicateName(p);
+    printPredType(modelStm,p,name);
+    printPredTable(modelStm,p,name,_now,names);
   }
 
   return modelStm.str();
 }
 
+// --- printing a definition's body, with each symbol spelled as the version it reads ---
+//
+// rename(pred,symbol) gives the name to print for a symbol. Only what FMB records as a body
+// is covered: first-order terms and formulas, which is all there is after FOOL elimination;
+// for anything else (a special term, a boolean term that is not a variable) these return
+// false, having printed something incomplete, and the caller prints a table instead.
+
+template<class Rename>
+static bool printBodyTerm(std::ostream& out, TermList t, const Rename& rename)
+{
+  if (t.isVar()) {
+    out << varName(t.var());
+    return true;
+  }
+  Term* term = t.term();
+  if (term->isSpecial()) {
+    return false;
+  }
+  out << rename(false,term->functor());
+  if (term->arity() == 0) {
+    return true;
+  }
+  out << "(";
+  for (unsigned i = 0; i < term->arity(); i++) {
+    if (i) out << ",";
+    if (!printBodyTerm(out,*term->nthArgument(i),rename)) {
+      return false;
+    }
+  }
+  out << ")";
+  return true;
+}
+
+template<class Rename>
+static bool printBodyFormula(std::ostream& out, Formula* f, const Rename& rename)
+{
+  switch (f->connective()) {
+    case TRUE:
+      out << "$true";
+      return true;
+    case FALSE:
+      out << "$false";
+      return true;
+    case LITERAL: {
+      Literal* l = f->literal();
+      if (l->isEquality()) {
+        // parenthesised wherever it stands: our parser reads "X = $false | ..." as
+        // "X = ($false | ...)"
+        out << "(";
+        if (!printBodyTerm(out,*l->nthArgument(0),rename)) return false;
+        out << (l->polarity() ? " = " : " != ");
+        if (!printBodyTerm(out,*l->nthArgument(1),rename)) return false;
+        out << ")";
+        return true;
+      }
+      if (!l->polarity()) out << "~";
+      out << rename(true,l->functor());
+      if (l->arity() > 0) {
+        out << "(";
+        for (unsigned i = 0; i < l->arity(); i++) {
+          if (i) out << ",";
+          if (!printBodyTerm(out,*l->nthArgument(i),rename)) return false;
+        }
+        out << ")";
+      }
+      return true;
+    }
+    case BOOL_TERM: {
+      TermList t = f->getBooleanTerm();
+      if (!t.isVar()) return false;
+      out << varName(t.var());
+      return true;
+    }
+    case NOT:
+      out << "~(";
+      if (!printBodyFormula(out,f->uarg(),rename)) return false;
+      out << ")";
+      return true;
+    case AND:
+    case OR: {
+      out << "(";
+      bool first = true;
+      FormulaList::Iterator it(f->args());
+      while (it.hasNext()) {
+        if (!first) out << (f->connective() == AND ? " & " : " | ");
+        first = false;
+        if (!printBodyFormula(out,it.next(),rename)) return false;
+      }
+      out << ")";
+      return true;
+    }
+    case IMP:
+    case IFF:
+    case XOR:
+      out << "(";
+      if (!printBodyFormula(out,f->left(),rename)) return false;
+      out << (f->connective() == IMP ? " => " : f->connective() == IFF ? " <=> " : " <~> ");
+      if (!printBodyFormula(out,f->right(),rename)) return false;
+      out << ")";
+      return true;
+    case FORALL:
+    case EXISTS: {
+      out << "(" << (f->connective() == FORALL ? "!" : "?") << " [";
+      bool first = true;
+      for (VSList* vs = f->vars(); vs; vs = vs->tail()) {
+        if (!first) out << ", ";
+        first = false;
+        out << varName(vs->head().first) << ":" << vs->head().second.toString();
+      }
+      out << "] : ";
+      if (!printBodyFormula(out,f->qarg(),rename)) return false;
+      out << ")";
+      return true;
+    }
+    default:
+      return false;
+  }
+}
+
+// The layer of a symbol's stack a reader born at born sees on top: the topmost one born
+// before it (cf. evalFun). That is the version of the symbol a definition born at born reads.
+// Every symbol has a layer from model_0 on (initTables / installTrivialLayers), so there is one
+template<class Layer>
+static unsigned layerAsOf(const Stack<Layer*>& st, Timestamp born)
+{
+  for (unsigned i = st.size(); i > 0; i--) {
+    if (st[i-1]->_born < born) {
+      return i-1;
+    }
+  }
+  ASSERTION_VIOLATION;
+  return 0;
+}
+
 /**
- * The symbols to print, and the order to print them in, come from a breadth-first search:
- * it starts from the input's own symbols (functions, then predicates, each in signature
- * order), and goes on from each symbol printed as a definition to the symbols its body
- * mentions, in the order met. That is how an introduced symbol gets printed: only when a
- * printed definition needs it.
+ * Print the layer stacks rather than their final values. Each symbol is printed in the
+ * *versions* the model needs, a version being the stack up to one of its layers, and each
+ * version as that layer is: a definition as its body, over the versions of the body's
+ * symbols it reads (as of its own birth, see DefFunLayer::value); a trivial value as a
+ * formula; anything else, so far, as a table of the version's values.
  *
- * All of this is settled before anything is printed, because the type declarations of
- * everything come first. A definition may then mention a symbol whose own definition comes
- * later, and a reader meets the input's symbols first and what they need after.
+ * The final version of a symbol keeps the symbol's name. An earlier one is named by how many
+ * layers lie above it: 'f_$1' is f before its last update, 'f_$2' before the one before, and
+ * so on, with gaps wherever a version is not needed. The $ forces quoting, so that what
+ * printing made up stands out. Should a made-up name be taken already, the separator grows
+ * ('f__$1', ...), one separator for all of a symbol's versions.
  *
- * So far every symbol is printed as its final interpretation: a definition while its body
- * still describes the printed model, else a table (a flip, a stale definition).
+ * Which versions are needed, and the order to print them in, comes from a breadth-first
+ * search: from the final versions of the input's own symbols (functions, then predicates,
+ * each in signature order), on to the versions each printed definition reads, in the order
+ * met. That is how an introduced symbol, or an earlier version, gets printed: only when a
+ * printed definition needs it. All of it is settled first, because every type declaration
+ * comes before every definition; a definition may then mention a version whose own
+ * definition comes later.
  */
 std::string FiniteModelMultiSorted::toStringLayered()
 {
-  struct Printed { bool pred; unsigned sym; };
-  Stack<Printed> order;
-  DArray<bool> funQueued, predQueued;
-  funQueued.init(env.signature->functions(),false);
-  predQueued.init(env.signature->predicates(),false);
+  enum class Rendering { DEFINITION, TRIVIAL, TABLE };
+  struct Version { bool pred; unsigned sym; unsigned layer; Rendering how; };
 
-  auto queueFun = [&](unsigned f) {
-    if (funQueued[f] || !funPrintable(f)) return;
-    funQueued[f] = true;
-    order.push({false,f});
+  auto kindOf = [&](bool pred, unsigned sym, unsigned layer) {
+    return pred ? _p_layers[sym][layer]->_kind : _f_layers[sym][layer]->_kind;
   };
-  auto queuePred = [&](unsigned p) {
-    if (p == 0 || predQueued[p] || !predPrintable(p)) return; // equality is not in the model
-    predQueued[p] = true;
-    order.push({true,p});
+  auto bornOf = [&](const Version& v) {
+    return v.pred ? _p_layers[v.sym][v.layer]->_born : _f_layers[v.sym][v.layer]->_born;
+  };
+  auto bodyRename = [&](Timestamp born) {
+    return [this,born](bool pred, unsigned s) -> std::string {
+      return pred ? versionName(true,s,layerAsOf(_p_layers[s],born))
+                  : versionName(false,s,layerAsOf(_f_layers[s],born));
+    };
+  };
+  // print v's definition body into out; false if it is not something we can print
+  auto printBody = [&](std::ostream& out, const Version& v, Timestamp born, auto rename) -> bool {
+    if (v.pred) {
+      Problem::PredDef* pd = static_cast<DefPredLayer*>(_p_layers[v.sym][v.layer])->def();
+      if (pd->_head->isPositive()) return printBodyFormula(out,pd->_body,rename);
+      out << "~(";
+      bool ok = printBodyFormula(out,pd->_body,rename); // a negative head defines the complement
+      out << ")";
+      return ok;
+    }
+    Problem::FunDef* fd = static_cast<DefFunLayer*>(_f_layers[v.sym][v.layer])->def();
+    return printBodyTerm(out,TermList(fd->_body),rename);
+  };
+  auto rendering = [&](bool pred, unsigned sym, unsigned layer) {
+    Version v{pred,sym,layer,Rendering::TABLE};
+    LayerKind kind = kindOf(pred,sym,layer);
+    unsigned arity = pred ? env.signature->predicateArity(sym) : env.signature->functionArity(sym);
+    if (kind == LayerKind::DEF) {
+      std::ostringstream dummy;
+      if (printBody(dummy,v,bornOf(v),[](bool,unsigned) { return std::string(); })) {
+        return Rendering::DEFINITION;
+      }
+    }
+    // A trivial value has a formula rendering only while it is a constant; under the
+    // self-check it is pseudo-random junk instead. A symbol of arity 0 goes the same way
+    // regardless: it has a single value, and printing that *is* the formula
+    if (kind == LayerKind::TRIVIAL && !FMB_CHECK_MODEL_AGAINST_INPUT && arity > 0) {
+      return Rendering::TRIVIAL;
+    }
+    return Rendering::TABLE;
+  };
+
+  Stack<Version> order;
+  // per symbol, which of its layers have been queued
+  DArray<Stack<unsigned>> funQueued(env.signature->functions());
+  DArray<Stack<unsigned>> predQueued(env.signature->predicates());
+  auto queue = [&](bool pred, unsigned sym, unsigned layer) {
+    if (pred ? (sym == 0 || !predPrintable(sym)) : !funPrintable(sym)) return; // equality is not in the model
+    Stack<unsigned>& queued = (pred ? predQueued : funQueued)[sym];
+    for (unsigned i = 0; i < queued.size(); i++) {
+      if (queued[i] == layer) return;
+    }
+    queued.push(layer);
+    order.push({pred,sym,layer,rendering(pred,sym,layer)});
   };
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    if (!env.signature->getFunction(f)->introduced()) queueFun(f);
+    if (!env.signature->getFunction(f)->introduced() && funPrintable(f)) queue(false,f,_f_layers[f].size()-1);
   }
   for(unsigned p=1;p<env.signature->predicates();p++){
-    if (!env.signature->getPredicate(p)->introduced()) queuePred(p);
+    if (!env.signature->getPredicate(p)->introduced() && predPrintable(p)) queue(true,p,_p_layers[p].size()-1);
   }
 
   DArray<bool> sortPrinted(env.signature->typeCons());
@@ -882,39 +934,162 @@ std::string FiniteModelMultiSorted::toStringLayered()
 
   // order grows while we walk it; that is the queue
   for (unsigned i = 0; i < order.size(); i++) {
-    Printed cur = order[i];
+    Version cur = order[i];
+    mentionSortsOf(sortPrinted,cur.pred ? env.signature->getPredicate(cur.sym)->type() : env.signature->getFunction(cur.sym)->type(),
+                   /*withResult=*/!cur.pred);
+    if (cur.how != Rendering::DEFINITION) continue;
+    Timestamp born = bornOf(cur);
     BodySymbols syms;
-    if (!cur.pred) {
-      mentionSortsOf(sortPrinted,env.signature->getFunction(cur.sym)->type(),/*withResult=*/true);
-      if (funPrintKind(cur.sym) == LayerKind::DEF) {
-        ALWAYS(collectBodySymbols(TermList(static_cast<DefFunLayer*>(_f_layers[cur.sym].top())->def()->_body),syms));
-      }
+    if (cur.pred) {
+      ALWAYS(collectBodySymbols(static_cast<DefPredLayer*>(_p_layers[cur.sym][cur.layer])->def()->_body,syms));
     } else {
-      mentionSortsOf(sortPrinted,env.signature->getPredicate(cur.sym)->type(),/*withResult=*/false);
-      if (predPrintKind(cur.sym) == LayerKind::DEF) {
-        ALWAYS(collectBodySymbols(static_cast<DefPredLayer*>(_p_layers[cur.sym].top())->def()->_body,syms));
-      }
+      ALWAYS(collectBodySymbols(TermList(static_cast<DefFunLayer*>(_f_layers[cur.sym][cur.layer])->def()->_body),syms));
     }
-    for (unsigned j = 0; j < syms.funs.size(); j++) queueFun(syms.funs[j]);
-    for (unsigned j = 0; j < syms.preds.size(); j++) queuePred(syms.preds[j]);
+    for (unsigned j = 0; j < syms.funs.size(); j++) queue(false,syms.funs[j],layerAsOf(_f_layers[syms.funs[j]],born));
+    for (unsigned j = 0; j < syms.preds.size(); j++) queue(true,syms.preds[j],layerAsOf(_p_layers[syms.preds[j]],born));
     for (unsigned j = 0; j < syms.sorts.size(); j++) sortPrinted[syms.sorts[j]] = true;
   }
+
+  chooseVersionSeparators(funQueued,predQueued,sortPrinted);
 
   std::ostringstream modelStm;
   DomainNames names;
   printDomains(modelStm,sortPrinted,names);
 
   for (unsigned i = 0; i < order.size(); i++) {
-    if (order[i].pred) printPredType(modelStm,order[i].sym);
-    else printFunType(modelStm,order[i].sym);
+    const Version& v = order[i];
+    std::string name = versionName(v.pred,v.sym,v.layer);
+    if (v.pred) printPredType(modelStm,v.sym,name);
+    else printFunType(modelStm,v.sym,name);
   }
   modelStm << endl;
+
   for (unsigned i = 0; i < order.size(); i++) {
-    if (order[i].pred) printPredValue(modelStm,order[i].sym,names,/*tableOnly=*/false);
-    else printFunValue(modelStm,order[i].sym,names,/*tableOnly=*/false);
+    const Version& v = order[i];
+    std::string name = versionName(v.pred,v.sym,v.layer);
+    Timestamp born = bornOf(v);
+    OperatorType* ot = v.pred ? env.signature->getPredicate(v.sym)->type() : env.signature->getFunction(v.sym)->type();
+    unsigned arity = ot->arity();
+
+    if (v.how == Rendering::TABLE) {
+      // the version's values: everything up to and including its top layer
+      if (v.pred) printPredTable(modelStm,v.sym,name,born+1,names);
+      else printFunTable(modelStm,v.sym,name,born+1,names);
+      continue;
+    }
+
+    // a definition's head is written with the definition's own variables
+    Term* head = nullptr;
+    if (v.how == Rendering::DEFINITION) {
+      head = v.pred ? static_cast<Term*>(static_cast<DefPredLayer*>(_p_layers[v.sym][v.layer])->def()->_head)
+                    : static_cast<DefFunLayer*>(_f_layers[v.sym][v.layer])->def()->_head;
+    }
+    auto var = [&](unsigned j) { return head ? head->nthArgument(j)->toString() : varName(j); };
+
+    modelStm << "tff("<<append(name,"_symbolic_definition")<<",axiom,";
+    if (arity > 0) { // quantify
+      modelStm << "![";
+      for (unsigned j = 0; j < arity; j++) {
+        modelStm << var(j) << ":" << ot->arg(j).toString();
+        if (j+1 < arity) modelStm << ", ";
+      }
+      modelStm << "]: ";
+      if (v.pred) modelStm << "(";
+    }
+    modelStm << name;
+    if (arity > 0) {
+      modelStm << "(";
+      for (unsigned j = 0; j < arity; j++) {
+        if (j) modelStm << ",";
+        modelStm << var(j);
+      }
+      modelStm << ")";
+    }
+    modelStm << (v.pred ? " <=> " : " = ");
+    if (v.how == Rendering::DEFINITION) {
+      ALWAYS(printBody(modelStm,v,born,bodyRename(born)));
+    } else if (v.pred) {
+      modelStm << "$false"; // the trivial layer's value
+    } else {
+      modelStm << names[ot->result().term()->functor()][1]; // the trivial layer's value
+    }
+    if (v.pred && arity > 0) modelStm << ")";
+    modelStm << ")." << endl;
   }
 
   return modelStm.str();
+}
+
+/**
+ * Settle, per symbol with an earlier version to print, the separator of its version names
+ * (see toStringLayered): the first of "_$", "__$", ... under which none of its version names
+ * is taken -- by a symbol or sort of the signature, a domain constant, or a version name
+ * chosen before. Symbols go in signature order, so the choice is deterministic.
+ */
+void FiniteModelMultiSorted::chooseVersionSeparators(const DArray<Stack<unsigned>>& funQueued, const DArray<Stack<unsigned>>& predQueued,
+                                                     const DArray<bool>& sortPrinted)
+{
+  DHSet<std::string, FnvHash, LengthHash> taken;
+  for (unsigned f = 0; f < env.signature->functions(); f++) taken.insert(env.signature->functionName(f));
+  for (unsigned p = 0; p < env.signature->predicates(); p++) taken.insert(env.signature->predicateName(p));
+  for (unsigned s = 0; s < env.signature->typeCons(); s++) {
+    taken.insert(env.signature->typeConName(s));
+    if (!sortPrinted[s] || env.signature->isBoolCon(s)) continue;
+    for (unsigned i = 1; i <= domainSize(_sizes,s); i++) taken.insert(domainConstantName(s,i));
+  }
+
+  _funVersionSep.init(env.signature->functions(),std::string());
+  _predVersionSep.init(env.signature->predicates(),std::string());
+  for (unsigned pass = 0; pass < 2; pass++) {
+    bool pred = (pass == 1);
+    const DArray<Stack<unsigned>>& queued = pred ? predQueued : funQueued;
+    for (unsigned s = 0; s < queued.size(); s++) {
+      if (queued[s].isEmpty()) continue;
+      unsigned top = pred ? _p_layers[s].size()-1 : _f_layers[s].size()-1;
+      const std::string& base = pred ? env.signature->predicateName(s) : env.signature->functionName(s);
+      // the depths below the top this symbol is printed at
+      Stack<unsigned> depths;
+      for (unsigned i = 0; i < queued[s].size(); i++) {
+        if (queued[s][i] != top) depths.push(top - queued[s][i]);
+      }
+      if (depths.isEmpty()) continue;
+      std::string sep = "_$";
+      auto free = [&]() {
+        for (unsigned i = 0; i < depths.size(); i++) {
+          if (taken.contains(versionName(base,sep,depths[i]))) return false;
+        }
+        return true;
+      };
+      while (!free()) {
+        sep = "_" + sep;
+      }
+      for (unsigned i = 0; i < depths.size(); i++) taken.insert(versionName(base,sep,depths[i]));
+      (pred ? _predVersionSep : _funVersionSep)[s] = sep;
+    }
+  }
+}
+
+// base, unquoted, with sep and depth appended, and quoted again ($ always needs quoting)
+std::string FiniteModelMultiSorted::versionName(const std::string& base, const std::string& sep, unsigned depth)
+{
+  std::string inner = (base.size() >= 2 && base[0] == '\'') ? base.substr(1,base.size()-2) : base;
+  return "'" + inner + sep + Int::toString(depth) + "'";
+}
+
+std::string FiniteModelMultiSorted::versionName(bool pred, unsigned sym, unsigned layer)
+{
+  if (!(pred ? predPrintable(sym) : funPrintable(sym))) {
+    // $true / $false as terms: a domain element, printed as itself
+    return pred ? env.signature->predicateName(sym) : env.signature->functionName(sym);
+  }
+  unsigned top = pred ? _p_layers[sym].size()-1 : _f_layers[sym].size()-1;
+  const std::string& base = pred ? env.signature->predicateName(sym) : env.signature->functionName(sym);
+  if (layer == top) {
+    return base;
+  }
+  const std::string& sep = (pred ? _predVersionSep : _funVersionSep)[sym];
+  ASS(!sep.empty()); // chooseVersionSeparators saw this version
+  return versionName(base,sep,top-layer);
 }
 
 TermList FiniteModelMultiSorted::deFool(TermList tl)
