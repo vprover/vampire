@@ -43,6 +43,7 @@
 #include "Shell/GeneralSplitting.hpp"
 #include "Shell/Shuffling.hpp"
 
+#include "ArgsEnumerator.hpp"
 #include "FiniteModelMultiSorted.hpp"
 #include "ClauseFlattening.hpp"
 #include "SortInference.hpp"
@@ -329,8 +330,6 @@ void FiniteModelBuilder::init()
   // If we're not complete don't both doing anything
   if(!_isAppropriate) return;
 
-  if(!_prb.units()) return;
-
   env.statistics->phase = ExecutionPhase::FMB_PREPROCESSING;
 
   DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> vampire_sort_constraints_nonstrict;
@@ -487,8 +486,7 @@ void FiniteModelBuilder::init()
   // How often each symbol occurs in the clauses we have arrived at. This used to be an
   // "ugly hack" running a whole throwaway Property::scan over them, purely for the
   // usageCnts it left on the signature as a side effect.
-  SymbolCounts counts;
-  counts.countIn(pvi(concatIters(ClauseList::Iterator(_groundClauses),ClauseList::Iterator(_clauses))));
+  _symbolCounts.countIn(pvi(concatIters(ClauseList::Iterator(_groundClauses),ClauseList::Iterator(_clauses))));
 
   // record the deleted functions and predicates
   // we do this only here so that there are slots for symbols introduced in the previous preprocessing steps (definition introduction, splitting)
@@ -496,18 +494,18 @@ void FiniteModelBuilder::init()
   del_p.ensure(env.signature->predicates());
 
   for(unsigned f=0;f<env.signature->functions();f++){
-    del_f[f] = counts.functions[f]==0;
+    del_f[f] = _symbolCounts.functions[f]==0;
 #if VTRACE_FMB
     if(del_f[f]) cout << "Mark " << env.signature->functionName(f)  << " as deleted" << endl;
 #endif
   }
   for(unsigned p=1;p<env.signature->predicates();p++){ // skipping equality
-    del_p[p] = counts.predicates[p]==0;
+    del_p[p] = _symbolCounts.predicates[p]==0;
 #if VTRACE_FMB
     if(del_p[p]) {
       cout << "Mark " << env.signature->predicateName(p) << " as deleted" << endl;
       cout << "  since (bool)_prb.getEliminatedPredicates().findPtr(p) = " << (bool)_prb.getEliminatedPredicates().findPtr(p) << endl;
-      cout << "  since the clauses use it " << counts.predicates[p] << " times" << endl;
+      cout << "  since the clauses use it " << _symbolCounts.predicates[p] << " times" << endl;
     }
 #endif
   }
@@ -598,11 +596,15 @@ void FiniteModelBuilder::init()
       if(epr){
         unsigned c = dConstants[s];
         if(c==0) continue; //size of 0 does not make sense... maybe we should set it to 1 here? TODO
-        // TODO not sure about this second condition, if c < current max what would happen?
-        // why are we looking for the 'biggest' max?
-        if(_distinctSortMaxs[s]==UINT_MAX || c > _distinctSortMaxs[s]){
-          _distinctSortMaxs[s]=c;
-        }
+        // A sort nothing maps into needs no more elements than it has constants. That is a
+        // bound like the one already in place (from the subsorts' sortBounds, e.g. a clause
+        // X = t_1 | ... | X = t_n), so the tighter of the two wins. Raising the maximum above
+        // the subsorts' bounds would be worse than useless: grounding caps every variable of a
+        // subsort at its bound, so the elements beyond it occur in no clause, and the model is
+        // then reported with elements its own clauses never constrained (PUZ134_20 with
+        // -fmbss 6: knowheyan bounded to 5 by its domain-closure axiom, raised to 6 by its
+        // 6 constants, and a "model" with a sixth knowheyan none of a..e denotes).
+        _distinctSortMaxs[s] = min(_distinctSortMaxs[s],c);
       }
     }
 
@@ -651,9 +653,9 @@ void FiniteModelBuilder::init()
     // most used first. Sort inference introduces fresh constants of its own after the
     // counting above, and those are simply unused as far as it is concerned.
     if(env.options->fmbSymmetryOrderSymbols() == Options::FMBSymbolOrders::USAGE){
-      auto mostUsedFirst = [&counts](unsigned f1, unsigned f2) {
-        unsigned c1 = f1 < counts.functions.size() ? counts.functions[f1] : 0;
-        unsigned c2 = f2 < counts.functions.size() ? counts.functions[f2] : 0;
+      auto mostUsedFirst = [this](unsigned f1, unsigned f2) {
+        unsigned c1 = f1 < _symbolCounts.functions.size() ? _symbolCounts.functions[f1] : 0;
+        unsigned c2 = f2 < _symbolCounts.functions.size() ? _symbolCounts.functions[f2] : 0;
         return c2 < c1;
       };
       // Let's try sorting constants and functions in the sorted signature
@@ -1438,13 +1440,13 @@ MainLoopResult FiniteModelBuilder::runImpl()
     // give up!
     return MainLoopResult(TerminationReason::INAPPROPRIATE);
   }
-  if(!_prb.units()){
-    return MainLoopResult(TerminationReason::SATISFIABLE);
-  }
 
   env.statistics->phase = ExecutionPhase::FMB_CONSTRAINT_GEN;
 
   if(outputAllowed()){
+      // which sort each position of the size vectors below stands for
+      cout << "% Sorts in the size vectors: " << _sortedSignature->distinctSortNames() << endl;
+
       bool doPrinting = false;
 #if VTRACE_FMB
       doPrinting = true;
@@ -1471,20 +1473,18 @@ MainLoopResult FiniteModelBuilder::runImpl()
   _sortModelSizes.ensure(_sortedSignature->sorts);
   _distinctSortSizes.ensure(_sortedSignature->distinctSorts);
   for(unsigned i=0;i<_distinctSortSizes.size();i++){
-     _distinctSortSizes[i]=max(_startModelSize,_distinctSortMins[i]);
-     if (_startModelSize > _distinctSortMaxs[i]) {
-      if(outputAllowed()){
-        cout << "% fmb_start_size (= " << _startModelSize << ") larger than a detected sort maximum size!" << endl;
-      }
-      return MainLoopResult(TerminationReason::REFUTATION_NOT_FOUND);
-     }
+     // fmb_start_size is only a suggestion: a sort known to be smaller (its detected maximum,
+     // e.g. $o's 2) starts at that maximum instead -- larger sizes have no model to find there
+     // -- and one known to be bigger starts at its minimum. Skipping sizes keeps the run
+     // incomplete as before (the enumerators' _skippedSomeSizes looks at fmb_start_size alone).
+     _distinctSortSizes[i]=max(min(_startModelSize,_distinctSortMaxs[i]),_distinctSortMins[i]);
   }
   for(unsigned s=0;s<_sortedSignature->sorts;s++) {
     _sortModelSizes[s] = _distinctSortSizes[_sortedSignature->parents[s]];
   }
 
   if (!_xmass) {
-    if (!_dsaEnumerator->init(_startModelSize,_distinctSortSizes,_distinct_sort_constraints,_strict_distinct_sort_constraints)) {
+    if (!_dsaEnumerator->init(_startModelSize,_distinctSortSizes,_distinctSortMaxs,_distinct_sort_constraints,_strict_distinct_sort_constraints)) {
       goto gave_up;
     }
   }
@@ -1812,6 +1812,26 @@ void FiniteModelBuilder::onModelFound()
   // limit enforcement disabled below, so it is worth being able to see it.
   TIME_TRACE("fmb model construction");
 
+  // How long each phase below takes, as a "%" line printed (and flushed) as soon as the phase
+  // is over -- so that a run killed from outside, which never gets to its statistics, still
+  // shows how far it got. Printed only when statistics are on: the timings differ from run to
+  // run, and the exact-output checks run with --statistics none. Instructions are counted
+  // where perf is available (instructionCountAnyThread is -1 otherwise), in the same 2^20
+  // "millions" as the final "Instructions burned".
+  struct PhaseStart { long ms; long long instr; };
+  auto phaseStart = []() { return PhaseStart{Timer::elapsedMilliseconds(), Timer::instructionCountAnyThread()}; };
+  auto reportPhase = [](const char* phase, PhaseStart start) {
+    if (!outputAllowed() || env.options->statistics() == Options::Statistics::NONE) return;
+    long long instr = Timer::instructionCountAnyThread();
+    cout << "% FMB model " << phase << " took ";
+    Timer::printMSString(cout, Timer::elapsedMilliseconds() - start.ms);
+    if (start.instr >= 0 && instr >= 0) {
+      cout << " (" << ((instr - start.instr) >> 20) << " million instructions)";
+    }
+    cout << endl; // endl flushes
+  };
+  PhaseStart constructionStart = phaseStart();
+
   // Prevent timing out whilst the model is being printed
   Timer::disableLimitEnforcement();
 
@@ -1830,8 +1850,10 @@ void FiniteModelBuilder::onModelFound()
   DArray<unsigned> vampireSortSizes;
   vampireSortSizes.ensure(env.signature->typeCons());
   for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
-    unsigned size = 1;
-    if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
+    // a sort we did not model (one sort inference did not give a distinct sort to, because
+    // nothing in the problem uses it) gets no domain in the model, i.e. size 0 -- so that we
+    // don't invent a one-element domain for, say, $i in a problem that only uses declared sorts
+    unsigned size = 0;
     unsigned dsort;
     if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
       size = _distinctSortSizes[dsort];
@@ -1839,7 +1861,18 @@ void FiniteModelBuilder::onModelFound()
     vampireSortSizes[vSort] = size;
   }
 
-  FiniteModelMultiSorted model(vampireSortSizes.clone()); // need a clone, because FiniteModelMultiSorted may want to modify its version later
+  // Which symbols the model is about, i.e. which ones get a table (see initTables). The
+  // symbols occurring in the clauses we encoded: a symbol nothing uses has no values worth
+  // recording, and a table for it could be arbitrarily large. Anything younger than the
+  // count -- SortInference's fmbFreshConstant-s -- is past the end and so counts as unused,
+  // which is what the usageCnt this replaces answered for them too.
+  DArray<bool> usedFunctions(_symbolCounts.functions.size());
+  for(unsigned f=0;f<usedFunctions.size();f++){ usedFunctions[f] = _symbolCounts.functions[f]>0; }
+  DArray<bool> usedPredicates(_symbolCounts.predicates.size());
+  for(unsigned p=0;p<usedPredicates.size();p++){ usedPredicates[p] = _symbolCounts.predicates[p]>0; }
+
+  // need a clone, because FiniteModelMultiSorted may want to modify its version later
+  FiniteModelMultiSorted model(vampireSortSizes.clone(),std::move(usedFunctions),std::move(usedPredicates));
 
   //Record interpretation of constants and functions
   for(unsigned f=0;f<env.signature->functions();f++){
@@ -1848,27 +1881,15 @@ void FiniteModelBuilder::onModelFound()
     const Signature::Symbol* sym = env.signature->getFunction(f);
     // if (sym->introduced()) continue; // so that a sort function may enter the model (to be elimintated later)
 
+    // a symbol with no table in the model has no values to record either (and del_f, read
+    // off the very same counts, has already skipped almost all of them)
+    if(!model.funRepresented(f)) continue;
+
     //cout << "For " << env.signature->getFunction(f)->name() << endl;
     unsigned arity = env.signature->functionArity(f);
 
-    // bounding box for enumerating the arguments
-    static DArray<unsigned> maxVarSizeBig;
-    maxVarSizeBig.ensure(arity);
-
     OperatorType* tp = sym->type();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
-    for(unsigned var=0;var<arity;var++){
-      unsigned vamp_srt = tp->arg(var).term()->functor();
-      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
-    }
-
-    // the actual representation of the enumeration
-    static DArray<unsigned> args;
-    args.ensure(arity);
-    // start with all 1s
-    for(unsigned i=0;i<arity;i++){
-       args[i]=1;
-    }
 
     // bounding box for querying the solver
     static DArray<unsigned> maxVarSizeSml;
@@ -1884,11 +1905,15 @@ void FiniteModelBuilder::onModelFound()
     static DArray<unsigned> grounding;
     grounding.ensure(arity+1);
 
-    for(;;) {
+    // enumerate the arguments within the bounding box given by the vampire sort sizes
+    ArgsEnumerator it(vampireSortSizes,tp,arity);
+    do {
+      const DArray<unsigned>& args = it.args();
       DEBUG_CODE(bool found=false;)
+      // iterates over possible return values (debug code checks that we find exactly one)
       for(unsigned c=1;c<=maxVarSizeSml[arity];c++){
         // create a bounded copy of the changing args in grounding
-        // (while args live within the maxVarSizeBig box,
+        // (while args live within the vampireSortSizes box,
         // grounding must only live in the maxVarSizeSml box,
         // for which the sat solver computed values)
         for(unsigned i=0;i<arity;i++) {
@@ -1905,19 +1930,7 @@ void FiniteModelBuilder::onModelFound()
         }
       }
       ASS(found)
-
-      unsigned i;
-      for(i=0;i<arity;i++) {
-        args[i]++;
-        if(args[i] <= maxVarSizeBig[i]){
-          break;
-        }
-        args[i]=1;
-      }
-      if (i == arity) {
-        break;
-      }
-    }
+    } while (it.next());
   }
 
   //Record interpretation of predicates
@@ -1927,27 +1940,14 @@ void FiniteModelBuilder::onModelFound()
     const Signature::Symbol* sym = env.signature->getPredicate(p);
     // if (sym->introduced()) continue; // so that a sort predicate may enter the model (to be elimintated later)
 
+    // see the analogous skip in the function loop above
+    if(!model.predRepresented(p)) continue;
+
     unsigned arity = env.signature->predicateArity(p);
     //cout << "Record for " << env.signature->getPredicate(p)->name() << "/" << arity << endl;
 
-    // bounding box for enumerating the arguments
-    static DArray<unsigned> maxVarSizeBig;
-    maxVarSizeBig.ensure(arity);
-
     OperatorType* tp = sym->type();
     ASS_EQ(tp->numTypeArguments(),0) // no polymorphic business in FMB
-    for(unsigned var=0;var<arity;var++){
-      unsigned vamp_srt = tp->arg(var).term()->functor();
-      maxVarSizeBig[var] = vampireSortSizes[vamp_srt];
-    }
-
-    // the actual representation of the enumeration
-    static DArray<unsigned> args;
-    args.ensure(arity);
-    // start with all 1s
-    for(unsigned i=0;i<arity;i++){
-       args[i]=1;
-    }
 
     // bounding box for querying the solver
     static DArray<unsigned> maxVarSizeSml;
@@ -1977,7 +1977,10 @@ void FiniteModelBuilder::onModelFound()
       }
     }
 
-    for(;;) {
+    // enumerate the arguments within the bounding box given by the vampire sort sizes
+    ArgsEnumerator it(vampireSortSizes,tp,arity);
+    do {
+      const DArray<unsigned>& args = it.args();
       // create a bounded copy of the changing args in grounding
 
       signed char extension_mode = 0; // start as "copy extended" (meaning overshoots go back to 1)
@@ -2003,26 +2006,74 @@ void FiniteModelBuilder::onModelFound()
         res=_solver->trueInAssignment(slit);
       }
       model.addPredicateDefinition(p,args,res);
-
-      unsigned i;
-      for(i=0;i<arity;i++) {
-        args[i]++;
-        if(args[i] <= maxVarSizeBig[i]){
-          break;
-        }
-        args[i]=1;
-      }
-      if (i == arity) {
-        break;
-      }
-    }
+    } while (it.next());
   }
 
-  model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
-  model.restoreEliminatedDefinitions(env.getMainProblem());
+  // the replay evaluates as it goes (materializing symbols, testing a flip's condition),
+  // and so do the self-check and the printing below (which asks about the fool constants);
+  // unlike a model read from a file, one we built ourselves has no business being partial,
+  // so an undefined value here is a bug on our side
+  try {
+    model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
+    // sort elimination renumbers the domain elements, so it has to happen while the model is
+    // still nothing but the tables copied above; only then is model_0 -- the model the replay
+    // starts from -- fixed, and only then is it worth completing
+    model.installTrivialLayers();
+    model.restoreEliminatedDefinitions(env.getMainProblem());
+    reportPhase("construction",constructionStart);
 
-  env.statistics->model = model.toString();
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+    PhaseStart checkStart = phaseStart();
+    checkModelAgainstOriginalInput(model);
+    reportPhase("self-check",checkStart);
+#endif
+
+    PhaseStart printStart = phaseStart();
+    env.statistics->model = model.toString();
+    reportPhase("printing",printStart);
+  } catch (UndefinedValueException& e) {
+    INVALID_OPERATION("FMB constructed a partial model: " + e.msg());
+  }
 }
+
+#if FMB_CHECK_MODEL_AGAINST_INPUT
+
+/**
+ * The temporary in-run sanity check: evaluate every unit of the original (parsed,
+ * un-preprocessed) input in the restored model. Every unit must hold -- note that
+ * the parser negates conjectures on the fly (see the CONJECTURE case in Parse::TPTP::tag),
+ * so the snapshot contains the negated conjecture, which the model witnesses.
+ * A violation raises USER_ERROR (exit code 4).
+ */
+void FiniteModelBuilder::checkModelAgainstOriginalInput(FiniteModelMultiSorted& model)
+{
+  UnitList* original = env.getMainProblem()->originalInputUnits();
+  if (!original) {
+    cout << "% FMB model self-check skipped (no snapshot of the parsed input; not running in single-strategy mode?)" << endl;
+    return;
+  }
+
+  unsigned checked = 0, skipped = 0;
+  UnitList::Iterator uit(original);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+    if (!u->isClause() && !FiniteModelMultiSorted::evaluable(u->getFormula())) {
+      skipped++;
+      continue;
+    }
+    if (!model.evaluate(u)) {
+      USER_ERROR("FMB model self-check FAILED on: " + u->toString());
+    }
+    checked++;
+  }
+  cout << "% FMB model self-check passed (" << checked << " units checked";
+  if (skipped > 0) {
+    cout << ", " << skipped << " skipped as not evaluable";
+  }
+  cout << ")" << endl;
+}
+#endif
+
 
 void FiniteModelBuilder::HackyDSAE::learnNogood(Constraint_Generator_Vals& nogood, unsigned weight)
 {
@@ -2191,26 +2242,36 @@ bool FiniteModelBuilder::HackyDSAE::increaseModelSizes(DArray<unsigned>& newSort
 
 
 #if VZ3
-bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<unsigned>& _distinctSortSizes,
+bool FiniteModelBuilder::SmtBasedDSAE::init(unsigned _startModelSize, DArray<unsigned>& _distinctSortSizes, DArray<unsigned>& _distinctSortMaxs,
       Stack<std::pair<unsigned,unsigned>>& _distinct_sort_constraints, Stack<std::pair<unsigned,unsigned>>& _strict_distinct_sort_constraints)
 {
   _skippedSomeSizes = (_startModelSize > 1);
 
   try {
-    // initialize the smt solver
-    z3::expr zero = _context.int_val(_startModelSize-1);
-
     _sizeConstants.ensure(_distinctSortSizes.size());
+    _lastWeight = 0;
     // _distinctSortSizes.size() - many int variables
     for(unsigned i=0;i<_sizeConstants.size();i++) {
       _sizeConstants[i] = new z3::expr(_context);
       *_sizeConstants[i] = _context.int_const((std::string("s")+Int::toString(i)).c_str());
 
-      // asserted to be greater than zero
-      _smtSolver.add(*_sizeConstants[i] > zero);
+      // between the size it starts from -- fmb_start_size as the detected bounds have
+      // adjusted it, so at least the minimum -- and the detected maximum, as the other
+      // enumerators stay; that is what keeps $o at its two elements here, too.
+      // The bounds can disagree: under -fmbas expand every subsort of a vampire sort inherits
+      // the sort's minimum (from its distinct constants), while the maximum of a subsort with
+      // few constants can be smaller (NLP187-1: minimum 4, maximum 1). The other enumerators
+      // then just never grow that sort, so neither do we: it stays where it starts, rather
+      // than the two bounds together leaving no size at all -- which increaseModelSizes
+      // would report as "no model", and a complete run as Unsatisfiable.
+      unsigned start = _distinctSortSizes[i];
+      _smtSolver.add(*_sizeConstants[i] >= _context.int_val(start));
+      if (_distinctSortMaxs[i] != UINT_MAX) {
+        _smtSolver.add(*_sizeConstants[i] <= _context.int_val(max(start,_distinctSortMaxs[i])));
+      }
+      // the weight of the first assignment tried, which is where minimizing starts from
+      _lastWeight += _distinctSortSizes[i];
     }
-
-    _lastWeight = _distinctSortSizes.size()*_startModelSize;
 
     // also add (_strict)_distinct_sort_constraints
     Stack<std::pair<unsigned,unsigned>>::Iterator it1(_distinct_sort_constraints);

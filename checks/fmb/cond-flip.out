@@ -1,0 +1,49 @@
+% Sorts in the size vectors: [$i]
+% Detected minimum model sizes of [1]
+% Detected maximum model sizes of [2]
+% TRYING [1]
+% TRYING [2]
+% Finite Model Found!
+% SZS status Satisfiable for cond-flip
+% SZS output start FiniteModel for cond-flip
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('declare_$i2',type,'fmb_$i_2':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1') | (X = 'fmb_$i_2')
+      ) ).
+
+tff('distinct_domain_$i',axiom,
+         'fmb_$i_1' != 'fmb_$i_2'
+).
+
+tff(declare_a,type,a : $i).
+tff(declare_b,type,b : $i).
+tff(declare_r,type,r: ( $i * $i ) > $o ).
+tff(declare_s,type,s: ( $i ) > $o ).
+tff(declare_t,type,t: ( $i ) > $o ).
+tff('declare_r_$1',type,'r_$1': ( $i * $i ) > $o ).
+
+tff(a_definition,axiom,a = 'fmb_$i_1').
+tff(b_definition,axiom,b = 'fmb_$i_2').
+tff(r_symbolic_definition,axiom,![X0:$i, X1:$i]: (r(X0,X1) <=> $cond(
+           ((X0 = 'fmb_$i_2') & (X1 = 'fmb_$i_2')), $true,
+           'r_$1'(X0,X1)))).
+tff(predicate_s,axiom,
+           ~s('fmb_$i_1')
+         & s('fmb_$i_2')
+).
+
+tff(predicate_t,axiom,
+           t('fmb_$i_1')
+         & ~t('fmb_$i_2')
+).
+
+tff('predicate_r_$1',axiom,
+           ~'r_$1'('fmb_$i_1','fmb_$i_1')
+         & 'r_$1'('fmb_$i_2','fmb_$i_1')
+         & ~'r_$1'('fmb_$i_1','fmb_$i_2')
+         & ~'r_$1'('fmb_$i_2','fmb_$i_2')
+).
+
+% SZS output end FiniteModel for cond-flip

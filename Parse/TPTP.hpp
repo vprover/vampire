@@ -167,7 +167,9 @@ public:
     /** $ite: FOOL level-polymorphic if-then-else */
     T_ITE,
     /** $let: FOOL level-polymorphic let-in */
-    T_LET
+    T_LET,
+    /** $cond: a flat chain of if/elif/.../else */
+    T_COND
   };
 
   /** parser state, numbers are just temporarily for debugging */
@@ -240,6 +242,8 @@ public:
     UNBIND_VARIABLES,
     /** end of an if-then-else expression */
     END_ITE,
+    /** end of a $cond expression */
+    END_COND,
     /** read tuple */
     END_TUPLE,
     /** check the end of arguments */
@@ -347,6 +351,9 @@ public:
   /** True iff @b unit was read between vampire(model_check,model_start) and
    *  vampire(model_check,model_end), i.e. defines the model to check in --mode model_check. */
   static bool isModelDefinition(const Unit* unit) { return _modelDefinitionUnits.contains(unit->number()); }
+  /** True iff the input opened a model at all, vampire(model_check,model_start) -- possibly an
+   *  empty one, which isModelDefinition cannot tell from none */
+  static bool sawModelStart() { return _sawModelStart; }
   unsigned lineNumber(){ return currentFile.lineNumber; }
   std::string currentPath(){ return currentFile.path; }
 
@@ -796,6 +803,7 @@ private:
   void type();
   void openArgumentList(Tag closer);
   void endIte();
+  void endCond();
   void letType();
   void endLetTypes();
   void definition();
@@ -900,6 +908,7 @@ private:
   static DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> _axiomNames;
   /** The numbers of the model definition units, see isModelDefinition() */
   static DHSet<unsigned, FnvHash, IdentityHash> _modelDefinitionUnits;
+  static bool _sawModelStart;
 
   /**
    * During question parsing, we store the mapping from int variables

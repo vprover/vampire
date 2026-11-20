@@ -490,6 +490,10 @@ public:
     PREDICATE,
     FUNCTION
   };
+  enum class FMBModelPrinting : unsigned int {
+    EXPLICIT,
+    LAYERED
+  };
   enum class FMBEnumerationStrategy : unsigned int {
     SBMEAM,
 #if VZ3
@@ -1239,6 +1243,7 @@ public:
   FMBEnumerationStrategy fmbEnumerationStrategy() const { return _fmbEnumerationStrategy.actualValue; }
   bool keepSbeamGenerators() const { return _fmbKeepSbeamGenerators.actualValue; }
   bool fmbUseSimplifyingSolver() const { return _fmbUseSimplifyingSolver.actualValue; }
+  FMBModelPrinting fmbModelPrinting() const { return _fmbModelPrinting.actualValue; }
 
   Mode mode() const { return _mode.actualValue; }
   void setMode(Mode mode) { _mode.actualValue = mode; }
@@ -1267,7 +1272,6 @@ public:
   void setRandomSeed(unsigned seed) { _randomSeed.actualValue = seed; }
   const std::string& strategySamplerFilename() const { return _sampleStrategy.actualValue; }
   bool printClausifierPremises() const { return _printClausifierPremises.actualValue; }
-  bool replaceDomainElements() const { return _replaceDomainElements.actualValue; }
 
   // IMPORTANT, if you add a showX command then include showAll
   bool showAll() const { return _showAll.actualValue; }
@@ -1729,6 +1733,7 @@ private:
   ChoiceOptionValue<FMBEnumerationStrategy> _fmbEnumerationStrategy;
   BoolOptionValue _fmbKeepSbeamGenerators;
   BoolOptionValue _fmbUseSimplifyingSolver;
+  ChoiceOptionValue<FMBModelPrinting> _fmbModelPrinting;
 
   StringOptionValue _forbiddenOptions;
   StringOptionValue _forcedOptions;
@@ -1835,7 +1840,6 @@ private:
 
   StringOptionValue _printProofToFile;
   BoolOptionValue _printClausifierPremises;
-  BoolOptionValue _replaceDomainElements;
   ChoiceOptionValue<Proof> _proof;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;

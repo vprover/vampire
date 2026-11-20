@@ -238,7 +238,8 @@ void SymCounter::count(Term* term, int polarity, int add)
           }
           break;
         }
-        case SpecialFunctor::MATCH: {
+        case SpecialFunctor::MATCH:
+        case SpecialFunctor::COND: {
           for (unsigned i = 0; i < term->arity(); i++) {
             TermList t = *term->nthArgument(i);
             if (t.isTerm()) {

@@ -20,6 +20,8 @@
 #ifndef __SortInference__
 #define __SortInference__
 
+#include <string>
+
 #include "Forwards.hpp"
 
 #include "Lib/DArray.hpp"
@@ -70,6 +72,12 @@ struct SortedSignature{
     // has size distinctSorts
     // is 1 if that distinct sort is monotonic
     ZIArray<bool> monotonicSorts;
+
+    // The vampire sorts behind each distinct sort, as a vector in the order FMB's size vectors
+    // ("% TRYING [...]") use, e.g. "[{s,t},u]": a position standing for several merged sorts
+    // lists them in braces, and a vampire sort expanded into several distinct sorts simply
+    // appears at each of them.
+    std::string distinctSortNames() const;
 };
 
 class SortInference {

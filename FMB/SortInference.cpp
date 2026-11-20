@@ -43,6 +43,24 @@ namespace FMB
 
 using namespace std;
 
+std::string SortedSignature::distinctSortNames() const
+{
+  std::string res = "[";
+  for(unsigned i=0;i<distinctSorts;i++){
+    Stack<unsigned>* vs = distinctToVampire.get(i);
+    // A position can stand for no vampire sort at all: with no non-ground clauses, sort
+    // inference is skipped, and under -fmbas predicate / function the one collapsed sort is
+    // created up front, before it is known whether any sort is used. It prints as "{}".
+    if(vs->size()!=1) res += "{";
+    for(unsigned j=0;j<vs->size();j++){
+      if(j>0) res += ",";
+      res += env.signature->typeConName((*vs)[j]);
+    }
+    if(vs->size()!=1) res += "}";
+    if(i+1<distinctSorts) res += ",";
+  }
+  return res + "]";
+}
 
 /**
  * We assume this occurs *after* flattening so all literals are shallow
@@ -185,10 +203,8 @@ void SortInference::doInference()
         }
         // if we didn't just add the monot_info, it should have been there already from the _assumeMonotonic branch
         ASS(!monotonic || _monotonic_vampire_sorts.findPtr(s))
-        if(_print){
-          if(monotonic && !_assumeMonotonic){
-            cout << "Input sort " << env.signature->typeConName(s) << " is monotonic" << endl;
-          }
+        if(_print && !_assumeMonotonic && _monotonic_vampire_sorts.findPtr(s)){
+          cout << "Input sort " << env.signature->typeConName(s) << " is monotonic" << endl;
         }
       }
     }
@@ -748,16 +764,7 @@ void SortInference::doInference()
       cout << s << " has " << children << " inferred subsorts as members [" << res << "]" << endl;
     }
     cout << "Vampire to distinct sort mapping:" << endl;
-    cout << "[";
-    for(unsigned i=0;i<_sig->distinctSorts;i++){
-
-      Stack<unsigned>* vs = _sig->distinctToVampire.get(i);
-      if(vs->size()==1) cout << env.signature->typeConName((*vs)[0]);
-      else cout << env.signature->typeConName((*vs)[0]) << "(+)";
-
-      if(i==_sig->distinctSorts-1) cout << "]" << endl;
-      else cout << ",";
-    }
+    cout << _sig->distinctSortNames() << endl;
   }
 
   for(unsigned s=0;s<env.signature->typeCons();s++){

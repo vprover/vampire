@@ -1,0 +1,19 @@
+Finite domain axiom found:
+5. ! [X0 : k] : ((X0 = fmb_k_1) | (X0 = fmb_k_2) | (X0 = fmb_k_3)) [input]
+Loading model...
+Detected model with 1 sorts.
+  domain for k of size 3, domain elements are:
+    fmb_k_1
+    fmb_k_2
+    fmb_k_3
+Model loaded
+Checking formulas...
+Checking 1. (a != b) & (a != c) & (b != c) [input]...
+Evaluates to True
+Checking 2. ! [X0 : k] : ((X0 = a) | (X0 = b) | (X0 = c)) [input]...
+Evaluates to True
+Checking 3. ? [X0 : k] : p(X0) [input]...
+Evaluates to True
+Checking 4. ~p(a) [input]...
+Evaluates to True
+All formulas evaluated to True!
