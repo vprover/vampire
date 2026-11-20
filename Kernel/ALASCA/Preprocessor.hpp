@@ -183,31 +183,24 @@ class AlascaPreprocessor
 
   Clause* integerConversion(Clause* clause)
   {
-    auto notInt = [&](auto t) -> Option<Literal*> {
-      if (auto q = R::tryNumeral(t)) {
-        if (q->isInt()) {
-          return {};
-        }
-      }
-      return some(R::eq(false, t, R::floor(t)));
-    };
     auto change = false;
     Recycled<Stack<Literal*>> res;
+    if (!_useFloor) {
+      // Restrict the original variables to integers. Integrality of a normalized
+      // expression such as 2*x does not imply integrality of x.
+      DHMap<unsigned, TermList, FnvHash, IdentityHash> variableSorts;
+      SortHelper::collectVariableSorts(clause, variableSorts);
+      for (auto [var, sort] : iterTraits(variableSorts.items())) {
+        if (sort == Z::sort()) {
+          auto x = TermList::var(var);
+          res->push(R::eq(false, x, R::floor(x)));
+          change = true;
+        }
+      }
+    }
     for (auto l : clause->iterLits()) {
       auto ll = integerConversion(l);
       change |= ll != l;
-      if (!_useFloor) {
-        if (l->isEquality() && l->eqArgSort() == Z::sort()) {
-          ASS(ll->isEquality() && ll->eqArgSort() == R::sort() && change)
-          res->loadFromIterator(termArgIter(ll)
-              .filterMap([&](auto x) { return notInt(x); }));
-        } else if (l->functor() != ll->functor() && theory->isInterpretedPredicate(ll->functor())) {
-          ASS(ll->arity() == l->arity())
-          res->loadFromIterator(range(0, l->numTermArguments())
-              .filter([&](auto i) { return SortHelper::getTermArgSort(l, i) == Z::sort(); })
-              .filterMap([&](auto i) { return notInt(ll->termArg(i)); }));
-        }
-      }
       res->push(ll);
     }
     if (change) {
