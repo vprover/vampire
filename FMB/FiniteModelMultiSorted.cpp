@@ -929,8 +929,9 @@ void FiniteModelMultiSorted::printCases(std::ostream& out, unsigned p, unsigned 
  * version as that layer is: a definition as its body, over the versions of the body's
  * symbols it reads (as of its own birth, see DefFunLayer::value); a trivial value as a
  * formula; a conditional flip as a $cond, one case per tuple the flip prescribes a value for,
- * over the version directly below it for every other tuple; anything else, so far, as a
- * table of the version's values.
+ * over the version directly below it for every other tuple; a global flip as the negation of
+ * the version directly below it; and a table (or a trivial value under the self-check, or a
+ * function into $o) as a table of the version's values.
  *
  * The final version of a symbol keeps the symbol's name. An earlier one is named by how many
  * layers lie above it: 'f_$1' is f before its last update, 'f_$2' before the one before, and
@@ -942,14 +943,14 @@ void FiniteModelMultiSorted::printCases(std::ostream& out, unsigned p, unsigned 
  * Which versions are needed, and the order to print them in, comes from a breadth-first
  * search: from the final versions of the input's own symbols (functions, then predicates,
  * each in signature order), on to the versions each printed definition reads, and the
- * version below each printed flip, in the order met. That is how an introduced symbol, or an earlier version, gets printed: only when a
+ * version below each printed flip of either kind, in the order met. That is how an introduced symbol, or an earlier version, gets printed: only when a
  * printed definition needs it. All of it is settled first, because every type declaration
  * comes before every definition; a definition may then mention a version whose own
  * definition comes later.
  */
 std::string FiniteModelMultiSorted::toStringLayered()
 {
-  enum class Rendering { DEFINITION, TRIVIAL, CASES, TABLE };
+  enum class Rendering { DEFINITION, TRIVIAL, CASES, NEGATION, TABLE };
   struct Version { bool pred; unsigned sym; unsigned layer; Rendering how; };
 
   auto kindOf = [&](bool pred, unsigned sym, unsigned layer) {
@@ -1002,6 +1003,10 @@ std::string FiniteModelMultiSorted::toStringLayered()
       ASS_G(layer,0); // a flip is never the bottom: every symbol has a layer from model_0 on
       return Rendering::CASES;
     }
+    if (kind == LayerKind::GLOBAL_FLIP) {
+      ASS_G(layer,0);
+      return Rendering::NEGATION;
+    }
     return Rendering::TABLE;
   };
 
@@ -1036,8 +1041,8 @@ std::string FiniteModelMultiSorted::toStringLayered()
     Version cur = order[i];
     mentionSortsOf(sortPrinted,cur.pred ? env.signature->getPredicate(cur.sym)->type() : env.signature->getFunction(cur.sym)->type(),
                    /*withResult=*/!cur.pred);
-    if (cur.how == Rendering::CASES) {
-      queue(cur.pred,cur.sym,cur.layer-1); // what the flip leaves alone
+    if (cur.how == Rendering::CASES || cur.how == Rendering::NEGATION) {
+      queue(cur.pred,cur.sym,cur.layer-1); // what the flip leaves alone, or turns round
       continue;
     }
     if (cur.how != Rendering::DEFINITION) continue;
@@ -1113,6 +1118,16 @@ std::string FiniteModelMultiSorted::toStringLayered()
       ALWAYS(printBody(modelStm,v,born,bodyRename(born)));
     } else if (v.how == Rendering::CASES) {
       printCases(modelStm,v.sym,v.layer,versionName(true,v.sym,v.layer-1),names);
+    } else if (v.how == Rendering::NEGATION) {
+      modelStm << "~" << versionName(true,v.sym,v.layer-1);
+      if (arity > 0) {
+        modelStm << "(";
+        for (unsigned j = 0; j < arity; j++) {
+          if (j) modelStm << ",";
+          modelStm << var(j);
+        }
+        modelStm << ")";
+      }
     } else if (v.pred) {
       modelStm << "$false"; // the trivial layer's value
     } else {
