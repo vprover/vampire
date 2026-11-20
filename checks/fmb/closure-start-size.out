@@ -4,7 +4,6 @@
 % TRYING [3]
 % Finite Model Found!
 % SZS status Satisfiable for closure-start-size
-% FMB model self-check passed (4 units checked)
 % SZS output start FiniteModel for closure-start-size
 tff(declare_k,type,k:$tType).
 tff(declare_k1,type,fmb_k_1:k).

@@ -33,13 +33,16 @@
 #include "Kernel/OperatorType.hpp"
 #include "Kernel/Problem.hpp"
 
-// Temporary, assert-like sanity instrument: when 1, a single-strategy fmb run snapshots the
-// parsed input (see preprocessProblem in vampire.cpp) and, at the end of onModelFound,
-// checks the constructed model against it -- a false original unit raises USER_ERROR.
-// It also makes the trivial layers below pick pseudo-random values rather than a fixed one.
-// To be set to 0 (or removed) once the symbolic-definitions work has been stress-tested;
-// it lives here because this is the lowest header that has to see it.
-#define FMB_CHECK_MODEL_AGAINST_INPUT 1
+// Assert-like sanity instrument: when 1, a single-strategy fmb run snapshots the parsed input
+// (see preprocessProblem in vampire.cpp) and, at the end of onModelFound, checks the
+// constructed model against it -- a false original unit raises USER_ERROR. It also makes the
+// trivial layers below pick pseudo-random values rather than a fixed one, so that a symbol
+// nothing constrains cannot pass the check by accident.
+// Off for now: the printed model is checked by reading it back (--mode model_check), which
+// shows what was checked and runs under a time limit of its own, whereas the in-run check
+// can hold a run up for long. Switch it on to check models in-run, e.g. while changing the
+// reconstruction; it lives here because this is the lowest header that has to see it.
+#define FMB_CHECK_MODEL_AGAINST_INPUT 0
 
 namespace FMB {
 

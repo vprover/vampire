@@ -2,7 +2,6 @@
 % TRYING [1]
 % Finite Model Found!
 % SZS status Satisfiable for bceflip
-% FMB model self-check passed (7 units checked)
 % SZS output start FiniteModel for bceflip
 tff('declare_$i1',type,'fmb_$i_1':$i).
 tff('finite_domain_$i',axiom,

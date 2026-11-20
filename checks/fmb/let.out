@@ -4,7 +4,6 @@
 % TRYING [2]
 % Finite Model Found!
 % SZS status Satisfiable for let
-% FMB model self-check passed (1 units checked, 2 skipped as not evaluable)
 % SZS output start FiniteModel for let
 tff('declare_$i1',type,'fmb_$i_1':$i).
 tff('declare_$i2',type,'fmb_$i_2':$i).

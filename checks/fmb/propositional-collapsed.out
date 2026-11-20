@@ -3,7 +3,6 @@
 % TRYING [1]
 % Finite Model Found!
 % SZS status Satisfiable for propositional-collapsed
-% FMB model self-check passed (5 units checked)
 % SZS output start FiniteModel for propositional-collapsed
 tff(declare_p,type,p: $o ).
 tff(p_definition,axiom,p).

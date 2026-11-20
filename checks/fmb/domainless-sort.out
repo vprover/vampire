@@ -4,7 +4,6 @@
 % TRYING [2]
 % Finite Model Found!
 % SZS status Satisfiable for domainless-sort
-% FMB model self-check passed (1 units checked)
 % SZS output start FiniteModel for domainless-sort
 tff(declare_s,type,s:$tType).
 tff(declare_s1,type,fmb_s_1:s).

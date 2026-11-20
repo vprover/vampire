@@ -6,7 +6,6 @@
 % TRYING [3]
 % Finite Model Found!
 % SZS status Satisfiable for version-name-clash
-% FMB model self-check passed (9 units checked)
 % SZS output start FiniteModel for version-name-clash
 tff('declare_$i1',type,'fmb_$i_1':$i).
 tff('declare_$i2',type,'fmb_$i_2':$i).

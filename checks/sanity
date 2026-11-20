@@ -474,9 +474,9 @@ check_szs_status Satisfiable -sa fmb -updr off -bce on fmb/sortelim.p
 # (see the comment in fmb/monotonic-contour.p); both SAT solvers must agree,
 # it used to depend on how the unconstrained markers happened to be assigned.
 # NB: unlike above, check_szs_status cannot see this defect -- a model of the wrong
-# size still reports Satisfiable -- hence the exact output. The "FMB model self-check
-# passed" line in the .out file comes from the temporary FMB_CHECK_MODEL_AGAINST_INPUT
-# instrument (FiniteModelMultiSorted.hpp); regenerate it when that macro is retired
+# size still reports Satisfiable -- hence the exact output. (With the in-run self-check
+# switched on, FMB_CHECK_MODEL_AGAINST_INPUT in FMB/ModelLayer.hpp, the FMB .out files here
+# gain its "FMB model self-check passed" line and will not match.)
 check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas cadical -fmbes contour fmb/monotonic-contour.p
 check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas minisat -fmbes contour fmb/monotonic-contour.p
 
@@ -493,6 +493,7 @@ check_exact_output fmb/bool.check.out --input_syntax tptp --mode model_check fmb
 # *after* the SZS status line -- which neither check_szs_status nor the stderr grep in
 # run_vampire can see
 check_exact_output fmb/bceflip.out --input_syntax tptp --statistics none -sa fmb -bce on fmb/bceflip.p
+check_exact_output fmb/bceflip.check.out --input_syntax tptp --mode model_check fmb/bceflip.check.p
 
 # FMB: $cond in what the model is checked against (see the comments in the two problems).
 # The self-check reads the un-preprocessed input, so it meets the $cond that FOOLElimination
@@ -517,9 +518,10 @@ check_exact_output fmb/bool-start-size.out --input_syntax tptp --statistics none
 check_szs_status Satisfiable -sa fmb -fmbss 16 fmb/bool.p
 
 # FMB: a sort bound by a domain-closure axiom must not be raised by the EPR rule's constant
-# count (see fmb/closure-start-size.p). Exact output, because the defect was a model the
-# self-check rejected, reported after the SZS status line
+# count (see fmb/closure-start-size.p). The defect was a wrong model, which the (now
+# switched off) in-run self-check rejected; the round trip is what rejects it now
 check_exact_output fmb/closure-start-size.out --input_syntax tptp --statistics none -sa fmb -fmbss 4 fmb/closure-start-size.p
+check_exact_output fmb/closure-start-size.check.out --input_syntax tptp --mode model_check fmb/closure-start-size.check.p
 
 # FMB: $distinct in the input, which the self-check and model_check read before preprocessing
 # has expanded it (see fmb/distinct.p). Exact output for both: the self-check failure came

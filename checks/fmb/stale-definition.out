@@ -6,7 +6,6 @@
 % TRYING [3]
 % Finite Model Found!
 % SZS status Satisfiable for stale-definition
-% FMB model self-check passed (8 units checked)
 % SZS output start FiniteModel for stale-definition
 tff('declare_$i1',type,'fmb_$i_1':$i).
 tff('declare_$i2',type,'fmb_$i_2':$i).

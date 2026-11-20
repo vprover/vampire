@@ -3,7 +3,6 @@
 % TRYING []
 % Finite Model Found!
 % SZS status Satisfiable for no-clauses
-% FMB model self-check passed (3 units checked)
 % SZS output start FiniteModel for no-clauses
 tff('declare_$i1',type,'fmb_$i_1':$i).
 tff('finite_domain_$i',axiom,
