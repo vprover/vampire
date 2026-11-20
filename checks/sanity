@@ -567,6 +567,11 @@ check_exact_output fmb/global-flip.check.out --input_syntax tptp --mode model_ch
 check_exact_output fmb/no-clauses.explicit.out --input_syntax tptp --statistics none -sa fmb -fmbmp explicit fmb/no-clauses.p
 check_exact_output fmb/no-clauses.layered.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered fmb/no-clauses.p
 check_exact_output fmb/no-clauses.check.out --input_syntax tptp --mode model_check fmb/no-clauses.check.p
+# ... and on one without symbols at all, whose model is empty but still a model, printed
+# between the markers and read back (see fmb/no-symbols.p); no model block at all is refused
+check_exact_output fmb/no-symbols.out --input_syntax tptp --statistics none -sa fmb fmb/no-symbols.p
+check_exact_output fmb/no-symbols.check.out --input_syntax tptp --mode model_check fmb/no-symbols.check.p
+check_rejected 'No model found!' --input_syntax tptp --mode model_check fmb/cond.p
 # model_check rejects what makes a symbolic definition unusable, when it loads the model
 check_rejected "The model's definitions are cyclic: f_symbolic_definition -> g_symbolic_definition -> h2_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-cycle.p
 check_rejected "The model's definitions are cyclic: f_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-self-reference.p

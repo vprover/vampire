@@ -18,6 +18,7 @@
 #define __Statistics__
 
 #include <array>
+#include <optional>
 #include <ostream>
 
 #include "Forwards.hpp"
@@ -243,9 +244,10 @@ public:
   Kernel::Unit *refutation = nullptr;
   /** the saturated set of clauses, if any */
   Kernel::UnitList *saturatedSet = nullptr;
-  /** if problem is satisfiable and we obtained a model, contains its
-   * representation; otherwise it is an empty string */
-  std::string model;
+  /** if problem is satisfiable and we obtained a model, its representation; none otherwise.
+   * (Not an empty string for none: a model can print as nothing at all, e.g. one of a problem
+   * without symbols, and is still a model to report.) */
+  std::optional<std::string> model;
 
   ExecutionPhase phase = ExecutionPhase::INITIALIZATION;
 

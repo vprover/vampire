@@ -128,15 +128,9 @@ static void doCheck(UnitList* units)
   }
 
   // A model with no domain at all is fine as long as there is a model: a propositional one
-  // (checks/fmb/propositional-collapsed.p) has nothing else to say
-  bool anyModelDefinition = false;
-  {
-    UnitList::Iterator uit(units);
-    while (uit.hasNext()) {
-      anyModelDefinition |= Parse::TPTP::isModelDefinition(uit.next());
-    }
-  }
-  if (!anyModelDefinition) {
+  // (checks/fmb/propositional-collapsed.p) has nothing else to say, and the model of a
+  // problem without symbols (checks/fmb/no-symbols.p) is empty altogether
+  if (!Parse::TPTP::sawModelStart()) {
     USER_ERROR("No model found!\n Use vampire(model_check,model_start). MODEL_DEFINITION_FORMULAS. vampire(model_check,model_end).");
   }
 

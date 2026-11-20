@@ -63,6 +63,7 @@ static VSList* zipVarsSorts(VList* vars, SList* sorts) {
 #define DEBUG_SOURCE 0
 DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> TPTP::_axiomNames;
 DHSet<unsigned, FnvHash, IdentityHash> TPTP::_modelDefinitionUnits;
+bool TPTP::_sawModelStart = false;
 DHMap<unsigned, Map<unsigned,std::string, FnvHash>, FnvHash, IdentityHash> TPTP::_questionVariableNames;
 
 //Numbers chosen to avoid clashing with connectives.
@@ -5363,6 +5364,7 @@ void TPTP::vampire()
     }
     else if(command == "model_start"){
       _modelDefinition = true;
+      _sawModelStart = true;
     }
     else if(command == "model_end"){
       _modelDefinition = false;

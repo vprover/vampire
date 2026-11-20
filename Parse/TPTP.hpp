@@ -351,6 +351,9 @@ public:
   /** True iff @b unit was read between vampire(model_check,model_start) and
    *  vampire(model_check,model_end), i.e. defines the model to check in --mode model_check. */
   static bool isModelDefinition(const Unit* unit) { return _modelDefinitionUnits.contains(unit->number()); }
+  /** True iff the input opened a model at all, vampire(model_check,model_start) -- possibly an
+   *  empty one, which isModelDefinition cannot tell from none */
+  static bool sawModelStart() { return _sawModelStart; }
   unsigned lineNumber(){ return currentFile.lineNumber; }
   std::string currentPath(){ return currentFile.path; }
 
@@ -905,6 +908,7 @@ private:
   static DHMap<unsigned, std::pair<std::string, std::filesystem::path>, FnvHash, IdentityHash> _axiomNames;
   /** The numbers of the model definition units, see isModelDefinition() */
   static DHSet<unsigned, FnvHash, IdentityHash> _modelDefinitionUnits;
+  static bool _sawModelStart;
 
   /**
    * During question parsing, we store the mapping from int variables
