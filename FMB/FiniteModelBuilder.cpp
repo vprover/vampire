@@ -330,8 +330,6 @@ void FiniteModelBuilder::init()
   // If we're not complete don't both doing anything
   if(!_isAppropriate) return;
 
-  if(!_prb.units()) return;
-
   env.statistics->phase = ExecutionPhase::FMB_PREPROCESSING;
 
   DHSet<std::pair<unsigned,unsigned>, PairHash<FnvHash,FnvHash>, PairHash<IdentityHash,IdentityHash>> vampire_sort_constraints_nonstrict;
@@ -1441,9 +1439,6 @@ MainLoopResult FiniteModelBuilder::runImpl()
   if(!_isAppropriate){
     // give up!
     return MainLoopResult(TerminationReason::INAPPROPRIATE);
-  }
-  if(!_prb.units()){
-    return MainLoopResult(TerminationReason::SATISFIABLE);
   }
 
   env.statistics->phase = ExecutionPhase::FMB_CONSTRAINT_GEN;

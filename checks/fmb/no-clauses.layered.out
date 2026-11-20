@@ -1,0 +1,23 @@
+% The problem is propositional so there are no sorts!
+% Sorts in the size vectors: []
+% TRYING []
+% Finite Model Found!
+% SZS status Satisfiable for no-clauses
+% FMB model self-check passed (3 units checked)
+% SZS output start FiniteModel for no-clauses
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1')
+      ) ).
+
+tff(declare_c,type,c : $i).
+tff(declare_p,type,p: ( $i ) > $o ).
+tff(declare_t,type,t: ( $i ) > $o ).
+tff(declare_n,type,n: ( $i ) > $o ).
+
+tff(c_definition,axiom,c = 'fmb_$i_1').
+tff(p_symbolic_definition,axiom,![X0:$i]: (p(X0) <=> (~n(X0) & t(X0)))).
+tff(t_symbolic_definition,axiom,![X0:$i]: (t(X0) <=> $true)).
+tff(n_symbolic_definition,axiom,![X0:$i]: (n(X0) <=> $false)).
+% SZS output end FiniteModel for no-clauses
