@@ -852,10 +852,11 @@ Options::Options ()
        .tag = OptionTag::FMB})
   , _fmbModelPrinting("fmb_model_printing",this,FMBModelPrinting::EXPLICIT,{"explicit","layered"},
       {.short_name = "fmbmp",
-       .description = "How a found model is printed. With <explicit>, each symbol is printed by its final interpretation"
-       " alone: as a table, unless a recorded definition still describes it. With <layered>, each step of the"
-       " model's reconstruction is printed as it is: earlier versions of a symbol get names of their own"
-       " (f_$1, f_$2, ...) and later versions are defined from them.",
+       .description = "How a found model is printed. With <explicit>, every symbol of the input is spelled out as a"
+       " table, which may be large, but needs nothing else to be read back. With <layered>, each step of the"
+       " model's reconstruction is printed as it is: symbols are defined by formulas where the reconstruction"
+       " did so, earlier versions of a symbol get names of their own (f_$1, f_$2, ...), and the introduced"
+       " symbols these mention are printed too.",
        .tag = OptionTag::FMB})
   , _forbiddenOptions("forbidden_options",this,"",
       {.description = "If some of the specified options are set to a forbidden state, vampire will fail to start, or in portfolio modes it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>",

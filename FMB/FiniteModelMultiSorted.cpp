@@ -641,14 +641,14 @@ LayerKind FiniteModelMultiSorted::predPrintKind(unsigned p)
   return (kind == LayerKind::DEF || kind == LayerKind::TRIVIAL) ? kind : LayerKind::TABLE;
 }
 
-void FiniteModelMultiSorted::printFunValue(std::ostream& modelStm, unsigned f, const DomainNames& names)
+void FiniteModelMultiSorted::printFunValue(std::ostream& modelStm, unsigned f, const DomainNames& names, bool tableOnly)
 {
   const Signature::Symbol* symb = env.signature->getFunction(f);
   unsigned arity = symb->arity();
   std::string name = symb->name();
   OperatorType* ot = symb->type();
 
-  LayerKind kind = funPrintKind(f);
+  LayerKind kind = tableOnly ? LayerKind::TABLE : funPrintKind(f);
   if (kind != LayerKind::TABLE) {
     // either a recorded definition speaks for f, or nothing does and the trivial layer's
     // value has to be spelled out
@@ -717,14 +717,14 @@ void FiniteModelMultiSorted::printFunValue(std::ostream& modelStm, unsigned f, c
   }
 }
 
-void FiniteModelMultiSorted::printPredValue(std::ostream& modelStm, unsigned p, const DomainNames& names)
+void FiniteModelMultiSorted::printPredValue(std::ostream& modelStm, unsigned p, const DomainNames& names, bool tableOnly)
 {
   const Signature::Symbol* symb = env.signature->getPredicate(p);
   unsigned arity = symb->arity();
   std::string name = symb->name();
   OperatorType* ot = symb->type();
 
-  LayerKind kind = predPrintKind(p);
+  LayerKind kind = tableOnly ? LayerKind::TABLE : predPrintKind(p);
   if (kind != LayerKind::TABLE) {
     Problem::PredDef* pd = (kind == LayerKind::DEF) ?
       static_cast<DefPredLayer*>(_p_layers[p].top())->def() : nullptr;
@@ -793,8 +793,10 @@ std::string FiniteModelMultiSorted::toStringExplicit()
 {
   std::ostringstream modelStm;
 
-  // which symbols get printed: those of the input (an introduced symbol's definition, where
-  // one is printed at all, may mention it nevertheless -- the layered printing closes that gap)
+  // Every symbol of the input, each as a table, and nothing else: no symbolic definition, so
+  // no introduced symbol is ever needed -- the input does not mention any, and tables of its
+  // own symbols are all it takes to evaluate it. This is the reference the layered printing
+  // is compared against; the price is a table of every symbol, however large
   auto funPrinted = [&](unsigned f) {
     return funPrintable(f) && !env.signature->getFunction(f)->introduced();
   };
@@ -820,14 +822,14 @@ std::string FiniteModelMultiSorted::toStringExplicit()
   for(unsigned f=0;f<env.signature->functions();f++){
     if(!funPrinted(f)) continue;
     printFunType(modelStm,f);
-    printFunValue(modelStm,f,names);
+    printFunValue(modelStm,f,names,/*tableOnly=*/true);
   }
 
   //Predicates (including propositions)
   for(unsigned p=1;p<env.signature->predicates();p++){
     if(!predPrinted(p)) continue;
     printPredType(modelStm,p);
-    printPredValue(modelStm,p,names);
+    printPredValue(modelStm,p,names,/*tableOnly=*/true);
   }
 
   return modelStm.str();
@@ -844,8 +846,8 @@ std::string FiniteModelMultiSorted::toStringExplicit()
  * everything come first. A definition may then mention a symbol whose own definition comes
  * later, and a reader meets the input's symbols first and what they need after.
  *
- * So far every symbol is printed as its final interpretation, exactly as toStringExplicit
- * prints it; what is new is only the closure and the layout.
+ * So far every symbol is printed as its final interpretation: a definition while its body
+ * still describes the printed model, else a table (a flip, a stale definition).
  */
 std::string FiniteModelMultiSorted::toStringLayered()
 {
@@ -908,8 +910,8 @@ std::string FiniteModelMultiSorted::toStringLayered()
   }
   modelStm << endl;
   for (unsigned i = 0; i < order.size(); i++) {
-    if (order[i].pred) printPredValue(modelStm,order[i].sym,names);
-    else printFunValue(modelStm,order[i].sym,names);
+    if (order[i].pred) printPredValue(modelStm,order[i].sym,names,/*tableOnly=*/false);
+    else printFunValue(modelStm,order[i].sym,names,/*tableOnly=*/false);
   }
 
   return modelStm.str();

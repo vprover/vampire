@@ -36,7 +36,7 @@ tff('distinct_domain_$i',axiom,
 ).
 
 tff(declare_a,type,a : $i).
-tff(a_symbolic_definition,axiom,a = c1).
+tff(a_definition,axiom,a = 'fmb_$i_2').
 tff(declare_b,type,b : $i).
 tff(b_definition,axiom,b = 'fmb_$i_1').
 tff(declare_p,type,p: ( $i ) > $o ).

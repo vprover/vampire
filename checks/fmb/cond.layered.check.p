@@ -1,7 +1,7 @@
 % The model -fmbmp layered prints for fmb/cond.p (fmb/cond.layered.out), read back.
 % f is printed by its definition f(X0) = iG1(X0), so the introduced iG1 must be printed too,
-% or model_check cannot evaluate f. (The explicit printing leaves iG1 out, which is why
-% fmb/cond.check.p carries a hand-made table for f instead.)
+% or model_check cannot evaluate f. (The explicit printing, fmb/cond.out, needs no iG1: it
+% spells f out as a table.)
 %
 % FOOLElimination compiles the $cond away before FMB ever runs, but the model self-check
 % (FMB_CHECK_MODEL_AGAINST_INPUT) evaluates the *input* units, which still contain it. So

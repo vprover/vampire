@@ -181,8 +181,7 @@ public:
   std::string toString();
 
 private:
-  // every symbol as its top layer: a symbolic definition while its body still describes the
-  // printed model, a table otherwise
+  // every symbol of the input as a table of its final interpretation, and nothing else
   std::string toStringExplicit();
   // every needed version of every symbol, each printed as its own top layer
   std::string toStringLayered();
@@ -204,8 +203,9 @@ private:
   // no formula rendering)
   LayerKind funPrintKind(unsigned f);
   LayerKind predPrintKind(unsigned p);
-  void printFunValue(std::ostream& out, unsigned f, const DomainNames& names);
-  void printPredValue(std::ostream& out, unsigned p, const DomainNames& names);
+  // the symbol's final interpretation as its print kind says, or as a table regardless
+  void printFunValue(std::ostream& out, unsigned f, const DomainNames& names, bool tableOnly);
+  void printPredValue(std::ostream& out, unsigned p, const DomainNames& names, bool tableOnly);
 
   // walk a symbol's layer stack from the top, taking the first layer that has a value for
   // args; a layer with nothing to say falls through to the one below. Falling off the

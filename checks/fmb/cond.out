@@ -25,7 +25,12 @@ tff(b_definition,axiom,b = 'fmb_$i_2').
 tff(declare_c,type,c : $i).
 tff(c_definition,axiom,c = 'fmb_$i_3').
 tff(declare_f,type,f : ( $i ) > $i).
-tff(f_symbolic_definition,axiom,![X0:$i]: f(X0) = iG1(X0)).
+tff(function_f,axiom,
+           f('fmb_$i_1') = 'fmb_$i_1'
+         & f('fmb_$i_2') = 'fmb_$i_3'
+         & f('fmb_$i_3') = 'fmb_$i_1'
+).
+
 tff(declare_p,type,p: ( $i ) > $o ).
 tff(predicate_p,axiom,
            p('fmb_$i_1')
