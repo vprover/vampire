@@ -124,12 +124,8 @@ bool TermList::isSafe() const {
   return isVar() || term()->shared();
 }
 
-bool TermList::isApplication() const {
-  return !isVar() && term()->isApplication();
-}
-
 bool TermList::isLambdaTerm() const {
-  return !isVar() && term()->isLambdaTerm();
+  return isTerm() && term()->isLambdaTerm();
 }
 
 bool TermList::isBetaRedex() const {
@@ -145,18 +141,15 @@ bool TermList::isProxy() const {
 }
 
 bool TermList::isProxy(Proxy proxy) const {
-  return !isVar() && term()->isProxy(proxy);
+  return isTerm() && term()->isProxy(proxy);
 }
 
 bool TermList::isChoice() const {
-  return !isVar() && term()->isChoice();
+  return isTerm() && term()->isChoice();
 }
 
 Option<unsigned> TermList::deBruijnIndex() const {
-  if (isVar())
-    return {};
-
-  return term()->deBruijnIndex();
+  return isTerm() ? term()->deBruijnIndex() : none<unsigned>();
 }
 
 bool TermList::containsLooseDBIndex() const
@@ -168,36 +161,19 @@ const SharedSet<unsigned>* TermList::freeDBIndices() const {
   return isVar() ? SharedSet<unsigned>::getEmpty() : term()->freeDBIndices();
 }
 
-TermList TermList::lhs() const {
-  ASS(isApplication())
-
-  return *term()->nthArgument(2);
-}
-
-TermList TermList::rhs() const {
-  ASS(isApplication())
-
-  return *term()->nthArgument(3);
-}
-
 TermList TermList::lambdaBody() const {
   ASS(isLambdaTerm())
 
   return *term()->nthArgument(2);
 }
 
-TermList TermList::head() const {
-  if (!isApplication() && !isLambdaTerm())
-    return *this;
-
+TermList TermList::head() const
+{
   TermList trm = *this;
   while (trm.isLambdaTerm()) {
     trm = trm.lambdaBody();
   }
-  while (trm.isApplication()) {
-    trm = trm.lhs();
-  }
-  return trm;
+  return trm.isVar() ? trm : trm.term()->head();
 }
 
 TermList TermList::domain() const {
@@ -873,16 +849,12 @@ bool Term::isArrowSort() const {
   return isSort() && env.signature->isArrowCon(functor());
 }
 
-bool Term::isApplication() const {
-  return !isSort() && !isLiteral() && env.signature->isAppFun(functor());
-}
-
 bool Term::isLambdaTerm() const {
   return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(functor());
 }
 
 bool Term::isBetaRedex() const {
-  return isApplication() && nthArgument(2)->isLambdaTerm();
+  return head().isLambdaTerm();
 }
 
 bool Term::isEtaRedex() const {
@@ -890,11 +862,8 @@ bool Term::isEtaRedex() const {
     return false;
   }
   auto lb = lambdaBody();
-  if (!lb.isApplication()) {
-    return false;
-  }
-  auto lhs = lb.term()->termArg(0);
-  auto rhs = lb.term()->termArg(1);
+  auto lhs = lb.term()->head();
+  auto rhs = lb.term()->termArg(0);
   if (rhs.deBruijnIndex().unwrapOr(UINT_MAX) != 0) {
     return false;
   }
@@ -981,6 +950,48 @@ bool Literal::isFlexRigid() const
   return (lhsHead.isVar() && !rhsHead.isVar()) || (rhsHead.isVar() && !lhsHead.isVar());
 }
 
+Term* Term::create(TermList head, unsigned arity, const TermList* args)
+{
+  // ASS_EQ(env.signature->functionArity(function), arity);
+
+  bool share = argSafeToShare(head) && range(0, arity).all([&](auto i) { return argSafeToShare(args[i]); });
+
+  bool absorb = head.isTerm() && !head.isLambdaTerm();
+  unsigned preArity = absorb ? head.term()->arity() : 0;
+
+  auto allocTerm = [&]() {
+    Term* s = new(arity) Term;
+    if (absorb) {
+      s->_head = head.term()->head();
+    } else {
+      s->_head = head;
+    }
+    s->_arity = preArity + arity;
+
+    for (auto i : range(0, preArity)) {
+      *s->nthArgument(i) = *head.term()->nthArgument(i);
+    }
+    for (auto i : range(0, arity)) {
+      *s->nthArgument(preArity+i) = args[i];
+    }
+    return s;
+  };
+
+  if (share) {
+    bool created = false;
+    auto shared =
+      env.sharing->_terms.rawFindOrInsert(allocTerm,
+        Term::termHash(head, [&](auto i){ return i < preArity ? *head.term()->nthArgument(i) : args[i]; }, preArity+arity),
+        [&](Term* t) { return t->head() == head && range(0, arity).all([&](auto i) { return args[i] == *t->nthArgument(i); }); },
+        created);
+    if (created) {
+      env.sharing->computeAndSetSharedTermData(shared);
+    }
+    return shared;
+  } else {
+    return allocTerm();
+  }
+}
 
 /** Create a new complex term, copy from @b t its function symbol and
  *  from the array @b args its arguments. Insert it into the sharing
@@ -1015,9 +1026,11 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
 
   if (share) {
     bool created = false;
+    TermList head;
+    head.makeFun(function);
     auto shared =
       env.sharing->_terms.rawFindOrInsert(allocTerm,
-        Term::termHash(function, [&](auto i){ return args[i]; }, arity),
+        Term::termHash(head, [&](auto i){ return args[i]; }, arity),
         [&](Term* t) { return t->functor() == function && range(0, arity).all([&](auto i) { return args[i] == *t->nthArgument(i); }); },
         created);
     if (created) {
@@ -1353,9 +1366,11 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
 
   if (share) {
     bool created = false;
+    TermList head;
+    head.makeFun(typeCon);
     auto shared =
       env.sharing->_sorts.rawFindOrInsert(allocTerm,
-        Term::termHash(typeCon, [&](auto i){ return args[i]; }, arity),
+        Term::termHash(head, [&](auto i){ return args[i]; }, arity),
         [&](AtomicSort* t) { return t->functor() == typeCon && range(0, arity).all([&](auto i) { return args[i] == *t->nthArgument(i); }); },
         created
         );

@@ -65,15 +65,6 @@ static OperatorType* getType(Term const* t)
 } // getType
 
 /**
- * When working with substitution trees we sometimes need to find the sort of terms within
- * the tree. These terms can contain special variables and may therefore not be shared,
- * and a sort built out of them must not be shared either. Cf. SubstHelper::canBeShared,
- * which is the same test applied by the generic path below.
- */
-static bool mayBeShared(TermList t)
-{ return !t.isSpecialVar() && (!t.isTerm() || t.term()->shared()); }
-
-/**
  * The substitution that instantiates a symbol's declared sorts at a particular term is
  * always the same shape: OperatorType::quantifiedVar(i) is simply variable i, and it goes
  * to t's i-th argument. So the lookup is an index into t itself, and there is no reason
@@ -103,7 +94,7 @@ void SortHelper::getTypeSub(const Term* t, Substitution& subst)
 } // getTypeSub
 
 /** Instantiate @c declaredSort, one of @c t's symbol's declared sorts, at @c t. */
-static TermList instantiate(TermList declaredSort, const Term* t, unsigned typeArity)
+TermList SortHelper::instantiate(TermList declaredSort, const Term* t, unsigned typeArity)
 {
   if(!typeArity){
     // nothing to instantiate: a symbol with no type variables has ground declared sorts
@@ -113,6 +104,17 @@ static TermList instantiate(TermList declaredSort, const Term* t, unsigned typeA
   }
   TypeArgApplicator applicator(t);
   return SubstHelper::apply(declaredSort, applicator);
+}
+
+// given a sort (s1 > s2 > ... > sn) and term (t t1 ... tm)
+// with m < n, we get rid of the first m arguments of the sort
+static TermList getSortAfterApplication(TermList sort, const Term* t)
+{
+  unsigned cnt = 0;
+  while (cnt++ < t->numTermArguments()) {
+    sort = sort.result();
+  }
+  return sort;
 }
 
 /**
@@ -136,16 +138,24 @@ TermList SortHelper::getResultSort(const Term* t)
     return t->getSpecialData()->getSort();
   }
 
-  // vAPP : !>[X0,X1]: ((X0 > X1) * X0) > X1, so an application's result sort is its
-  // second type argument, sitting right there in t. Worth special-casing because on a
-  // higher-order problem nearly every term is an application, and the general path below
-  // builds a Substitution -- whose DHMap allocates on the first bind -- to discover it.
-  if(t->isApplication()){
-    return *t->nthArgument(1);
+  auto head = t->head();
+  TermList sort;
+  // regular function
+  if (head.isFun()){
+    auto ot = env.signature->getFunction(head.fun())->type();
+    TypeArgApplicator applicator(t);
+    sort = instantiate(ot->result(), t, ot->numTypeArguments());
   }
-
-  OperatorType* ot = env.signature->getFunction(t->functor())->type();
-  return instantiate(ot->result(), t, ot->numTypeArguments());
+  // applied var
+  else if (head.isVar()){
+    sort = t->typeArg(0);
+  }
+  // lambda
+  else {
+    ASS(head.isLambdaTerm());
+    sort = getResultSort(head.term());
+  }
+  return getSortAfterApplication(sort, t);
 }
 
 TermList SortHelper::getResultSortMono(const Term* t)
@@ -196,23 +206,6 @@ TermList SortHelper::getArgSort(Term const* t, unsigned argIndex)
 
   if(argIndex < ot->numTypeArguments()){
     return AtomicSort::superSort();
-  }
-
-  // the same shortcut as in getResultSort: with vAPP's type declared as
-  // !>[X0,X1]: ((X0 > X1) * X0) > X1, its two term arguments have sorts X0 > X1 and X0,
-  // and both X0 and X1 are type arguments of t itself
-  if(t->isApplication()){
-    ASS_EQ(t->arity(), 4);
-    TermList domain = *t->nthArgument(0);
-    if(argIndex == 3){
-      return domain;
-    }
-    ASS_EQ(argIndex, 2u);
-    TermList range = *t->nthArgument(1);
-    // only where the general path would also have shared the arrow it builds
-    if(mayBeShared(domain) && mayBeShared(range)){
-      return AtomicSort::arrowSort(domain, range);
-    }
   }
 
   return instantiate(ot->arg(argIndex), t, ot->numTypeArguments());

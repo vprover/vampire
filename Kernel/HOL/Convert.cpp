@@ -16,6 +16,7 @@
 #include "Kernel/Connective.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/HOL/HOL.hpp"
+#include "Kernel/TermIterators.hpp"
 
 using IndexSortPair = std::pair<int, TermList>;
 using VarToIndexMap = std::unordered_map<unsigned, IndexSortPair>;
@@ -71,16 +72,10 @@ static TermList termToNameless(TermList term, const VarToIndexMap& map) {
     }
   }
 
-  if (!t->isApplication())
-    return term;
-
-  //must be of the form app(s1, s2, arg1, arg2)
-  auto s1 = *t->nthArgument(0);
-  auto s2 = *t->nthArgument(1);
-  auto arg1 = *t->nthArgument(2);
-  auto arg2 = *t->nthArgument(3);
-
-  return HOL::create::app(s1, s2, termToNameless(arg1, map), termToNameless(arg2, map));
+  auto head = termToNameless(t->head(), map);
+  auto args = TermStack::fromIterator(typeArgIter(t));
+  args.loadFromIterator(termArgIter(t).map([&map](TermList arg) { return termToNameless(arg, map); }));
+  return TermList(Term::create(head, args.size(), args.begin()));
 }
 
 static constexpr const char* connectiveToString(Connective conn) {

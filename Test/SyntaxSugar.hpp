@@ -67,7 +67,7 @@
 #define DECL_EQ_PROXY auto eqP = FuncSugar(env.signature->getEqualityProxy());
 #define DECL_PI_PROXY auto piP = FuncSugar(env.signature->getPiSigmaProxy("vPI"));
 #define DECL_SIGMA_PROXY auto sigmaP = FuncSugar(env.signature->getPiSigmaProxy("vSIGMA"));
-#define DECL_APP env.signature->getApp();
+// #define DECL_APP env.signature->getApp();
 #define DECL_LAM env.signature->getLam();
 #define NEXT_INTRODUCED_PRED(s,offset) auto s = PredSugar(env.signature->predicates()+offset);
 #define NEXT_INTRODUCED_FUN(s,offset) auto s = FuncSugar(env.signature->functions()+offset);

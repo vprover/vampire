@@ -17,7 +17,6 @@ using namespace Test;
 #define MY_SYNTAX_SUGAR                            \
   DECL_SORT(srt)                                   \
   DECL_LAM                                         \
-  DECL_APP                                         \
   DECL_VAR_SORTED(x, 0, srt)                       \
   DECL_VAR_SORTED(y, 1, srt)                       \
   DECL_VAR_SORTED(z, 2, srt)                       \

@@ -438,7 +438,6 @@ class Signature
    */
   unsigned addStringConstant(const std::string& name, TermList sort);
   void addEquality();
-  unsigned getApp();
   unsigned getLam();
   unsigned getDiff();
   unsigned getChoice();
@@ -682,10 +681,6 @@ class Signature
 
   bool isArrowCon(unsigned con) const{
     return con == _arrowCon && _arrowCon != UINT_MAX;
-  }
-  
-  bool isAppFun(unsigned fun) const{
-    return fun == _appFun && _appFun != UINT_MAX;
   }
 
   bool isLamFun(unsigned fun) const {
@@ -961,7 +956,6 @@ private:
 
   unsigned _arrayCon;
   unsigned _arrowCon;
-  unsigned _appFun;
   unsigned _lamFun;
   unsigned _choiceFun;
   unsigned _defPred;

@@ -131,83 +131,84 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
     // loose bound index
     return "db" + Int::toString(db);
   }
+  ASSERTION_VIOLATION;
 
-  auto [head, args] = HOL::getHeadAndArgs(TermList(&term));
-  bool parenthesize = args.size();
+  // auto [head, args] = HOL::getHeadAndArgs(TermList(&term));
+  // bool parenthesize = args.size();
 
-  std::string headStr;
-  if (head.isVar() || (head.deBruijnIndex().isSome() && !printDB) || head.isLambdaTerm() || head.term()->isSpecial())
-    headStr = termToStr(head, /*mightNeedParens=*/true, st);
-  else if (head.isChoice())
-    headStr = "@@+";
-  else if (HOL::isTrue(head))
-    headStr = "$true";
-  else if (HOL::isFalse(head))
-    headStr = "$false";
-  else {
-    using ProxyEntry = std::pair<Proxy, std::string_view>;
+  // std::string headStr;
+  // if (head.isVar() || (head.deBruijnIndex().isSome() && !printDB) || head.isLambdaTerm() || head.term()->isSpecial())
+  //   headStr = termToStr(head, /*mightNeedParens=*/true, st);
+  // else if (head.isChoice())
+  //   headStr = "@@+";
+  // else if (HOL::isTrue(head))
+  //   headStr = "$true";
+  // else if (HOL::isFalse(head))
+  //   headStr = "$false";
+  // else {
+  //   using ProxyEntry = std::pair<Proxy, std::string_view>;
 
-    auto functorProxy = env.signature->getFunction(head.term()->functor())->proxy();
+  //   auto functorProxy = env.signature->getFunction(head.term()->functor())->proxy();
 
-    static const std::initializer_list<ProxyEntry> proxySymbols = {
-      {Proxy::NOT,      "~"   },
-      {Proxy::SIGMA,    "??"  },
-      {Proxy::PI,       "!!"  },
-      {Proxy::AND,      "&"   },
-      {Proxy::OR,       "|"   },
-      {Proxy::XOR,      "<~>" },
-      {Proxy::IMP,      "=>"  },
-      {Proxy::IFF,      "="   },
-      {Proxy::EQUALS,   "="   }
-    };
+  //   static const std::initializer_list<ProxyEntry> proxySymbols = {
+  //     {Proxy::NOT,      "~"   },
+  //     {Proxy::SIGMA,    "??"  },
+  //     {Proxy::PI,       "!!"  },
+  //     {Proxy::AND,      "&"   },
+  //     {Proxy::OR,       "|"   },
+  //     {Proxy::XOR,      "<~>" },
+  //     {Proxy::IMP,      "=>"  },
+  //     {Proxy::IFF,      "="   },
+  //     {Proxy::EQUALS,   "="   }
+  //   };
 
-    bool foundProxy = false;
-    for (const auto& [proxy, str] : proxySymbols) {
-      if (proxy == functorProxy) {
-        headStr = str;
-        // not fully applied proxy symbols have to be parenthesized
-        if (SortHelper::getResultSort(&term).isArrowSort()) {
-          parenthesize = true;
-        }
-        foundProxy = true;
-        break;
-      }
-    }
+  //   bool foundProxy = false;
+  //   for (const auto& [proxy, str] : proxySymbols) {
+  //     if (proxy == functorProxy) {
+  //       headStr = str;
+  //       // not fully applied proxy symbols have to be parenthesized
+  //       if (SortHelper::getResultSort(&term).isArrowSort()) {
+  //         parenthesize = true;
+  //       }
+  //       foundProxy = true;
+  //       break;
+  //     }
+  //   }
 
-    if (!foundProxy) {
-      headStr = head.term()->functionName();
-      if (head.deBruijnIndex().isSome())
-        headStr = headStr + "_" + Int::toString(head.deBruijnIndex().unwrap());
-    }
-  }
+  //   if (!foundProxy) {
+  //     headStr = head.term()->functionName();
+  //     if (head.deBruijnIndex().isSome())
+  //       headStr = headStr + "_" + Int::toString(head.deBruijnIndex().unwrap());
+  //   }
+  // }
 
-  if (head.isTerm() && !head.isProxy(Proxy::EQUALS) && head.deBruijnIndex().isNone() &&
-      !head.isLambdaTerm() && head.term()->arity() > 0) {
-    auto t = head.term();
-    // parenthesize constants with type arguments
-    parenthesize = true;
-    for (unsigned i = 0; i < t->arity(); ++i) {
-      headStr += " @ " + termToStr(*t->nthArgument(i), /*mightNeedParens=*/true, st);
-    }
-  }
+  // if (head.isTerm() && !head.isProxy(Proxy::EQUALS) && head.deBruijnIndex().isNone() &&
+  //     !head.isLambdaTerm() && head.term()->arity() > 0) {
+  //   auto t = head.term();
+  //   // parenthesize constants with type arguments
+  //   parenthesize = true;
+  //   for (unsigned i = 0; i < t->arity(); ++i) {
+  //     headStr += " @ " + termToStr(*t->nthArgument(i), /*mightNeedParens=*/true, st);
+  //   }
+  // }
 
-  static constexpr auto proxies = std::initializer_list<Proxy> {
-      Proxy::AND, Proxy::OR, Proxy::IFF, Proxy::EQUALS, Proxy::IMP, Proxy::XOR
-  };
+  // static constexpr auto proxies = std::initializer_list<Proxy> {
+  //     Proxy::AND, Proxy::OR, Proxy::IFF, Proxy::EQUALS, Proxy::IMP, Proxy::XOR
+  // };
 
-  std::string res;
-  if (std::any_of(proxies.begin(), proxies.end(), [&term = head](Proxy proxy) { return term.isProxy(proxy); }) &&
-      args.size() == 2) {
-    res += termToStr(args[1], /*mightNeedParens=*/true, st) + " " +
-      headStr + " " + termToStr(args[0], /*mightNeedParens=*/true, st);
-  } else {
-    std::string app = head.isProxy(Proxy::NOT) ? " " : " @ ";
-    res += headStr;
-    while (!args.isEmpty()) {
-      res += app + termToStr(args.pop(), /*mightNeedParens=*/true, st);
-    }
-  }
-  return StringUtils::addParens(res, mightNeedParens && parenthesize);
+  // std::string res;
+  // if (std::any_of(proxies.begin(), proxies.end(), [&term = head](Proxy proxy) { return term.isProxy(proxy); }) &&
+  //     args.size() == 2) {
+  //   res += termToStr(args[1], /*mightNeedParens=*/true, st) + " " +
+  //     headStr + " " + termToStr(args[0], /*mightNeedParens=*/true, st);
+  // } else {
+  //   std::string app = head.isProxy(Proxy::NOT) ? " " : " @ ";
+  //   res += headStr;
+  //   while (!args.isEmpty()) {
+  //     res += app + termToStr(args.pop(), /*mightNeedParens=*/true, st);
+  //   }
+  // }
+  // return StringUtils::addParens(res, mightNeedParens && parenthesize);
 }
 
 std::string HOL::toString(const Term& term, bool mightNeedParens) {
@@ -223,7 +224,9 @@ TermList HOL::matrix(TermList t) {
   return t;
 }
 
-void HOL::getArgSorts(TermList t, TermStack& sorts) {
+void HOL::getArgSorts(TermList t, TermStack& sorts)
+{
+  // TODO(HOL2): this shouldn't be here, the cases below are completely distinct
   while (t.isArrowSort()) {
     sorts.push(t.domain());
     t = t.result();
@@ -231,9 +234,25 @@ void HOL::getArgSorts(TermList t, TermStack& sorts) {
 
   t = matrix(t);
 
-  while (t.isApplication()) {
-    sorts.push(*t.term()->nthArgument(0));
-    t = t.lhs();
+  if (t.isVar()) {
+    return;
+  }
+
+  auto head = t.head();
+  TermList sort;
+  if (head.isFun()) {
+    auto ot = env.signature->getFunction(head.fun())->type();
+    sort = SortHelper::instantiate(ot->result(), t.term(), ot->numTypeArguments());
+  } else if (head.isVar()) {
+    sort = t.term()->typeArg(0);
+  } else {
+    // TODO should we allow lambdas here?
+    ASSERTION_VIOLATION;
+  }
+
+  for (unsigned i = 0; i < t.term()->arity(); i++) {
+    sorts.push(sort.domain());
+    sort = sort.result();
   }
 }
 
@@ -241,26 +260,6 @@ TermStack HOL::getArgSorts(TermList t) {
   TermStack stack;
   getArgSorts(t, stack);
   return stack;
-}
-
-TermList HOL::getHeadAndArgs(TermList term, TermStack& args) {
-  args.reset();
-
-  term = matrix(term);
-
-  while (term.isApplication()) {
-    args.push(term.rhs());
-    term = term.lhs();
-  }
-
-  return term;
-}
-
-std::pair<TermList, TermStack> HOL::getHeadAndArgs(TermList term) {
-  TermStack stack;
-  TermList head = getHeadAndArgs(term, stack);
-
-  return {head, stack};
 }
 
 /** indexed from 1 */
@@ -302,53 +301,6 @@ TermList HOL::getDeBruijnIndex(int index, TermList sort) {
   return TermList(Term::create1(fun, sort));
 }
 
-void HOL::getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args) {
-  if (!args.isEmpty())
-    args.reset();
-
-  term = matrix(term);
-  while (term.isApplication()) {
-    args.push(term.rhs());
-    TermList t = term.lhs();
-    if (!t.isApplication())
-      headSort = lhsSort(term);
-
-    term = t;
-  }
-  head = term;
-}
-
-void HOL::getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermStack& argSorts) {
-  if (!args.isEmpty())
-    args.reset();
-
-  if (!argSorts.isEmpty())
-    argSorts.reset();
-
-  t = matrix(t);
-
-  while (t.isApplication()) {
-    args.push(t.rhs());
-    argSorts.push(rhsSort(t));
-    t = t.lhs();
-  }
-
-  head = t;
-}
-
-TermList HOL::lhsSort(TermList t) {
-  ASS(t.isApplication())
-
-  return AtomicSort::arrowSort(*t.term()->nthArgument(0),
-                               *t.term()->nthArgument(1));
-}
-
-TermList HOL::rhsSort(TermList t) {
-  ASS(t.isApplication())
-
-  return *t.term()->nthArgument(0);
-}
-
 TermList HOL::finalResult(TermList sort)
 {
   if (sort.isVar() || !sort.isArrowSort()) {
@@ -360,12 +312,13 @@ TermList HOL::finalResult(TermList sort)
   return sort;
 }
 
-void HOL::getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts) {
+TermList HOL::getMatrixAndPrefSorts(TermList t, TermStack& sorts)
+{
   while (t.isLambdaTerm()) {
     sorts.push(*t.term()->nthArgument(0));
     t = t.lambdaBody();
   }
-  matrix = t;
+  return t;
 }
 
 void HOL::normaliseLambdaPrefixes(TermList& t1, TermList& t2)
@@ -456,26 +409,27 @@ Stack<std::pair<TermList, HOL::UnificationInference>> HOL::getProjAndImitBinding
 {
   // since term is rigid, cannot be a variable
   TermList sort = finalResult(matrix(rigidTerm).resultSort());
-  TermList headRigid = rigidTerm.head();
-
-  auto [headFlex, argsFlex] = getHeadAndArgs(flexTerm);
 
   TermStack sortsFlex = getFlexHeadSorts(flexTerm, rigidTerm.resultSort()); // sorts of arguments of flex head
 
   Stack<std::pair<TermList, UnificationInference>> res;
 
   // imitation
+  TermList headRigid = rigidTerm.head();
   if (headRigid.deBruijnIndex().isNone()) { // cannot imitate a bound variable
     res.emplace(createGeneralBinding(headRigid, sortsFlex, freshVar), UnificationInference::IMITATION);
   }
 
-  ASS_GE(sortsFlex.size(), argsFlex.size());
-  unsigned diff = sortsFlex.size() - argsFlex.size();
+  ASS(flexTerm.isTerm());
+  auto flexArity = flexTerm.term()->arity();
+
+  ASS_GE(sortsFlex.size(), flexArity);
+  unsigned diff = sortsFlex.size() - flexArity;
 
   // projections
-  for (unsigned i = 0; i < argsFlex.size(); i++) {
+  for (unsigned i = 0; i < flexTerm.term()->numTermArguments(); i++) {
     // try and project each of the arguments of the flex head in turn
-    TermList arg = argsFlex[i];
+    TermList arg = flexTerm.term()->termArg(i);
     TermList argSort = sortsFlex[i + diff];
 
     // sort wrong, cannot project this arg
@@ -534,22 +488,31 @@ TermStack HOL::getAbstractionTerms(Literal* lit)
     res.push(namelessLambda(argSort,eq));
   };
 
-  TermList lhsHead, rhsHead;
-  TermList lhsMatrix, rhsMatrix;
-  static TermStack lhsArgs;
-  static TermStack lhsArgSorts;
-  static TermStack rhsArgs;
-  static TermStack rhsArgSorts;
+  // we look for functor-headed non-DB-index terms
+  if (lhs.isVar() || rhs.isVar()) {
+    return res;
+  }
+  auto lhsHead = lhs.term()->head();
+  // TODO(HOL2): what about lambda heads?
+  if (!lhsHead.isFun() || lhs.deBruijnIndex().isSome()) {
+    return res;
+  }
+  // that have the same functor heads
+  auto rhsHead = rhs.term()->head();
+  if (lhsHead != rhsHead) {
+    return res;
+  }
 
-  getHeadArgsAndArgSorts(lhs, lhsHead, lhsArgs, lhsArgSorts);
-  getHeadArgsAndArgSorts(rhs, rhsHead, rhsArgs, rhsArgSorts);
-  if (lhsHead.isTerm() && lhsHead.deBruijnIndex().isNone() && lhsHead == rhsHead) {
-    for(unsigned i = 0; i < lhsArgs.size(); i++){
-      dealWithArg(lhsArgs[i], lhsArgSorts[i]);
-    }
-    for(unsigned i = 0; i < rhsArgs.size(); i++){
-      dealWithArg(rhsArgs[i], rhsArgSorts[i]);
-    }
+  ASS_EQ(lhs.term()->arity(), rhs.term()->arity());
+  ASS(typeArgIter(lhs.term()).zip(typeArgIter(rhs.term()))
+    .all([](auto p) { return p.first == p.second; }));
+
+  auto ot = env.signature->getFunction(lhsHead.fun())->type();
+  auto sort = SortHelper::instantiate(ot->result(), lhs.term(), ot->numTypeArguments());
+  for (unsigned i = 0; i < lhs.term()->numTermArguments(); i++) {
+    dealWithArg(lhs.term()->termArg(i), sort.domain());
+    dealWithArg(rhs.term()->termArg(i), sort.domain());
+    sort = sort.result();
   }
   return res;
 }

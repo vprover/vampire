@@ -225,13 +225,24 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
 {
   DEBUG("decompose");
   auto& curr = _cons[index];
-  auto [lhead, largs] = HOL::getHeadAndArgs(curr._lhs);
-  auto [rhead, rargs] = HOL::getHeadAndArgs(curr._rhs);
-  auto argSorts = HOL::getArgSorts(curr._lhs);
-  ASS_EQ(argSorts, HOL::getArgSorts(curr._rhs));
-  ASS_G(largs.size(),0);
-  ASS_EQ(largs.size(), rargs.size());
-  ASS_EQ(largs.size(), argSorts.size());
+
+  TermStack lambdaSorts;
+  auto lhs = HOL::getMatrixAndPrefSorts(curr._lhs, lambdaSorts);
+  TermStack otherLambdaSorts;
+  auto rhs = HOL::getMatrixAndPrefSorts(curr._rhs, otherLambdaSorts);
+  ASS_EQ(lambdaSorts, otherLambdaSorts);
+
+  auto argSorts = HOL::getArgSorts(lhs);
+  ASS_EQ(argSorts, HOL::getArgSorts(rhs));
+
+  auto lt = lhs.term();
+  auto rt = rhs.term();
+  ASS_EQ(lt->functor(), rt->functor());
+
+  auto arity = lt->numTermArguments();
+  ASS_G(arity,0);
+  ASS_EQ(arity, rt->numTermArguments());
+  ASS_EQ(arity, argSorts.size());
 
   Stack<UnificationNode::Constraint> cons;
   if (includeRest) {
@@ -241,18 +252,10 @@ Stack<UnificationNode::Constraint> UnificationNode::decompose(unsigned index, bo
       }
     }
   }
-  TermList matrix;
-  TermStack lambdaSorts;
-  HOL::getMatrixAndPrefSorts(curr._lhs, matrix, lambdaSorts);
-#if VDEBUG
-  TermStack otherLambdaSorts;
-  HOL::getMatrixAndPrefSorts(curr._rhs, matrix, otherLambdaSorts);
-  ASS_EQ(lambdaSorts, otherLambdaSorts);
-#endif
-  for (unsigned j = 0; j < largs.size(); j++) {
-    auto lhs = HOL::create::surroundWithLambdas(largs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
-    auto rhs = HOL::create::surroundWithLambdas(rargs[j], lambdaSorts, argSorts[j], /*fromTop=*/true);
-    auto sort = lambdaSorts.isEmpty() ? argSorts[j] : SortHelper::getResultSort(lhs.term());
+  for (unsigned i = 0; i < arity; i++) {
+    auto lhs = HOL::create::surroundWithLambdas(lt->termArg(i), lambdaSorts, argSorts[i], /*fromTop=*/true);
+    auto rhs = HOL::create::surroundWithLambdas(rt->termArg(i), lambdaSorts, argSorts[i], /*fromTop=*/true);
+    auto sort = lambdaSorts.isEmpty() ? argSorts[i] : SortHelper::getResultSort(lhs.term());
     cons.emplace(lhs, rhs, sort);
   }
   return cons;

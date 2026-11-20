@@ -153,6 +153,7 @@ public:
 
   OperatorKey* key() const { return _key; }
   unsigned numTypeArguments() const { return _typeArgsArity; }
+  unsigned numTermArguments() const { return _key->length()-1; }
   unsigned arity() const { return _typeArgsArity + _key->length()-1; }
 
   /**

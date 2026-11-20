@@ -389,7 +389,6 @@ public:
     CONSTANT,
     ALL,
     GROUND,
-    FUNC_EXT,
     ALASCA_ONE_INTERP,
     ALASCA_CAN_ABSTRACT,
     ALASCA_MAIN,
@@ -406,7 +405,6 @@ public:
       case UnificationWithAbstraction::CONSTANT:          return out << "constant";
       case UnificationWithAbstraction::ALL:               return out << "all";
       case UnificationWithAbstraction::GROUND:            return out << "ground";
-      case UnificationWithAbstraction::FUNC_EXT:          return out << "func_ext";
       case UnificationWithAbstraction::ALASCA_ONE_INTERP:   return out << "alasca_one_interp";
       case UnificationWithAbstraction::ALASCA_CAN_ABSTRACT: return out << "alasca_can_abstract";
       case UnificationWithAbstraction::ALASCA_MAIN:         return out << "alasca_main";

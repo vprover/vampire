@@ -410,20 +410,6 @@ public:
     }
   }
 
-#if VDEBUG
-  void assertValid()
-  {
-    int sz=size();
-    int cnt=0;
-    Iterator it(*this);
-    while(it.hasNext()) {
-      cnt++;
-      it.next();
-    }
-    ASS_EQ(sz,cnt);
-  }
-#endif
-
   /**
    * Iterator over the multiset object. The object is iterated
    * as a set -- each contained element is returned just once,

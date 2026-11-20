@@ -202,32 +202,32 @@ std::ostream& InferenceStore::TPTPProofPrinter::printSkolemizeSymbol(std::ostrea
   out << "skolemize(" << variableRef(*skolemizedVariable) << ',';
   // For now we have to output standard prolog, i.e. f(X1,...,Xn) even in THF.
   // TODO: change this once GDV is updated.
-  if (env.higherOrder()) {
-    ASS(!TermList(*skolemTerm).isLambdaTerm());
-    auto [head, args] = HOL::getHeadAndArgs(TermList(*skolemTerm));
-    ASS(head.isTerm() && !head.isLambdaTerm());
+  // if (env.higherOrder()) {
+  //   ASS(!TermList(*skolemTerm).isLambdaTerm());
+  //   auto [head, args] = HOL::getHeadAndArgs(TermList(*skolemTerm));
+  //   ASS(head.isTerm() && !head.isLambdaTerm());
 
-    auto h = head.term();
-    if (h->isLiteral()) {
-      out << static_cast<Literal*>(h)->predicateName();
-    } else if (h->isSort()) {
-      out << static_cast<AtomicSort*>(h)->typeConName();
-    } else {
-      out << h->functionName();
-    }
+  //   auto h = head.term();
+  //   if (h->isLiteral()) {
+  //     out << static_cast<Literal*>(h)->predicateName();
+  //   } else if (h->isSort()) {
+  //     out << static_cast<AtomicSort*>(h)->typeConName();
+  //   } else {
+  //     out << h->functionName();
+  //   }
 
-    if (h->arity() || args.size()) {
-      auto variables = concatIters(
-          range(0, h->arity()).map([h](unsigned i) { return *h->nthArgument(i); }),
-          arrayIter(args));
-      out << parenthesized(commaSeparated(variables.map([](TermList variable) {
-        ASS(variable.isVar());
-        return variable;
-      })));
-    }
-  } else {
+  //   if (h->arity() || args.size()) {
+  //     auto variables = concatIters(
+  //         range(0, h->arity()).map([h](unsigned i) { return *h->nthArgument(i); }),
+  //         arrayIter(args));
+  //     out << parenthesized(commaSeparated(variables.map([](TermList variable) {
+  //       ASS(variable.isVar());
+  //       return variable;
+  //     })));
+  //   }
+  // } else {
     out << **skolemTerm;
-  }
+  // }
   return out << ')';
 }
 

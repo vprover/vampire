@@ -39,26 +39,17 @@ inline bool isBool(TermList term) {
 std::string toString(const Term &term, bool mightNeedParens);
 
 TermList matrix(TermList t);
-TermList getHeadAndArgs(TermList term, TermStack &args);
-std::pair<TermList, TermStack> getHeadAndArgs(TermList term);
 
 TermList getNthArg(TermList arrowSort, unsigned argNum);
 TermList getResultAppliedToNArgs(TermList arrowSort, unsigned argNum);
 unsigned getArity(TermList sort);
 TermList getDeBruijnIndex(int index, TermList sort);
-
 void getArgSorts(TermList t, TermStack& sorts);
 TermStack getArgSorts(TermList t);
 
-void getHeadSortAndArgs(TermList term, TermList& head, TermList& headSort, TermStack& args);
-void getHeadArgsAndArgSorts(TermList t, TermList& head, TermStack& args, TermStack& argSorts);
-
-TermList lhsSort(TermList t);
-TermList rhsSort(TermList t);
-
 TermList finalResult(TermList sort);
 
-void getMatrixAndPrefSorts(TermList t, TermList& matrix, TermStack& sorts);
+TermList getMatrixAndPrefSorts(TermList t, TermStack& sorts);
 
 inline bool canHeadReduce(const TermList& head, const TermStack& args) {
   return head.isLambdaTerm() && args.isNonEmpty();

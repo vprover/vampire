@@ -24,7 +24,7 @@ class RedexReducer : public TermTransformer {
 public:
   RedexReducer() : TermTransformer(/*transformSorts=*/false) {}
 
-  TermList reduce(TermList head, TermList arg);
+  TermList reduce(TermList head, Term::Iterator argIter);
   TermList transformSubterm(TermList t) override;
 
   void onTermEntry(Term* t) override {

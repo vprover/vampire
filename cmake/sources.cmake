@@ -70,18 +70,18 @@ set(UNIT_TESTS
     UnitTests/tInferences_HOL_ArgCong.cpp
     UnitTests/tInferences_HOL_BetaEtaSimplify.cpp
     UnitTests/tInferences_HOL_BoolEqToDiseq.cpp
-    UnitTests/tInferences_HOL_BoolSimp.cpp
+    # UnitTests/tInferences_HOL_BoolSimp.cpp
     UnitTests/tInferences_HOL_Cases.cpp
     UnitTests/tInferences_HOL_CasesSimp.cpp
-    UnitTests/tInferences_HOL_Choice.cpp
-    UnitTests/tInferences_HOL_CNFOnTheFly.cpp
+    # UnitTests/tInferences_HOL_Choice.cpp
+    # UnitTests/tInferences_HOL_CNFOnTheFly.cpp
     UnitTests/tInferences_HOL_FlexFlexSimplify.cpp
     UnitTests/tInferences_HOL_ImitateProject.cpp
-    UnitTests/tInferences_HOL_Injectivity.cpp
-    UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
+    # UnitTests/tInferences_HOL_Injectivity.cpp
+    # UnitTests/tInferences_HOL_LeibnizEqualityElimination.cpp
     UnitTests/tInferences_HOL_NegativeExtensionality.cpp
-    UnitTests/tInferences_HOL_PositiveExtensionality.cpp
-    UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp
+    # UnitTests/tInferences_HOL_PositiveExtensionality.cpp
+    # UnitTests/tInferences_HOL_PrimitiveInstantiation.cpp
     UnitTests/tInferences_Induction.cpp
     UnitTests/tInferences_InferenceEngine.cpp
     UnitTests/tInferences_InnerRewriting.cpp
@@ -314,36 +314,36 @@ set(SOURCES
     Inferences/HOL/BetaEtaSimplify.hpp
     Inferences/HOL/BoolEqToDiseq.cpp
     Inferences/HOL/BoolEqToDiseq.hpp
-    Inferences/HOL/BoolSimp.cpp
-    Inferences/HOL/BoolSimp.hpp
+    # Inferences/HOL/BoolSimp.cpp
+    # Inferences/HOL/BoolSimp.hpp
     Inferences/HOL/Cases.cpp
     Inferences/HOL/Cases.hpp
     Inferences/HOL/CasesSimp.cpp
     Inferences/HOL/CasesSimp.hpp
-    Inferences/HOL/Choice.cpp
-    Inferences/HOL/Choice.hpp
-    Inferences/HOL/CNFOnTheFly.cpp
-    Inferences/HOL/CNFOnTheFly.hpp
+    # Inferences/HOL/Choice.cpp
+    # Inferences/HOL/Choice.hpp
+    # Inferences/HOL/CNFOnTheFly.cpp
+    # Inferences/HOL/CNFOnTheFly.hpp
     Inferences/HOL/FlexFlexSimplify.cpp
     Inferences/HOL/FlexFlexSimplify.hpp
     Inferences/HOL/ImitateProject.cpp
     Inferences/HOL/ImitateProject.hpp
-    Inferences/HOL/LeibnizEqualityElimination.cpp
-    Inferences/HOL/LeibnizEqualityElimination.hpp
+    # Inferences/HOL/LeibnizEqualityElimination.cpp
+    # Inferences/HOL/LeibnizEqualityElimination.hpp
     Inferences/HOL/NegativeExtensionality.cpp
     Inferences/HOL/NegativeExtensionality.hpp
-    Inferences/HOL/PositiveExtensionality.cpp
-    Inferences/HOL/PositiveExtensionality.hpp
-    Inferences/HOL/PrimitiveInstantiation.cpp
-    Inferences/HOL/PrimitiveInstantiation.hpp
+    # Inferences/HOL/PositiveExtensionality.cpp
+    # Inferences/HOL/PositiveExtensionality.hpp
+    # Inferences/HOL/PrimitiveInstantiation.cpp
+    # Inferences/HOL/PrimitiveInstantiation.hpp
     Inferences/Induction.cpp
     Inferences/Induction.hpp
     Inferences/InductionHelper.cpp
     Inferences/InductionHelper.hpp
     Inferences/InferenceEngine.cpp
     Inferences/InferenceEngine.hpp
-    Inferences/Injectivity.cpp
-    Inferences/Injectivity.hpp
+    # Inferences/Injectivity.cpp
+    # Inferences/Injectivity.hpp
     Inferences/InnerRewriting.cpp
     Inferences/InnerRewriting.hpp
     Inferences/Instantiation.cpp

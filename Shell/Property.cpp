@@ -676,15 +676,22 @@ void Property::scan(TermList ts)
     // scanSort at the end, and getResultSort is not cheap: it builds a Substitution and
     // rebuilds the sort term through it
     TermList resultSort = SortHelper::getResultSort(t);
+    auto temp = resultSort;
+    unsigned numArgs = 0;
+    while (temp.isArrowSort()) {
+      numArgs++;
+      temp = temp.result();
+    }
 
-    if(t->isApplication()){
+    // check for variable or lambda head, or partial application
+    if (!t->head().isFun() || t->numTermArguments() < numArgs) {
       _hasApp = true;
-      // _hasBoolVar only ever goes from false to true, and both tests below walk a spine
-      // (finalResult up the arrow sort, head down the application), so once it is set
-      // there is nothing left to learn here
-      if(!_hasBoolVar && HOL::finalResult(resultSort).isBoolSort() && ts.head().isVar()){
-        _hasBoolVar = true;
-      }
+    }
+    // _hasBoolVar only ever goes from false to true, and both tests below walk a spine
+    // (finalResult up the arrow sort, head down the application), so once it is set
+    // there is nothing left to learn here
+    if(!_hasBoolVar && HOL::finalResult(resultSort).isBoolSort() && ts.head().isVar()){
+      _hasBoolVar = true;
     }
 
     if(func->proxy() != Proxy::NOT_PROXY){
@@ -698,7 +705,7 @@ void Property::scan(TermList ts)
       _hasLogicalProxy = true;
     }
 
-    if(!t->isApplication() && !t->isLambdaTerm() && t->numTypeArguments() > 0){
+    if(!t->isLambdaTerm() && t->numTypeArguments() > 0){
       _hasPolymorphicSym = true;
     }
 

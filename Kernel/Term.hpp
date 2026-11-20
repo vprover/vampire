@@ -285,7 +285,6 @@ public:
   bool isSafe() const;
 
   /* Higher-order terms */
-  bool isApplication() const;
   bool isLambdaTerm() const;
   bool isBetaRedex() const;
   bool isEtaRedex() const;
@@ -299,8 +298,6 @@ public:
    * term that is not wrapped into i lambda binders. */ 
   bool containsLooseDBIndex() const;
   const SharedSet<unsigned>* freeDBIndices() const;
-  TermList lhs() const;
-  TermList rhs() const;
   TermList lambdaBody() const;
   TermList head() const;
   TermList domain() const;
@@ -477,6 +474,7 @@ public:
     stack->loadFromIterator(args);
     return Term::create(fn, *stack); 
   }
+  static Term* create(TermList head, unsigned arity, const TermList* args);
   static Term* create(Term* t,TermList* args);
   static Term* cloneNonShared(Term* t);
 
@@ -499,6 +497,8 @@ public:
 
   /** Function or predicate symbol of a term */
   unsigned functor() const { return _head.fun(); }
+
+  TermList head() const { return _head; }
 
   SpecialFunctor specialFunctor() const 
   { return toSpecialFunctor(functor()); }
@@ -597,16 +597,12 @@ public:
 
 
   template<class GetArg>
-  static unsigned termHash(unsigned functor, GetArg getArg, unsigned arity) {
+  static unsigned termHash(TermList head, GetArg getArg, unsigned arity) {
     return FnvHash::hashIter(
         range(0, arity).map([&](auto i) {
-          TermList t = getArg(i);
-          return FnvHash::hashBytes(
-              reinterpret_cast<const unsigned char*>(&t),
-              sizeof(TermList)
-              );
-          }),
-        FnvHash::hash(functor));
+          return TermListHash::hash(getArg(i));
+        }),
+        TermListHash::hash(head));
   }
 
   /**
@@ -615,7 +611,7 @@ public:
    * @since 28/12/2007 Manchester
    */
   unsigned hash() const 
-  { return termHash(functor(), [&](auto i) { return *nthArgument(i); }, _arity); }
+  { return termHash(head(), [&](auto i) { return *nthArgument(i); }, _arity); }
 
   /** return the arity */
   unsigned arity() const
@@ -743,8 +739,6 @@ public:
   TermKind kind() const { return isSort() ? TermKind::SORT 
                                : isLiteral() ? TermKind::LITERAL
                                : TermKind::TERM; }
-  /** true if the term is an application */
-  bool isApplication() const;
   /** true if the term is a lambda term */
   bool isLambdaTerm() const;
   /** true if the term is a redex */
@@ -1140,12 +1134,14 @@ public:
 
   template<class GetArg>
   static unsigned literalHash(unsigned functor, bool polarity, GetArg getArg, unsigned arity, Option<TermList> twoVarEqSort) {
+    TermList head;
+    head.makeFun(functor);
     if (functor == 0) { // i.e., isEquality
       ASS_EQ(arity, 2)
       ASS(rightArgOrder(getArg(0), getArg(1)))
       return HashUtils::combine(
           FnvHash::hash(polarity),
-          FnvHash::hash(functor),
+          TermListHash::hash(head),
           twoVarEqSort.isSome() ? TermListHash::hash(*twoVarEqSort) : FnvHash::hash(0),
           TermListHash::hash(getArg(0)),
           TermListHash::hash(getArg(1)));
@@ -1153,7 +1149,7 @@ public:
       ASS(twoVarEqSort.isNone())
       return HashUtils::combine(
           FnvHash::hash(polarity),
-          Term::termHash(functor, getArg, arity));
+          Term::termHash(head, getArg, arity));
     }
   }
 

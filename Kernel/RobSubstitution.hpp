@@ -103,6 +103,8 @@ struct TermSpec {
   unsigned nTermArgs() const { return term.term()->numTermArguments(); }
   unsigned nAllArgs() const { return term.term()->arity(); }
 
+  TermSpec head() const { return TermSpec(term.term()->head(), index); }
+
   // TODO remove unnecessary function call
   TermSpec termArg(unsigned i) const { return TermSpec(this->term.term()->termArg(i), this->index); }
   TermSpec typeArg(unsigned i) const { return TermSpec(this->term.term()->typeArg(i), this->index); }

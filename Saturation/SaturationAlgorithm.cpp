@@ -1454,7 +1454,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
     gie->addFront(new ArgCong(*res));
     gie->addFront(new NegativeExtensionality(*res));
     if (opt.positiveExtensionality()) {
-      gie->addFront(new PositiveExtensionality(*res));
+      // gie->addFront(new PositiveExtensionality(*res));
     }
     if(prb.hasFOOL() && opt.booleanEqTrick()){
       gie->addFront(new BoolEqToDiseq(*res));
@@ -1464,7 +1464,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
       gie->addFront(new ImitateProject(*res));
     }
     if (opt.choiceReasoning()) {
-      gie->addFront(new Choice(*res));
+      // gie->addFront(new Choice(*res));
     }
   }
 
@@ -1492,19 +1492,19 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   }
 
   if (opt.complexBooleanReasoning() && prb.hasBoolVar() && prb.isHigherOrder()) {
-    gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
-    gie->addFront(new LeibnizEqualityElimination(*res));
+    // gie->addFront(new PrimitiveInstantiation(*res)); //TODO only add in some cases
+    // gie->addFront(new LeibnizEqualityElimination(*res));
   }
 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER && 
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      gie->addFront(new LazyClausificationGIE());
+      // gie->addFront(new LazyClausificationGIE());
     }
   }
 
   if (prb.isHigherOrder() && opt.injectivityReasoning()) {
-    gie->addFront(new Injectivity(*res));
+    // gie->addFront(new Injectivity(*res));
   }
   if (mayHaveEquality && env.signature->hasTermAlgebras()) {
     if (opt.termAlgebraCyclicityCheck() == Options::TACyclicityCheck::RULE) {
@@ -1608,7 +1608,7 @@ SaturationAlgorithm *SaturationAlgorithm::createFromOptions(Problem& prb, const 
   if((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()){
     if(env.options->cnfOnTheFly() != Options::CNFOnTheFly::EAGER &&
        env.options->cnfOnTheFly() != Options::CNFOnTheFly::OFF){
-      res->addSimplifierToFront<LazyClausification>();
+      // res->addSimplifierToFront<LazyClausification>();
     }
   }
   if (opt.globalSubsumption()) {
@@ -1760,12 +1760,12 @@ std::pair<CompositeISE*, CompositeISEMany> SaturationAlgorithm::createISE(Proble
 
   if ((prb.hasLogicalProxy() || prb.hasBoolVar() || prb.hasFOOL()) && prb.isHigherOrder()) {
     if(env.options->cnfOnTheFly() == Options::CNFOnTheFly::EAGER){
-      resMany.addFront(std::make_unique<EagerClausificationISE>());
+      // resMany.addFront(std::make_unique<EagerClausificationISE>());
     }
     if(env.options->iffXorRewriter()){
-      res->addFront(new IFFXORRewriterISE());
+      // res->addFront(new IFFXORRewriterISE());
     }
-    res->addFront(new BoolSimp());
+    // res->addFront(new BoolSimp());
   }
 
   if (prb.hasFOOL() && opt.casesSimp() && !opt.cases()) {

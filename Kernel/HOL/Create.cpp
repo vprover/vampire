@@ -32,13 +32,12 @@ TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2
   static TermStack args;
 
   args.reset();
-  args.push(s1);
-  args.push(s2);
-  args.push(arg1);
+  if (arg1.isVar()) {
+    args.push(AtomicSort::arrowSort(s1,s2));
+  }
   args.push(arg2);
 
-  unsigned app = env.signature->getApp();
-  return TermList(Term::create(app, 4, args.begin()));
+  return TermList(Term::create(arg1, args.size(), args.begin()));
 }
 
 TermList HOL::create::app(TermList sort, TermList head, const TermStack& terms, bool fromTop) {

@@ -181,7 +181,6 @@ Signature::Signature ():
     _reals(0),
     _arrayCon(UINT_MAX),
     _arrowCon(UINT_MAX),
-    _appFun(UINT_MAX),
     _lamFun(UINT_MAX),
     _choiceFun(UINT_MAX),
     _defPred(UINT_MAX),
@@ -469,21 +468,6 @@ unsigned Signature::addStringConstant(const std::string& name, TermList sort)
   _funNames.insert(symbolKey,result);
   return result;
 } // addStringConstant
-
-
-unsigned Signature::getApp()
-{
-  auto tv1 = TermList::var(0);
-  auto tv2 = TermList::var(1);
-  auto arrowType = AtomicSort::arrowSort(tv1, tv2);
-
-  bool added = false;
-  unsigned app = addFunction("vAPP", OperatorType::getFunctionType({arrowType, tv1}, tv2, 2), added)->number();
-  if (added) {
-    _appFun = app;
-  }
-  return app;
-}
 
 unsigned Signature::getLam() {
   auto tv2 = TermList::var(1);

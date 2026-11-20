@@ -70,6 +70,7 @@ public:
    * @author Ahmed Bhayat
    */
   static void getTypeSub(const Term *t, Substitution &subst);
+  static TermList instantiate(TermList declaredSort, const Term* t, unsigned typeArity);
 
   static bool areSortsValid(Clause* cl);
   static bool areSortsValid(Term* t);

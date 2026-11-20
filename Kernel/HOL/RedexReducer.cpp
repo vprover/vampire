@@ -15,12 +15,15 @@
 #include "Kernel/HOL/TermShifter.hpp"
 #include "Kernel/HOL/HOL.hpp"
 
-TermList RedexReducer::reduce(TermList head, TermList arg)
+TermList RedexReducer::reduce(TermList head, Term::Iterator argIter)
 {
   ASS(head.isLambdaTerm());
+  ASS(argIter.hasNext());
   _replace = 0;
-  _t2 = arg;
-  return transform(head.lambdaBody());
+  _t2 = argIter.next();
+
+  auto args = TermStack::fromIterator(argIter);
+  return TermList(Term::create(transform(head.lambdaBody()), args.size(), args.begin()));
 }
 
 TermList RedexReducer::transformSubterm(TermList t) {

@@ -189,10 +189,6 @@ bool needsTPTPTypeDeclaration(SymbolType type, unsigned number)
         && (sig.isFoolConstantSymbol(true, number) || sig.isFoolConstantSymbol(false, number))) {
       return false;
     }
-    // app is internal to Vampire
-    if (sig.isAppFun(number)) {
-      return false;
-    }
     unsigned dummy;
     if (Theory::findTupleProjection(number, /*predicate=*/false, dummy)) {
       return false;

@@ -82,16 +82,11 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     const bool isLambda = t->isLambdaTerm();
     bool hasLambda = isLambda;
     Color color = COLOR_TRANSPARENT;
-
+    auto freeDBIndices = SharedSet<unsigned>::getEmpty();
     if (t->deBruijnIndex().isSome()) {
-      t->setFreeDBIndices(SharedSet<unsigned>::getSingleton(t->deBruijnIndex().unwrap()));
-    } else if (isLambda) {
-      t->setFreeDBIndices(SharedSet<unsigned>::getFromIterator(t->lambdaBody().freeDBIndices()->iter()
-        .filter([](unsigned v) { return v!=0; }) // remove 0
-        .map([](unsigned v) { return v-1; }))); // decrement rest
-    } else if (t->isApplication()) {
-      t->setFreeDBIndices(t->termArg(0).freeDBIndices()->getUnion(t->termArg(1).freeDBIndices()));
+      freeDBIndices = SharedSet<unsigned>::getSingleton(t->deBruijnIndex().unwrap());
     }
+    // TODO do things for head
 
     for (unsigned i = 0; i < t->arity(); i++) {
       TermList* tt = t->nthArgument(i);
@@ -117,6 +112,7 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
         if(!hasInterpretedConstants && r->hasInterpretedConstants()) {
           hasInterpretedConstants=true; 
         }
+        freeDBIndices = freeDBIndices->getUnion(r->freeDBIndices());
       }
     }
     t->markShared();
@@ -133,8 +129,13 @@ void TermSharing::computeAndSetSharedTermData(Term* t)
     t->setHasEtaRedex(hasEtaRedex);
     t->setHasLambda(hasLambda);
     t->setInterpretedConstantsPresence(hasInterpretedConstants);
-
-    ASS_REP(!env.higherOrder() || t->isApplication() || t->isLambdaTerm() || !t->numTermArguments(), "HO term " + t->toString() + " is not appified");
+    if (isLambda) {
+      ASS_EQ(freeDBIndices, t->lambdaBody().freeDBIndices());
+      freeDBIndices = SharedSet<unsigned>::getFromIterator(freeDBIndices->iter()
+        .filter([](unsigned v) { return v!=0; }) // remove 0
+        .map([](unsigned v) { return v-1; })); // decrement rest
+    }
+    t->setFreeDBIndices(freeDBIndices);
 
     //poly function works for mono as well, but is slow
     //it is fine to use for debug

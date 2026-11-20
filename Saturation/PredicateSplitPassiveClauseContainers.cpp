@@ -18,8 +18,8 @@
 
 #include "Shell/Options.hpp"
 #include "Kernel/Clause.hpp"
-#include "Kernel/HOL/HOL.hpp"
 #include "Kernel/Inference.hpp"
+#include "Kernel/TermIterators.hpp"
 #include "Lib/Random.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Int.hpp"
@@ -498,20 +498,19 @@ unsigned numOfAppVarsAndLambdas(TermList t, unsigned lambdaWeight, unsigned appl
   }
 
   // it's OK that the entry in cache has already been created, will only possibly ask for proper subterms
+  // TODO but the cache can be reallocated while recursing
 
   unsigned res = 0;
 
   if (tt->isLambdaTerm()) {
     res = lambdaWeight + numOfAppVarsAndLambdas(tt->lambdaBody(), lambdaWeight, appliedVarWeight);
-  } else if (tt->isApplication()) {
-    TermStack args;
-    auto head = HOL::getHeadAndArgs(t, args);
-    ASS(!head.isLambdaTerm()); // should be beta-reduced
-    if (head.isVar()) {
+  } else {
+    if (tt->head().isVar()) {
       res += appliedVarWeight;
     }
-    while(!args.isEmpty()){
-      res += numOfAppVarsAndLambdas(args.pop(), lambdaWeight, appliedVarWeight);
+    res += numOfAppVarsAndLambdas(tt->head(), lambdaWeight, appliedVarWeight);
+    for (const auto& arg : termArgIter(tt)) {
+      res += numOfAppVarsAndLambdas(arg, lambdaWeight, appliedVarWeight);
     }
   }
 

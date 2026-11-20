@@ -141,17 +141,16 @@ Clause* ChoiceDefinitionISE::simplify(Clause* c)
   Literal* lit1 = (*c)[0];
   Literal* lit2 = (*c)[1];
   
-  TermList x, f;
+  TermList x;
+  unsigned f = 0;
 
   if(!isPositive(lit1) && is_of_form_xy(lit1, x) &&
       isPositive(lit2) && is_of_form_xfx(lit2, x, f)){
-    unsigned fun = f.term()->functor();
-    env.signature->addChoiceOperator(fun);
+    env.signature->addChoiceOperator(f);
     return 0;
   } else if(!isPositive(lit2) && is_of_form_xy(lit2, x) && 
              isPositive(lit1) && is_of_form_xfx(lit1, x, f)) {
-    unsigned fun = f.term()->functor();
-    env.signature->addChoiceOperator(fun);
+    env.signature->addChoiceOperator(f);
     return 0;
   }
   return c;
@@ -189,26 +188,41 @@ bool ChoiceDefinitionISE::isNegative(Literal* lit)
 bool ChoiceDefinitionISE::is_of_form_xy(Literal* lit, TermList& x){
   TermList term = HOL::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
 
-  if(term.isLambdaTerm()){ return false; }
-  
-  TermStack args;
-  x = HOL::getHeadAndArgs(term, args);
-  return (x.isVar() && args.size() == 1 && args[0].isVar());
+  if (term.isLambdaTerm() || term.isVar()){
+    return false;
+  }
+
+  auto t = term.term();
+  if (!t->head().isVar()) {
+    return false;
+  }
+
+  x = t->head();
+  return t->numTermArguments()==1 && t->termArg(0).isVar();
 }
 
-bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, TermList& f){
+bool ChoiceDefinitionISE::is_of_form_xfx(Literal* lit, TermList x, unsigned f){
   TermList term = HOL::isBool(*lit->nthArgument(0)) ? *lit->nthArgument(1) : *lit->nthArgument(0);
 
-  if(term.isLambdaTerm()){ return false; }
-  
-  TermStack args;
-  auto head = HOL::getHeadAndArgs(term, args);
-  if(head == x && args.size() == 1){
-    TermList arg = args[0];
-    f = HOL::getHeadAndArgs(arg, args);
-    return (!f.isVar() && args.size() == 1 && args[0] == x);
+  if(term.isLambdaTerm() || term.isVar()){
+    return false;
   }
-  return false;
+
+  auto t = term.term();
+  if (t->head() != x || t->numTermArguments() != 1) {
+    return false;
+  }
+  auto arg = t->termArg(0);
+  if (arg.isVar()) {
+    return false;
+  }
+
+  auto argT = arg.term();
+  if (!argT->head().isFun() || argT->numTermArguments() != 1 || argT->termArg(0) != x) {
+    return false;
+  }
+  f = argT->functor();
+  return true;
 }
 
 Clause* DuplicateLiteralRemovalISE::simplify(Clause* c)

@@ -151,7 +151,6 @@ bool BooleanSubtermIterator::hasNext()
 {
   if(!_used){ return true; }
 
-  static TermStack args;
   while(!_stack.isEmpty()){
     Term* t = _stack.pop();
     if (t->isLambdaTerm()) {
@@ -159,13 +158,15 @@ bool BooleanSubtermIterator::hasNext()
       // underneath lambdas that don't contain loose indices
       continue;
     }
-    auto head = HOL::getHeadAndArgs(TermList(t), args);
-    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !HOL::isBool(head)){
+    if(SortHelper::getResultSort(t) == AtomicSort::boolSort() && !HOL::isBool(TermList(t))){
       _next = TermList(t);
       _used = false;
     }
-    while(!args.isEmpty()){
-      TermList arg = args.pop();
+    if (t->head().isTerm()) {
+      _stack.push(t->head().term());
+    }
+    for (unsigned i = 0; i < t->numTermArguments(); i++) {
+      TermList arg = t->termArg(i);
       if(arg.isTerm()){
         _stack.push(arg.term());
       }
@@ -202,12 +203,8 @@ Term* FirstOrderSubtermIterator<insideLambdasToo>::next()
     return t;
   }
 
-  auto [head, args] = HOL::getHeadAndArgs(TermList(t));
-
-  // the iterator should be only used after beta-eta normalization
-  ASS(!head.isLambdaTerm());
-
-  for (auto arg : args) {
+  for (unsigned i = 0; i < t->numTermArguments(); i++) {
+    auto arg = t->termArg(i);
     if (arg.isTerm()) {
       _added++;
       _stack.push(arg.term());
