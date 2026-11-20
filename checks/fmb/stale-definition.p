@@ -6,8 +6,8 @@
 % which runs later in preprocessing, then eliminates r and s, whose definitions mention x,
 % and x itself. Replayed backwards, the definitions of r and s come before x's flip and read
 % x as it was before it. So -fmbmp layered prints them over 'x_$1' (x before its last
-% update, itself a definition), and x, a flip on top, as a table. Before versions existed,
-% r and s were spelled out as tables.
+% update, itself a definition), and x, a flip on top, as a $cond over 'x_$1' too. Before
+% versions existed, r and s were spelled out as tables.
 %
 % x has three positive uses so that eliminating it first would cost more clauses than it
 % removes; otherwise predicate elimination takes x before r and s, and nothing goes stale.

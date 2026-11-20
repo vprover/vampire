@@ -299,20 +299,6 @@ static std::string varName(unsigned i)
   return "X"+Int::toString(i);
 }
 
-// "name(X0,...,X_{arity-1})", or just "name" for a constant or proposition
-static std::string linearHead(const std::string& name, unsigned arity)
-{
-  if (arity == 0) {
-    return name;
-  }
-  std::string res = name+"(";
-  for(unsigned i=0;i<arity;i++){
-    if (i) res += ",";
-    res += varName(i);
-  }
-  return res+")";
-}
-
 bool FiniteModelMultiSorted::collectBodySymbols(TermList body, BodySymbols& out)
 {
   Stack<TermList> todo;
@@ -837,29 +823,115 @@ static unsigned layerAsOf(const Stack<Layer*>& st, Timestamp born)
 }
 
 /**
+ * The layer a version of a symbol really comes down to: the given one, or, where that is a
+ * conditional flip prescribing nothing, the first layer below it that is not. Such a flip
+ * changes no value (its layer has nothing to say anywhere), so the version it tops is the
+ * one below it, and printing it would only add a definition p <=> 'p_$1' saying so.
+ */
+unsigned FiniteModelMultiSorted::effectiveLayer(bool pred, unsigned sym, unsigned layer) const
+{
+  if (!pred) {
+    return layer; // flips are of predicates only
+  }
+  const Stack<PredLayer*>& st = _p_layers[sym];
+  while (layer > 0 && st[layer]->_kind == LayerKind::COND_FLIP &&
+         static_cast<const CondFlipPredLayer*>(st[layer])->prescribed().size() == 0) {
+    layer--;
+  }
+  return layer;
+}
+
+/**
+ * The body of a conditional flip of p, the layer-th of p's stack: a $cond with one case per
+ * tuple the flip prescribes a value for, ((X0 = e) & ...), $true or $false -- a condition on
+ * every argument, one case to a line -- and for every other tuple the version below, named
+ * below. The cases are disjoint, so their order does not
+ * matter; they come in the order of their tuples, for a reader's sake.
+ */
+void FiniteModelMultiSorted::printCases(std::ostream& out, unsigned p, unsigned layer, const std::string& below, const DomainNames& names)
+{
+  const CondFlipPredLayer* flip = static_cast<const CondFlipPredLayer*>(_p_layers[p][layer]);
+  OperatorType* ot = env.signature->getPredicate(p)->type();
+  unsigned arity = ot->arity();
+
+  Stack<std::pair<ArgsKey,char>> cases;
+  DHMap<ArgsKey,char, ArgsKeyHash, ArgsKeyHash2>::Iterator it(flip->prescribed());
+  while (it.hasNext()) {
+    ArgsKey args;
+    char val;
+    it.next(args,val);
+    cases.push({args,val});
+  }
+  cases.sort([](const std::pair<ArgsKey,char>& a, const std::pair<ArgsKey,char>& b) {
+    const DArray<unsigned>& x = a.first.args();
+    const DArray<unsigned>& y = b.first.args();
+    for (unsigned i = 0; i < x.size(); i++) {
+      if (x[i] != y[i]) return x[i] < y[i];
+    }
+    return false;
+  });
+
+  std::string belowApplied = below;
+  if (arity > 0) {
+    belowApplied += "(";
+    for (unsigned j = 0; j < arity; j++) {
+      if (j) belowApplied += ",";
+      belowApplied += varName(j);
+    }
+    belowApplied += ")";
+  }
+  auto value = [](char v) { ASS_NEQ(v,INTP_UNDEF); return v == INTP_TRUE ? "$true" : "$false"; };
+
+  if (cases.isEmpty()) {
+    out << belowApplied; // a flip that prescribed nothing
+    return;
+  }
+  if (arity == 0) {
+    out << value(cases[0].second); // the one tuple there is
+    return;
+  }
+  // one case to a line, as a table has one cell to a line, then the fall-back on its own
+  out << "$cond(" << endl;
+  for (unsigned i = 0; i < cases.size(); i++) {
+    const DArray<unsigned>& args = cases[i].first.args();
+    out << "           (";
+    for (unsigned j = 0; j < arity; j++) {
+      if (j) out << " & ";
+      // parenthesised: our parser reads "X = $false & ..." as "X = ($false & ...)"
+      out << "(" << varName(j) << " = " << names[ot->arg(j).term()->functor()][args[j]] << ")";
+    }
+    out << "), " << value(cases[i].second) << "," << endl;
+  }
+  out << "           " << belowApplied << ")";
+}
+
+/**
  * Print the layer stacks rather than their final values. Each symbol is printed in the
  * *versions* the model needs, a version being the stack up to one of its layers, and each
  * version as that layer is: a definition as its body, over the versions of the body's
  * symbols it reads (as of its own birth, see DefFunLayer::value); a trivial value as a
- * formula; anything else, so far, as a table of the version's values.
+ * formula; a conditional flip as a $cond, one case per tuple the flip prescribes a value for,
+ * over the version directly below it for every other tuple; anything else, so far, as a
+ * table of the version's values.
  *
  * The final version of a symbol keeps the symbol's name. An earlier one is named by how many
  * layers lie above it: 'f_$1' is f before its last update, 'f_$2' before the one before, and
- * so on, with gaps wherever a version is not needed. The $ forces quoting, so that what
+ * so on, with gaps wherever a version is not needed. A flip that prescribes nothing is no
+ * update and is seen through (effectiveLayer). The $ forces quoting, so that what
  * printing made up stands out. Should a made-up name be taken already, the separator grows
  * ('f__$1', ...), one separator for all of a symbol's versions.
  *
  * Which versions are needed, and the order to print them in, comes from a breadth-first
  * search: from the final versions of the input's own symbols (functions, then predicates,
- * each in signature order), on to the versions each printed definition reads, in the order
- * met. That is how an introduced symbol, or an earlier version, gets printed: only when a
+ * each in signature order), on to the versions each printed definition reads, and the
+ * version below each printed flip, in the order met. That is how an introduced symbol, or an earlier version, gets printed: only when a
  * printed definition needs it. All of it is settled first, because every type declaration
  * comes before every definition; a definition may then mention a version whose own
  * definition comes later.
  */
 std::string FiniteModelMultiSorted::toStringLayered()
 {
-  enum class Rendering { DEFINITION, TRIVIAL, TABLE };
+  enum class Rendering { DEFINITION, TRIVIAL, CASES, TABLE };
   struct Version { bool pred; unsigned sym; unsigned layer; Rendering how; };
 
   auto kindOf = [&](bool pred, unsigned sym, unsigned layer) {
@@ -903,6 +975,10 @@ std::string FiniteModelMultiSorted::toStringLayered()
     if (kind == LayerKind::TRIVIAL && !FMB_CHECK_MODEL_AGAINST_INPUT && arity > 0) {
       return Rendering::TRIVIAL;
     }
+    if (kind == LayerKind::COND_FLIP) {
+      ASS_G(layer,0); // a flip is never the bottom: every symbol has a layer from model_0 on
+      return Rendering::CASES;
+    }
     return Rendering::TABLE;
   };
 
@@ -912,6 +988,7 @@ std::string FiniteModelMultiSorted::toStringLayered()
   DArray<Stack<unsigned>> predQueued(env.signature->predicates());
   auto queue = [&](bool pred, unsigned sym, unsigned layer) {
     if (pred ? (sym == 0 || !predPrintable(sym)) : !funPrintable(sym)) return; // equality is not in the model
+    layer = effectiveLayer(pred,sym,layer);
     Stack<unsigned>& queued = (pred ? predQueued : funQueued)[sym];
     for (unsigned i = 0; i < queued.size(); i++) {
       if (queued[i] == layer) return;
@@ -937,6 +1014,10 @@ std::string FiniteModelMultiSorted::toStringLayered()
     Version cur = order[i];
     mentionSortsOf(sortPrinted,cur.pred ? env.signature->getPredicate(cur.sym)->type() : env.signature->getFunction(cur.sym)->type(),
                    /*withResult=*/!cur.pred);
+    if (cur.how == Rendering::CASES) {
+      queue(cur.pred,cur.sym,cur.layer-1); // what the flip leaves alone
+      continue;
+    }
     if (cur.how != Rendering::DEFINITION) continue;
     Timestamp born = bornOf(cur);
     BodySymbols syms;
@@ -1008,6 +1089,8 @@ std::string FiniteModelMultiSorted::toStringLayered()
     modelStm << (v.pred ? " <=> " : " = ");
     if (v.how == Rendering::DEFINITION) {
       ALWAYS(printBody(modelStm,v,born,bodyRename(born)));
+    } else if (v.how == Rendering::CASES) {
+      printCases(modelStm,v.sym,v.layer,versionName(true,v.sym,v.layer-1),names);
     } else if (v.pred) {
       modelStm << "$false"; // the trivial layer's value
     } else {
@@ -1045,7 +1128,7 @@ void FiniteModelMultiSorted::chooseVersionSeparators(const DArray<Stack<unsigned
     const DArray<Stack<unsigned>>& queued = pred ? predQueued : funQueued;
     for (unsigned s = 0; s < queued.size(); s++) {
       if (queued[s].isEmpty()) continue;
-      unsigned top = pred ? _p_layers[s].size()-1 : _f_layers[s].size()-1;
+      unsigned top = effectiveLayer(pred,s,pred ? _p_layers[s].size()-1 : _f_layers[s].size()-1);
       const std::string& base = pred ? env.signature->predicateName(s) : env.signature->functionName(s);
       // the depths below the top this symbol is printed at
       Stack<unsigned> depths;
@@ -1082,7 +1165,8 @@ std::string FiniteModelMultiSorted::versionName(bool pred, unsigned sym, unsigne
     // $true / $false as terms: a domain element, printed as itself
     return pred ? env.signature->predicateName(sym) : env.signature->functionName(sym);
   }
-  unsigned top = pred ? _p_layers[sym].size()-1 : _f_layers[sym].size()-1;
+  layer = effectiveLayer(pred,sym,layer);
+  unsigned top = effectiveLayer(pred,sym,pred ? _p_layers[sym].size()-1 : _f_layers[sym].size()-1);
   const std::string& base = pred ? env.signature->predicateName(sym) : env.signature->functionName(sym);
   if (layer == top) {
     return base;

@@ -203,6 +203,11 @@ private:
   void printFunTable(std::ostream& out, unsigned f, const std::string& name, Timestamp asOf, const DomainNames& names);
   void printPredTable(std::ostream& out, unsigned p, const std::string& name, Timestamp asOf, const DomainNames& names);
 
+  // the layer a version really comes down to, seeing through flips that prescribe nothing
+  unsigned effectiveLayer(bool pred, unsigned sym, unsigned layer) const;
+  // a conditional flip's layer, as the body of its version's definition (see toStringLayered)
+  void printCases(std::ostream& out, unsigned p, unsigned layer, const std::string& below, const DomainNames& names);
+
   // --- the names of the versions toStringLayered prints ---
 
   // per symbol, the separator of its version names; empty while it has none to print

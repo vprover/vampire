@@ -546,6 +546,9 @@ check_exact_output fmb/chaindef.layered.check.out --input_syntax tptp --mode mod
 check_exact_output fmb/stale-definition.out --input_syntax tptp --statistics none -sa fmb -pel on -fmbmp layered fmb/stale-definition.p
 check_exact_output fmb/stale-definition.check.out --input_syntax tptp --mode model_check fmb/stale-definition.check.p
 check_exact_output fmb/version-name-clash.out --input_syntax tptp --statistics none -sa fmb -pel on -fmbmp layered fmb/version-name-clash.p
+# ... and a conditional flip is a $cond over the version below it (see fmb/cond-flip.p)
+check_exact_output fmb/cond-flip.out --input_syntax tptp --statistics none -sa fmb -bce on -fmbmp layered fmb/cond-flip.p
+check_exact_output fmb/cond-flip.check.out --input_syntax tptp --mode model_check fmb/cond-flip.check.p
 # model_check rejects what makes a symbolic definition unusable, when it loads the model
 check_rejected "The model's definitions are cyclic: f_symbolic_definition -> g_symbolic_definition -> h2_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-cycle.p
 check_rejected "The model's definitions are cyclic: f_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-self-reference.p

@@ -204,6 +204,8 @@ public:
   }
   bool operator!=(const ArgsKey& o) const { return !(*this == o); }
 
+  const DArray<unsigned>& args() const { return _args; }
+
   // combine the values, left to right, from a seed
   unsigned hashFrom(unsigned h) const
   {
@@ -308,6 +310,9 @@ public:
   }
 
   void prescribe(const DArray<unsigned>& args, char val) { _vals.set(ArgsKey(args),val); }
+
+  // the tuples this layer prescribes a value for, and the values (for printing the layer)
+  const DHMap<ArgsKey,char, ArgsKeyHash, ArgsKeyHash2>& prescribed() const { return _vals; }
 };
 
 } // namespace FMB
