@@ -1817,6 +1817,26 @@ void FiniteModelBuilder::onModelFound()
   // limit enforcement disabled below, so it is worth being able to see it.
   TIME_TRACE("fmb model construction");
 
+  // How long each phase below takes, as a "%" line printed (and flushed) as soon as the phase
+  // is over -- so that a run killed from outside, which never gets to its statistics, still
+  // shows how far it got. Printed only when statistics are on: the timings differ from run to
+  // run, and the exact-output checks run with --statistics none. Instructions are counted
+  // where perf is available (instructionCountAnyThread is -1 otherwise), in the same 2^20
+  // "millions" as the final "Instructions burned".
+  struct PhaseStart { long ms; long long instr; };
+  auto phaseStart = []() { return PhaseStart{Timer::elapsedMilliseconds(), Timer::instructionCountAnyThread()}; };
+  auto reportPhase = [](const char* phase, PhaseStart start) {
+    if (!outputAllowed() || env.options->statistics() == Options::Statistics::NONE) return;
+    long long instr = Timer::instructionCountAnyThread();
+    cout << "% FMB model " << phase << " took ";
+    Timer::printMSString(cout, Timer::elapsedMilliseconds() - start.ms);
+    if (start.instr >= 0 && instr >= 0) {
+      cout << " (" << ((instr - start.instr) >> 20) << " million instructions)";
+    }
+    cout << endl; // endl flushes
+  };
+  PhaseStart constructionStart = phaseStart();
+
   // Prevent timing out whilst the model is being printed
   Timer::disableLimitEnforcement();
 
@@ -2005,12 +2025,17 @@ void FiniteModelBuilder::onModelFound()
     // starts from -- fixed, and only then is it worth completing
     model.installTrivialLayers();
     model.restoreEliminatedDefinitions(env.getMainProblem());
+    reportPhase("construction",constructionStart);
 
 #if FMB_CHECK_MODEL_AGAINST_INPUT
+    PhaseStart checkStart = phaseStart();
     checkModelAgainstOriginalInput(model);
+    reportPhase("self-check",checkStart);
 #endif
 
+    PhaseStart printStart = phaseStart();
     env.statistics->model = model.toString();
+    reportPhase("printing",printStart);
   } catch (UndefinedValueException& e) {
     INVALID_OPERATION("FMB constructed a partial model: " + e.msg());
   }
