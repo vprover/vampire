@@ -1,0 +1,16 @@
+Finite domain axiom found:
+4. ! [X0] : ((X0 = 'fmb_$i_1') | (X0 = 'fmb_$i_2')) [input]
+Loading model...
+Detected model with 1 sorts.
+  domain for $i of size 2, domain elements are:
+    'fmb_$i_2'
+    'fmb_$i_1'
+Model loaded
+Checking formulas...
+Checking 1. q('fmb_$i_1') [input]...
+Evaluates to True
+Checking 2. q('fmb_$i_2') [input]...
+Evaluates to True
+Checking 3. ! [X0] : (r(X0) <=> ~p(X0)) [input]...
+Evaluates to True
+All formulas evaluated to True!

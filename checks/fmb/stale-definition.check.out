@@ -1,10 +1,11 @@
 Finite domain axiom found:
-7. ! [X0] : ((X0 = 'fmb_$i_1') | (X0 = 'fmb_$i_2')) [input]
+9. ! [X0] : ((X0 = 'fmb_$i_1') | (X0 = 'fmb_$i_2') | (X0 = 'fmb_$i_3')) [input]
 Loading model...
 Detected model with 1 sorts.
-  domain for $i of size 2, domain elements are:
+  domain for $i of size 3, domain elements are:
     'fmb_$i_1'
     'fmb_$i_2'
+    'fmb_$i_3'
 Model loaded
 Checking formulas...
 Checking 1. ! [X0] : (x(X0) <=> (r(X0) & s(X0))) [input]...
@@ -18,5 +19,9 @@ Evaluates to True
 Checking 5. ~r(b) [input]...
 Evaluates to True
 Checking 6. ~s(e) [input]...
+Evaluates to True
+Checking 7. r(f) & s(f) [input]...
+Evaluates to True
+Checking 8. f != a [input]...
 Evaluates to True
 All formulas evaluated to True!

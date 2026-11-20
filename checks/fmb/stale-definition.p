@@ -11,6 +11,9 @@
 %
 % x has three positive uses so that eliminating it first would cost more clauses than it
 % removes; otherwise predicate elimination takes x before r and s, and nothing goes stale.
+% And r and s hold of an f that x's own definition does not make true, so that the flip,
+% which makes x true wherever r & s does, changes x there: a flip that changes nothing is not
+% kept, and then r and s would read the final x after all.
 
 fof(def_x, axiom, ! [X] : ( x(X) <=> ( r(X) & s(X) ) )).
 fof(u1, axiom, x(a)).
@@ -18,3 +21,5 @@ fof(u2, axiom, x(c)).
 fof(u3, axiom, x(d)).
 fof(o1, axiom, ~ r(b)).
 fof(o2, axiom, ~ s(e)).
+fof(f1, axiom, r(f) & s(f)).
+fof(f2, axiom, f != a).

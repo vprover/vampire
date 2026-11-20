@@ -259,7 +259,7 @@ static void doCheck(UnitList* units)
       }
     }
 
-    addSymbolicDefinitions(model,symbolic,funDefinedBy,predDefinedBy,cells);
+    addSymbolicDefinitions(model,symbolic,funDefinedBy,predDefinedBy,cells,domainConstants,domainConstantNumber);
 
     std::cout << "Model loaded" << std::endl;
     std::cout << "Checking formulas..." << std::endl;
@@ -416,6 +416,8 @@ struct SymbolicDefinition {
   bool pred;
   std::unique_ptr<Problem::FunDef> fd; // exactly one of these two is set
   std::unique_ptr<Problem::PredDef> pd;
+  // for a predicate definition loaded as cases (see readCases): the definition of its fall-back
+  std::unique_ptr<Problem::PredDef> fallBack;
 
   unsigned symbol() const { return pred ? pd->_head->functor() : fd->_head->functor(); }
   std::string symbolName() const {
@@ -570,6 +572,72 @@ static void readSymbolicDefinitions(UnitList* units, const DomainConstantSet& do
 }
 
 /**
+ * Is the definition p(Xs) <=> $cond(c1, v1, ..., cn, vn, else) one of cases, as FMB prints a
+ * conditional flip: every ci a conjunction of equations Xj = e, one for each of the head's
+ * variables, e a domain constant, and every vi $true or $false? Then collect the cases, in
+ * order, as the tuples they select with their values, and the fall-back else.
+ */
+static bool readCases(Problem::PredDef* pd, const DomainConstantSet& domainConstants,
+                      DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& domainConstantNumber,
+                      Stack<std::pair<DArray<unsigned>,bool>>& cases, TermList& fallBack)
+{
+  Literal* head = pd->_head;
+  if (!head->isPositive() || pd->_body->connective() != Connective::BOOL_TERM) return false;
+  TermList body = pd->_body->getBooleanTerm();
+  if (!body.isTerm() || !body.term()->isSpecial() || body.term()->specialFunctor() != SpecialFunctor::COND) return false;
+  Term* cond = body.term();
+  unsigned arity = head->arity();
+  if (arity == 0) return false;
+
+  auto formulaOf = [](TermList t) -> Formula* {
+    return (t.isTerm() && t.term()->isSpecial() && t.term()->specialFunctor() == SpecialFunctor::FORMULA) ?
+      t.term()->getSpecialData()->getFormula() : nullptr;
+  };
+  // the position of each head variable
+  auto position = [head,arity](unsigned var) -> int {
+    for (unsigned j = 0; j < arity; j++) {
+      if (head->nthArgument(j)->var() == var) return j;
+    }
+    return -1;
+  };
+
+  for (unsigned i = 0; i+1 < cond->arity(); i += 2) {
+    Formula* c = formulaOf(*cond->nthArgument(i));
+    Formula* v = formulaOf(*cond->nthArgument(i+1));
+    if (!c || !v || (v->connective() != Connective::TRUE && v->connective() != Connective::FALSE)) return false;
+
+    Stack<Formula*> eqs;
+    if (c->connective() == Connective::AND) {
+      FormulaList::Iterator it(c->args());
+      while (it.hasNext()) eqs.push(it.next());
+    } else {
+      eqs.push(c);
+    }
+    if (eqs.size() != arity) return false;
+    DArray<unsigned> args;
+    args.init(arity,0);
+    for (unsigned k = 0; k < eqs.size(); k++) {
+      if (eqs[k]->connective() != Connective::LITERAL) return false;
+      Literal* l = eqs[k]->literal();
+      if (!l->isEquality() || !l->isPositive()) return false;
+      TermList x = *l->nthArgument(0);
+      TermList e = FiniteModelMultiSorted::deFool(*l->nthArgument(1));
+      if (!x.isVar()) {
+        x = *l->nthArgument(1);
+        e = FiniteModelMultiSorted::deFool(*l->nthArgument(0));
+      }
+      if (!x.isVar() || !isDomainConstant(domainConstants,e)) return false;
+      int j = position(x.var());
+      if (j < 0 || args[j] != 0) return false; // not a head variable, or one twice
+      args[j] = domainConstantNumber.get(e.term());
+    }
+    cases.push({std::move(args),v->connective() == Connective::TRUE});
+  }
+  fallBack = *cond->nthArgument(cond->arity()-1);
+  return true;
+}
+
+/**
  * Check what the symbolic definitions mention and add them to the model, each after the
  * definitions its body uses: a definition layer reads the model as it stands when it is
  * added (DefFunLayer::value). The order in the file does not matter; a cycle, of any
@@ -577,7 +645,8 @@ static void readSymbolicDefinitions(UnitList* units, const DomainConstantSet& do
  */
 static void addSymbolicDefinitions(FiniteModelMultiSorted& model, Stack<SymbolicDefinition>& symbolic,
                                    const DArray<int>& funDefinedBy, const DArray<int>& predDefinedBy,
-                                   const TableCells& cells)
+                                   const TableCells& cells, const DomainConstantSet& domainConstants,
+                                   DHMap<Term*,unsigned, FnvHash, PtrIdentityHash>& domainConstantNumber)
 {
   // the edges: which definitions each definition's body uses
   DArray<Stack<unsigned>> uses(symbolic.size());
@@ -638,8 +707,27 @@ static void addSymbolicDefinitions(FiniteModelMultiSorted& model, Stack<Symbolic
         continue;
       }
       SymbolicDefinition& sd = symbolic[fr.def];
-      if (sd.pred) model.addSymbolicDefinition(sd.pd.get());
-      else model.addSymbolicDefinition(sd.fd.get());
+      Stack<std::pair<DArray<unsigned>,bool>> cases;
+      TermList fallBack;
+      if (!sd.pred) {
+        model.addSymbolicDefinition(sd.fd.get());
+      } else if (readCases(sd.pd.get(),domainConstants,domainConstantNumber,cases,fallBack)) {
+        // p <=> $cond(cases..., else): p := else, with the cases on top, as the flip it was
+        // printed from -- a lookup is then a hash probe, not a walk through the cases
+        Formula* fallBackFormula = (fallBack.isTerm() && fallBack.term()->isSpecial() &&
+                                    fallBack.term()->specialFunctor() == SpecialFunctor::FORMULA) ?
+          fallBack.term()->getSpecialData()->getFormula() : new BoolTermFormula(fallBack);
+        sd.fallBack.reset(new Problem::PredDef(sd.pd->_head,fallBackFormula));
+        model.addSymbolicDefinition(sd.fallBack.get());
+        CondFlipPredLayer* layer = model.addCasesLayer(sd.symbol());
+        for (unsigned k = 0; k < cases.size(); k++) {
+          char v;
+          if (layer->prescribed().find(ArgsKey(cases[k].first),v)) continue; // the first case wins
+          layer->prescribe(cases[k].first,cases[k].second ? INTP_TRUE : INTP_FALSE);
+        }
+      } else {
+        model.addSymbolicDefinition(sd.pd.get());
+      }
       state[fr.def] = ADDED;
       path.pop();
     }

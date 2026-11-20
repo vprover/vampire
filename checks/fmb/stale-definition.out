@@ -1,21 +1,23 @@
 % Sorts in the size vectors: [$i]
 % Detected minimum model sizes of [1]
-% Detected maximum model sizes of [5]
+% Detected maximum model sizes of [6]
 % TRYING [1]
 % TRYING [2]
+% TRYING [3]
 % Finite Model Found!
 % SZS status Satisfiable for stale-definition
-% FMB model self-check passed (6 units checked)
+% FMB model self-check passed (8 units checked)
 % SZS output start FiniteModel for stale-definition
 tff('declare_$i1',type,'fmb_$i_1':$i).
 tff('declare_$i2',type,'fmb_$i_2':$i).
+tff('declare_$i3',type,'fmb_$i_3':$i).
 tff('finite_domain_$i',axiom,
       ! [X:$i] : (
-         (X = 'fmb_$i_1') | (X = 'fmb_$i_2')
+         (X = 'fmb_$i_1') | (X = 'fmb_$i_2') | (X = 'fmb_$i_3')
       ) ).
 
 tff('distinct_domain_$i',axiom,
-         'fmb_$i_1' != 'fmb_$i_2'
+         'fmb_$i_1' != 'fmb_$i_2' & 'fmb_$i_1' != 'fmb_$i_3' & 'fmb_$i_2' != 'fmb_$i_3'
 ).
 
 tff(declare_a,type,a : $i).
@@ -23,6 +25,7 @@ tff(declare_c,type,c : $i).
 tff(declare_d,type,d : $i).
 tff(declare_b,type,b : $i).
 tff(declare_e,type,e : $i).
+tff(declare_f,type,f : $i).
 tff(declare_x,type,x: ( $i ) > $o ).
 tff(declare_r,type,r: ( $i ) > $o ).
 tff(declare_s,type,s: ( $i ) > $o ).
@@ -31,12 +34,13 @@ tff('declare_x_$1',type,'x_$1': ( $i ) > $o ).
 tff(a_definition,axiom,a = 'fmb_$i_1').
 tff(c_definition,axiom,c = 'fmb_$i_1').
 tff(d_definition,axiom,d = 'fmb_$i_1').
-tff(b_definition,axiom,b = 'fmb_$i_2').
-tff(e_definition,axiom,e = 'fmb_$i_2').
+tff(b_definition,axiom,b = 'fmb_$i_3').
+tff(e_definition,axiom,e = 'fmb_$i_3').
+tff(f_definition,axiom,f = 'fmb_$i_2').
 tff(x_symbolic_definition,axiom,![X0:$i]: (x(X0) <=> $cond(
-           ((X0 = 'fmb_$i_1')), $true,
+           ((X0 = 'fmb_$i_2')), $true,
            'x_$1'(X0)))).
-tff(r_symbolic_definition,axiom,![X0:$i]: (r(X0) <=> (? [X1:$i] : ('x_$1'(X1) & (X0 = X1))))).
-tff(s_symbolic_definition,axiom,![X0:$i]: (s(X0) <=> (? [X1:$i] : ('x_$1'(X1) & (X0 = X1))))).
-tff('x_$1_symbolic_definition',axiom,![X0:$i]: ('x_$1'(X0) <=> ((d = X0) | (c = X0) | (a = X0)))).
+tff(r_symbolic_definition,axiom,![X0:$i]: (r(X0) <=> ((? [X1:$i] : ('x_$1'(X1) & (X0 = X1))) | (f = X0)))).
+tff(s_symbolic_definition,axiom,![X0:$i]: (s(X0) <=> ((f = X0) | (? [X1:$i] : ('x_$1'(X1) & (X0 = X1)))))).
+tff('x_$1_symbolic_definition',axiom,![X0:$i]: ('x_$1'(X0) <=> ((a = X0) | (c = X0) | (d = X0)))).
 % SZS output end FiniteModel for stale-definition

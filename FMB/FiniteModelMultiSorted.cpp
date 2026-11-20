@@ -293,6 +293,15 @@ void FiniteModelMultiSorted::addSymbolicDefinition(Problem::PredDef* pd)
   _now++;
 }
 
+CondFlipPredLayer* FiniteModelMultiSorted::addCasesLayer(unsigned p)
+{
+  ASS_G(_now,MODEL_ZERO);
+  CondFlipPredLayer* layer = new CondFlipPredLayer(_now);
+  _p_layers[p].push(layer);
+  _now++; // so that a definition added later reads it
+  return layer;
+}
+
 // how Vampire spells the i-th variable, matching TermList::var(i).toString()
 static std::string varName(unsigned i)
 {
@@ -823,25 +832,6 @@ static unsigned layerAsOf(const Stack<Layer*>& st, Timestamp born)
 }
 
 /**
- * The layer a version of a symbol really comes down to: the given one, or, where that is a
- * conditional flip prescribing nothing, the first layer below it that is not. Such a flip
- * changes no value (its layer has nothing to say anywhere), so the version it tops is the
- * one below it, and printing it would only add a definition p <=> 'p_$1' saying so.
- */
-unsigned FiniteModelMultiSorted::effectiveLayer(bool pred, unsigned sym, unsigned layer) const
-{
-  if (!pred) {
-    return layer; // flips are of predicates only
-  }
-  const Stack<PredLayer*>& st = _p_layers[sym];
-  while (layer > 0 && st[layer]->_kind == LayerKind::COND_FLIP &&
-         static_cast<const CondFlipPredLayer*>(st[layer])->prescribed().size() == 0) {
-    layer--;
-  }
-  return layer;
-}
-
-/**
  * The body of a conditional flip of p, the layer-th of p's stack: a $cond with one case per
  * tuple the flip prescribes a value for, ((X0 = e) & ...), $true or $false -- a condition on
  * every argument, one case to a line -- and for every other tuple the version below, named
@@ -882,10 +872,7 @@ void FiniteModelMultiSorted::printCases(std::ostream& out, unsigned p, unsigned 
   }
   auto value = [](char v) { ASS_NEQ(v,INTP_UNDEF); return v == INTP_TRUE ? "$true" : "$false"; };
 
-  if (cases.isEmpty()) {
-    out << belowApplied; // a flip that prescribed nothing
-    return;
-  }
+  ASS(cases.isNonEmpty()); // a flip that would change nothing is not kept (restoreViaCondFlip)
   if (arity == 0) {
     out << value(cases[0].second); // the one tuple there is
     return;
@@ -916,8 +903,8 @@ void FiniteModelMultiSorted::printCases(std::ostream& out, unsigned p, unsigned 
  *
  * The final version of a symbol keeps the symbol's name. An earlier one is named by how many
  * layers lie above it: 'f_$1' is f before its last update, 'f_$2' before the one before, and
- * so on, with gaps wherever a version is not needed. A flip that prescribes nothing is no
- * update and is seen through (effectiveLayer). The $ forces quoting, so that what
+ * so on, with gaps wherever a version is not needed. (A flip that would change nothing is
+ * not even kept, see restoreViaCondFlip.) The $ forces quoting, so that what
  * printing made up stands out. Should a made-up name be taken already, the separator grows
  * ('f__$1', ...), one separator for all of a symbol's versions.
  *
@@ -988,7 +975,6 @@ std::string FiniteModelMultiSorted::toStringLayered()
   DArray<Stack<unsigned>> predQueued(env.signature->predicates());
   auto queue = [&](bool pred, unsigned sym, unsigned layer) {
     if (pred ? (sym == 0 || !predPrintable(sym)) : !funPrintable(sym)) return; // equality is not in the model
-    layer = effectiveLayer(pred,sym,layer);
     Stack<unsigned>& queued = (pred ? predQueued : funQueued)[sym];
     for (unsigned i = 0; i < queued.size(); i++) {
       if (queued[i] == layer) return;
@@ -1128,7 +1114,7 @@ void FiniteModelMultiSorted::chooseVersionSeparators(const DArray<Stack<unsigned
     const DArray<Stack<unsigned>>& queued = pred ? predQueued : funQueued;
     for (unsigned s = 0; s < queued.size(); s++) {
       if (queued[s].isEmpty()) continue;
-      unsigned top = effectiveLayer(pred,s,pred ? _p_layers[s].size()-1 : _f_layers[s].size()-1);
+      unsigned top = pred ? _p_layers[s].size()-1 : _f_layers[s].size()-1;
       const std::string& base = pred ? env.signature->predicateName(s) : env.signature->functionName(s);
       // the depths below the top this symbol is printed at
       Stack<unsigned> depths;
@@ -1165,8 +1151,7 @@ std::string FiniteModelMultiSorted::versionName(bool pred, unsigned sym, unsigne
     // $true / $false as terms: a domain element, printed as itself
     return pred ? env.signature->predicateName(sym) : env.signature->functionName(sym);
   }
-  layer = effectiveLayer(pred,sym,layer);
-  unsigned top = effectiveLayer(pred,sym,pred ? _p_layers[sym].size()-1 : _f_layers[sym].size()-1);
+  unsigned top = pred ? _p_layers[sym].size()-1 : _f_layers[sym].size()-1;
   const std::string& base = pred ? env.signature->predicateName(sym) : env.signature->functionName(sym);
   if (layer == top) {
     return base;
@@ -1659,12 +1644,25 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
         }
         char before = evalPred(p,inner_args,asOf);
         char after = (cf->_val->isPositive() ? INTP_TRUE : INTP_FALSE);
-        layer->prescribe(inner_args,after);
-        flipped |= (before != after);
+        // Record only what changes. A tuple whose value already is after needs no entry: the
+        // layers below are fixed while this one fills, and every entry of a flip is after, so
+        // nothing can make that tuple read differently later
+        if (before != after) {
+          layer->prescribe(inner_args,after);
+          flipped = true;
+        }
       }
     } while (it.nextAndRebind(vars,subst));
   } while (cf->_fixedPoint && flipped);
-  // cout << endl;
+
+  // A flip that changed nothing -- often so: the blocked clause it undoes may already hold
+  // in the model it is replayed on -- has nothing to say about any tuple. It goes again, so
+  // that it does not stand as a version of its own (toStringLayered); nothing else is born
+  // at _now, so nothing can refer to it
+  if (layer->prescribed().size() == 0) {
+    ALWAYS(_p_layers[cf->_val->functor()].pop() == layer);
+    delete layer;
+  }
 }
 
 /**

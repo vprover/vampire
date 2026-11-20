@@ -549,6 +549,9 @@ check_exact_output fmb/version-name-clash.out --input_syntax tptp --statistics n
 # ... and a conditional flip is a $cond over the version below it (see fmb/cond-flip.p)
 check_exact_output fmb/cond-flip.out --input_syntax tptp --statistics none -sa fmb -bce on -fmbmp layered fmb/cond-flip.p
 check_exact_output fmb/cond-flip.check.out --input_syntax tptp --mode model_check fmb/cond-flip.check.p
+# ... which model_check loads as the flip it was printed from, a definition of the fall-back
+# with the cases on top; any other $cond stays an ordinary definition (fmb/model-cond-cases.p)
+check_exact_output fmb/model-cond-cases.out --input_syntax tptp --mode model_check fmb/model-cond-cases.p
 # model_check rejects what makes a symbolic definition unusable, when it loads the model
 check_rejected "The model's definitions are cyclic: f_symbolic_definition -> g_symbolic_definition -> h2_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-cycle.p
 check_rejected "The model's definitions are cyclic: f_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-self-reference.p

@@ -8,4 +8,6 @@ fof(u2, axiom, x(c)).
 fof(u3, axiom, x(d)).
 fof(o1, axiom, ~ r(b)).
 fof(o2, axiom, ~ s(e)).
+fof(f1, axiom, r(f) & s(f)).
+fof(f2, axiom, f != a).
 fof(clash, axiom, 'x_$1'(b) & ~ 'x__$1'(e)).
