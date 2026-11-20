@@ -552,6 +552,10 @@ check_exact_output fmb/cond-flip.check.out --input_syntax tptp --mode model_chec
 # ... which model_check loads as the flip it was printed from, a definition of the fall-back
 # with the cases on top; any other $cond stays an ordinary definition (fmb/model-cond-cases.p)
 check_exact_output fmb/model-cond-cases.out --input_syntax tptp --mode model_check fmb/model-cond-cases.p
+# ... and a function into $o, which TPTP reads back as a predicate, is printed as one
+# (see fmb/bool-function.p)
+check_exact_output fmb/bool-function.out --input_syntax tptp --statistics none -sa fmb -pel multi -fmbmp layered fmb/bool-function.p
+check_exact_output fmb/bool-function.check.out --input_syntax tptp --mode model_check fmb/bool-function.check.p
 
 # FMB on a problem preprocessing leaves without clauses (see fmb/no-clauses.p): it used to say
 # Satisfiable with no model, it now builds and prints one like for any other problem

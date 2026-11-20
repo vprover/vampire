@@ -564,6 +564,37 @@ void FiniteModelMultiSorted::printFunTable(std::ostream& modelStm, unsigned f, c
   unsigned arity = symb->arity();
   OperatorType* ot = symb->type();
 
+  // A function into $o (FOOL elimination introduces such, e.g. the bG0 naming a boolean
+  // subterm) is declared as f : ... > $o, which TPTP reads as a *predicate*; so a cell
+  // f(...) = $false would read back as an equation between formulas, not a definition. Print
+  // it the way it is read: as the predicate it then is, true where its value is $true's element
+  if (env.signature->isBoolCon(ot->result().term()->functor())) {
+    unsigned trueElement = boolValue(true);
+    if (arity == 0) {
+      bool res = (evalFun(f,DArray<unsigned>(0),asOf) == trueElement);
+      modelStm << "tff("<<append(name,"_definition")<<",axiom,"<<(res ? "" : "~")<<name<< ")."<<endl;
+      return;
+    }
+    modelStm << "tff("<<prepend("predicate_", name)<<",axiom,"<<endl;
+    bool first=true;
+    ArgsEnumerator it(_sizes,ot,arity);
+    do {
+      const DArray<unsigned>& args = it.args();
+      bool res = (evalFun(f,args,asOf) == trueElement);
+      modelStm << (first ? "           " : "         & ");
+      first=false;
+      if(!res) modelStm << "~";
+      modelStm << name << "(";
+      for(unsigned j=0;j<arity;j++){
+        if(j!=0) modelStm << ",";
+        modelStm << names[ot->arg(j).term()->functor()][args[j]];
+      }
+      modelStm << ")" << endl;
+    } while (it.next());
+    modelStm << ")." << endl << endl;
+    return;
+  }
+
   if (arity == 0) {
     unsigned res = evalFun(f,DArray<unsigned>(0),asOf);
     ASS_G(res,0)
@@ -950,6 +981,11 @@ std::string FiniteModelMultiSorted::toStringLayered()
     Version v{pred,sym,layer,Rendering::TABLE};
     LayerKind kind = kindOf(pred,sym,layer);
     unsigned arity = pred ? env.signature->predicateArity(sym) : env.signature->functionArity(sym);
+    // a function into $o reads back as a predicate, and its formula renderings (f(Xs) = t)
+    // would not; its table is printed as the predicate's (see printFunTable)
+    if (!pred && env.signature->isBoolCon(env.signature->getFunction(sym)->type()->result().term()->functor())) {
+      return Rendering::TABLE;
+    }
     if (kind == LayerKind::DEF) {
       std::ostringstream dummy;
       if (printBody(dummy,v,bornOf(v),[](bool,unsigned) { return std::string(); })) {
