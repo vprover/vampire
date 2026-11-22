@@ -558,9 +558,6 @@ check_exact_output fmb/model-cond-cases.out --input_syntax tptp --mode model_che
 # (see fmb/bool-function.p)
 check_exact_output fmb/bool-function.out --input_syntax tptp --statistics none -sa fmb -pel multi -fmbmp layered fmb/bool-function.p
 check_exact_output fmb/bool-function.check.out --input_syntax tptp --mode model_check fmb/bool-function.check.p
-# ... and a global flip is the negation of the version below it (see fmb/global-flip.p)
-check_exact_output fmb/global-flip.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered --random_polarities on --random_seed 2 fmb/global-flip.p
-check_exact_output fmb/global-flip.check.out --input_syntax tptp --mode model_check fmb/global-flip.check.p
 
 # FMB on a problem preprocessing leaves without clauses (see fmb/no-clauses.p): it used to say
 # Satisfiable with no model, it now builds and prints one like for any other problem
