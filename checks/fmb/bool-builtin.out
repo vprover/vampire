@@ -1,0 +1,7 @@
+% The problem is propositional so there are no sorts!
+% Sorts in the size vectors: []
+% TRYING []
+% Finite Model Found!
+% SZS status Satisfiable for bool-builtin
+% SZS output start FiniteModel for bool-builtin
+% SZS output end FiniteModel for bool-builtin

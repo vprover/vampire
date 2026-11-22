@@ -23,9 +23,11 @@
 #include "Lib/Environment.hpp"
 #include "Lib/StringUtils.hpp"
 
+#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/FormulaVarIterator.hpp"
 #include "Kernel/Problem.hpp"
+#include "Kernel/SortHelper.hpp"
 #include "Kernel/SubformulaIterator.hpp"
 #include "Kernel/Unit.hpp"
 #include "Kernel/Term.hpp"
@@ -124,6 +126,29 @@ static void doCheck(UnitList* units)
         sortSizes.set(curSort,curModelSize);
         domainConstantsPerSort.set(curSort,std::move(curDomainConstants));
       }
+    }
+  }
+
+  // $o is interpreted: its domain is {$false,$true} in every model, so a model does not have
+  // to spell it out. FMB's own leaves it out when the solving never met $o -- under
+  // -newcnf on, ![X:$o]: (X | ~X) is expanded over the two values and nothing of $o is left
+  // (checks/fmb/bool-builtin.p). So when the formulas need it and the model is silent, it is
+  // built in here; a model that does give a domain for $o has to give exactly this one.
+  {
+    TermList boolSort = AtomicSort::boolSort();
+    unsigned boolCon = boolSort.term()->functor();
+    if (sortSizes.find(boolCon)) {
+      if (sortSizes.get(boolCon) != 2) {
+        USER_ERROR("finite_domain_bool: the domain of $o is $false and $true");
+      }
+    } else if (needsBooleanDomain(units)) {
+      auto boolDomain = std::make_unique<DomainConstantSet>();
+      for (unsigned i = 0; i < 2; i++) {
+        boolDomain->insert(Term::createConstant(env.signature->getFoolConstantSymbol(i > 0)));
+      }
+      std::cout << "Using the built-in domain of $o" << std::endl;
+      sortSizes.set(boolCon,2);
+      domainConstantsPerSort.set(boolCon,std::move(boolDomain));
     }
   }
 
@@ -354,6 +379,122 @@ static void collectModelSymbols(UnitList* units, DArray<bool>& usedFunctions, DA
       }
     }
   }
+}
+
+/**
+ * Whether evaluating @c units can ask for an element of $o: a quantifier over $o, an
+ * argument of sort $o, a function into $o, or a formula in term position. A boolean term
+ * standing for a truth value is no such demand when it is a formula, an $ite or a $cond,
+ * which FiniteModelMultiSorted::evaluateBooleanTerm decides without the domain; it is when
+ * it is anything else (a variable, a function application).
+ */
+static bool needsBooleanDomain(UnitList* units)
+{
+  TermList boolSort = AtomicSort::boolSort();
+  Stack<Formula*> forms;
+  Stack<std::pair<TermList,bool>> terms; // the term, and whether it stands for a truth value
+
+  auto literal = [&](Literal* lit) {
+    for (unsigned i = 0; i < lit->arity(); i++) {
+      TermList sort = lit->isEquality() ? SortHelper::getEqualityArgumentSort(lit)
+                                        : SortHelper::getArgSort(lit,i);
+      if (sort == boolSort) return true;
+      terms.push({*lit->nthArgument(i),false});
+    }
+    return false;
+  };
+
+  UnitList::Iterator uit(units);
+  while (uit.hasNext()) {
+    Unit* u = uit.next();
+    if (u->isClause()) {
+      for (Literal* lit : static_cast<Clause*>(u)->iterLits()) {
+        if (literal(lit)) return true;
+      }
+    } else {
+      forms.push(u->getFormula());
+    }
+  }
+
+  while (forms.isNonEmpty() || terms.isNonEmpty()) {
+    if (forms.isNonEmpty()) {
+      Formula* f = forms.pop();
+      switch (f->connective()) {
+        case LITERAL:
+          if (literal(f->literal())) return true;
+          break;
+        case BOOL_TERM:
+          terms.push({f->getBooleanTerm(),true});
+          break;
+        case NOT:
+          forms.push(f->uarg());
+          break;
+        case AND:
+        case OR: {
+          FormulaList::Iterator fit(f->args());
+          while (fit.hasNext()) forms.push(fit.next());
+          break;
+        }
+        case IMP:
+        case IFF:
+        case XOR:
+          forms.push(f->left());
+          forms.push(f->right());
+          break;
+        case FORALL:
+        case EXISTS: {
+          VSList::Iterator vit(f->vars());
+          while (vit.hasNext()) {
+            if (vit.next().second == boolSort) return true;
+          }
+          forms.push(f->qarg());
+          break;
+        }
+        default: // TRUE, FALSE
+          break;
+      }
+      continue;
+    }
+
+    auto [tl,truthValue] = terms.pop();
+    if (tl.isVar()) {
+      if (truthValue) return true; // an $o variable; its quantifier says so too
+      continue;
+    }
+    Term* t = tl.term();
+    if (t->isSort()) continue;
+    if (t->isSpecial()) {
+      switch (t->specialFunctor()) {
+        case SpecialFunctor::FORMULA:
+          if (!truthValue) return true;
+          forms.push(t->getSpecialData()->getFormula());
+          break;
+        case SpecialFunctor::ITE:
+          forms.push(t->getSpecialData()->getITECondition());
+          terms.push({*t->nthArgument(0),truthValue});
+          terms.push({*t->nthArgument(1),truthValue});
+          break;
+        case SpecialFunctor::COND:
+          for (unsigned i = 0; i < t->arity(); i++) {
+            bool isCondition = (i+1 < t->arity()) && (i % 2 == 0);
+            terms.push({*t->nthArgument(i),isCondition || truthValue});
+          }
+          break;
+        default: // $let and the like are refused up front (refuseUnsupported)
+          for (unsigned i = 0; i < t->arity(); i++) {
+            terms.push({*t->nthArgument(i),false});
+          }
+          break;
+      }
+      continue;
+    }
+    if (truthValue || SortHelper::getResultSort(t) == boolSort) return true;
+    for (unsigned i = 0; i < t->arity(); i++) {
+      if (SortHelper::getArgSort(t,i) == boolSort) return true;
+      terms.push({*t->nthArgument(i),false});
+    }
+  }
+  return false;
 }
 
 static void checkIsDomainLiteral(Literal* l, int& single_var, DomainConstantSet& domainConstants)
