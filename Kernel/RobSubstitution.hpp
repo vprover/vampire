@@ -123,7 +123,7 @@ struct TermSpec {
         ASS(t2.isVar() && (t1.term.var() != t2.term.var() || t1.term.isSpecialVar() != t2.term.isSpecialVar()))
         return false;
       }
-      return t1.functor() == t2.functor() 
+      return t1.functor() == t2.functor() && t1.nAllArgs() == t2.nAllArgs()
         && t1.allArgs().zip(t2.allArgs()).all([](auto pair) { return pair.first.deepEqCheck(pair.second); });
     }
   }

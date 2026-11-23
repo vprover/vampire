@@ -86,11 +86,15 @@ static std::string toStringAux(const Term& term, bool mightNeedParens, IndexVarS
   }
 
   if (term.isArrowSort()) {
-    ASS_EQ(term.arity(), 2);
-    auto arg1 = term.nthArgument(0);
-    auto arg2 = term.nthArgument(1);
-    return StringUtils::addParens(termToStr(*arg1, /*mightNeedParens=*/true, st) +
-      " > " + termToStr(*arg2, /*mightNeedParens=*/false, st), mightNeedParens);
+    ASS_GE(term.arity(), 2);
+    std::string res;
+    for (unsigned i = 0; i < term.arity(); i++) {
+      if (i > 0) {
+        res += " > ";  
+      }
+      res += termToStr(*term.nthArgument(i), /*mightNeedParens=*/true, st);
+    }
+    return StringUtils::addParens(res, mightNeedParens);
   }
 
   if (term.isSort()) {
@@ -506,7 +510,7 @@ TermList HOL::createGeneralBinding(TermList head, const TermStack& sorts, unsign
   TermStack args;
 
   while (!argSorts.isEmpty()) {
-    TermList varSort = AtomicSort::arrowSort(sorts, argSorts.pop());
+    TermList varSort = AtomicSort::arrowSort(sorts, argSorts.pop(), /*fromTop=*/true);
     args.push(create::app(varSort, TermList::var(freshVar++), indices));
   }
 

@@ -110,7 +110,7 @@ HOL_TEST_FUN(hol_print_2) {
 HOL_TEST_FUN(hol_print_3) {
   runTest(
     D.f3.sort(),
-    { {RAW,    "srt > (srt > (srt > srt))" },
+    { {RAW,    "srt > srt > srt > srt" },
       {TPTP,   "srt > srt > srt > srt"} }
   );
 
@@ -122,7 +122,7 @@ HOL_TEST_FUN(hol_print_3) {
 
   runTest(
     D.h.sort(),
-    { {RAW,    "(srt > srt) > (srt > srt)" },
+    { {RAW,    "(srt > srt) > srt > srt" },
       {TPTP,   "(srt > srt) > srt > srt"} }
   );
 }

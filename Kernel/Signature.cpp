@@ -25,8 +25,6 @@ using namespace std;
 using namespace Kernel;
 using namespace Shell;
 
-const unsigned Signature::STRING_DISTINCT_GROUP = 0;
-
 /**
  * Standard constructor.
  * @author Andrei Voronkov
@@ -56,7 +54,7 @@ Signature::Symbol::Symbol(unsigned number, const std::string& nm, OperatorType* 
     _prox(Proxy::NOT_PROXY),
     _deBruijnIndex(-1)
 {
-  ASS(_type);
+  ASS(number == SUPER_SORT_CON || number == ARROW_SORT_CON || _type);
   if (!preventQuoting && symbolNeedsQuoting(_name, interpreted, arity())) {
     _name="'"+_name+"'";
   }
@@ -180,13 +178,15 @@ Signature::Signature ():
     _rationals(0),
     _reals(0),
     _arrayCon(UINT_MAX),
-    _arrowCon(UINT_MAX),
     _appFun(UINT_MAX),
     _lamFun(UINT_MAX),
     _choiceFun(UINT_MAX),
     _defPred(UINT_MAX),
     _termAlgebras()
 {
+  // natively supported type constructors
+  registerSymbol(_typeCons, new Symbol(SUPER_SORT_CON, "$tType", nullptr, false, true));
+  registerSymbol(_typeCons, new Symbol(ARROW_SORT_CON, "$vARROW", nullptr, false, true));
   ALWAYS(createDistinctGroup() == STRING_DISTINCT_GROUP);
 } // Signature::Signature
 
@@ -436,7 +436,7 @@ Signature::Symbol* Signature::addFunction (const std::string& name,
   result = _funs.length();
   Symbol* sym = new Symbol(result, name, /*type=*/type,
         /*       interpreted */ false, 
-        /*    preventQuoting */ (name == "$tType"));
+        /*    preventQuoting */ false);
   registerSymbol(_funs, sym);
   _funNames.insert(symbolKey, result);
   added = true;

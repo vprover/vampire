@@ -37,7 +37,7 @@ HOL_TEST_FUN(eta_reduction_1) {
   ASS_EQ(termListToString(term, Options::HPrinting::TPTP),
          "^[Y0 : srt]: (^[Y1 : srt]: (^[Y2 : srt]: (f3 @ Y0 @ Y1 @ Y2)))")
   ASS_EQ(termListToString(term, Options::HPrinting::RAW),
-         "vLAM(srt,srt > (srt > srt),vLAM(srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,vAPP(srt,srt > srt,vAPP(srt,srt > (srt > srt),f3,db2(srt)),db1(srt)),db0(srt)))))")
+         "vLAM(srt,srt > srt > srt,vLAM(srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,vAPP(srt,srt > srt,vAPP(srt,srt > srt > srt,f3,db2(srt)),db1(srt)),db0(srt)))))")
   ASS_EQ(etaNF(term), D.f3)
 }
 
@@ -45,7 +45,7 @@ HOL_TEST_FUN(eta_reduction_2) {
   auto term = toNameless(lam({x(0), x(1), x(2)}, app(D.f3, x(0), x(2), x(1))));
 
   ASS_EQ(termListToString(term, Options::HPrinting::RAW),
-         "vLAM(srt,srt > (srt > srt),vLAM(srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,vAPP(srt,srt > srt,vAPP(srt,srt > (srt > srt),f3,db2(srt)),db0(srt)),db1(srt)))))");
+         "vLAM(srt,srt > srt > srt,vLAM(srt,srt > srt,vLAM(srt,srt,vAPP(srt,srt,vAPP(srt,srt > srt,vAPP(srt,srt > srt > srt,f3,db2(srt)),db0(srt)),db1(srt)))))");
   ASS_EQ(etaNF(term), term)
 }
 

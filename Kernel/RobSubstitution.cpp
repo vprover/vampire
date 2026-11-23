@@ -325,8 +325,20 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     } else if(dt1.isTerm() && dt2.isTerm() 
            && dt1.functor() == dt2.functor() && !dt1.term.isLambdaTerm()) {
 
-      for (auto c : dt1.allArgs().zip(dt2.allArgs())) {
-        pushTodo(make_pair(std::move(c.first), std::move(c.second)));
+      if (dt1.term.isArrowSort()) {
+        // arrow sorts are arbitrary length, unify them separately
+        auto t1 = dt1;
+        auto t2 = dt2;
+        while (t1.term.isArrowSort() && t2.term.isArrowSort()) {
+          pushTodo(make_pair(TermSpec(t1.term.domain(), t1.index), TermSpec(t2.term.domain(), t2.index)));
+          t1 = TermSpec(t1.term.result(), t1.index);
+          t2 = TermSpec(t2.term.result(), t2.index);
+        }
+        pushTodo(make_pair(t1, t2));
+      } else {
+        for (auto c : dt1.allArgs().zip(dt2.allArgs())) {
+          pushTodo(c);
+        }
       }
 
     } else {

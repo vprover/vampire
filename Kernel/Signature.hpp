@@ -70,18 +70,22 @@ class Signature
  public:
   /** Function or predicate symbol */
   
-  /** The default sort of all individuals, always in the non-sorted case */  
-  static const unsigned DEFAULT_SORT_CON=0;
+  /* Super sort ctor */
+  static constexpr unsigned SUPER_SORT_CON = 0;
+  /* Arrow sort ctor */
+  static constexpr unsigned ARROW_SORT_CON = 1;
+  /** The default sort of all individuals, always in the non-sorted case */
+  static constexpr unsigned DEFAULT_SORT_CON = 2;
   /** Boolean sort */
-  static const unsigned BOOL_SRT_CON=1;
+  static constexpr unsigned BOOL_SRT_CON = 3;
   /** sort of integers */
-  static const unsigned INTEGER_SRT_CON=2;
+  static constexpr unsigned INTEGER_SRT_CON = 4;
   /** sort of rationals */
-  static const unsigned RATIONAL_SRT_CON=3;
+  static constexpr unsigned RATIONAL_SRT_CON = 5;
   /** sort of reals */  
-  static const unsigned REAL_SRT_CON=4;
+  static constexpr unsigned REAL_SRT_CON = 6;
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
-  static const unsigned FIRST_USER_CON=5;
+  static constexpr unsigned FIRST_USER_CON = 7;
   
   class Symbol {
     friend class Signature;
@@ -679,10 +683,6 @@ class Signature
     //has been initialised.
     return con == _arrayCon && _arrayCon != UINT_MAX;
   }
-
-  bool isArrowCon(unsigned con) const{
-    return con == _arrowCon && _arrowCon != UINT_MAX;
-  }
   
   bool isAppFun(unsigned fun) const{
     return fun == _appFun && _appFun != UINT_MAX;
@@ -743,7 +743,7 @@ class Signature
   /** the number of real constants */
   unsigned reals() const {return _reals;}
 
-  static const unsigned STRING_DISTINCT_GROUP;
+  static constexpr unsigned STRING_DISTINCT_GROUP = 0;
 
   unsigned getFoolConstantSymbol(bool isTrue){ 
     if(!_foolConstantsDefined){
@@ -776,15 +776,6 @@ class Signature
 
   unsigned getRatSort(){
     return addTypeCon("$rat", 0)->number();
-  }
-
-  unsigned getArrowConstructor(){
-    bool added = false;
-    unsigned arrow = addTypeCon("vARROW",2, added)->number();
-    if(added){
-      _arrowCon = arrow;
-    }
-    return arrow;    
   }
 
   unsigned getArrayConstructor(){
@@ -960,7 +951,6 @@ private:
   unsigned _reals;
 
   unsigned _arrayCon;
-  unsigned _arrowCon;
   unsigned _appFun;
   unsigned _lamFun;
   unsigned _choiceFun;

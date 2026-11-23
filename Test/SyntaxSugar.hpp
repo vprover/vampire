@@ -521,8 +521,8 @@ __IMPL_NUMBER_BIN_FUN(operator>=, Lit)
 inline SortSugar arrow(TermList args, TermList res)
 { return AtomicSort::arrowSort({ args }, res); }
 
-inline SortSugar arrow(Stack<TermList> args, TermList res)
-{ return AtomicSort::arrowSort(args, res, /*fromTop=*/true); }
+inline SortSugar arrow(TermStack args, TermList res)
+{ return AtomicSort::arrowSort(args, res); }
 
 ////////////////////////// Sugar for functions //////////////////////////
 

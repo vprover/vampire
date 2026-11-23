@@ -51,7 +51,6 @@ using TPTPOutput::disjunction;
 using TPTPOutput::InputName;
 using TPTPOutput::Language;
 using TPTPOutput::Reference;
-using TPTPOutput::variableRef;
 using TPTPOutput::QuantifiedVariables;
 using TPTPOutput::quantified;
 namespace Role = TPTPOutput::Role;
@@ -177,7 +176,7 @@ bool needsTPTPTypeDeclaration(SymbolType type, unsigned number)
   Signature& sig = *env.signature;
   switch (type) {
   case SymbolType::TYPE_CON:
-    if (sig.isArrayCon(number) || sig.isTupleCon(number) || sig.isArrowCon(number)) {
+    if (sig.isArrayCon(number) || sig.isTupleCon(number) || number == Signature::ARROW_SORT_CON) {
       return false;
     }
     if (sig.isDefaultSortCon(number) && (!sig.isBoolCon(number) || !env.options->showFOOL())) {

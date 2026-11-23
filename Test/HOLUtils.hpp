@@ -48,7 +48,8 @@ template <class T, class ...Ts>
 TypedTermList app(TypedTermList arg1, T arg2, Ts... args) {
   ASS(arg1.sort().isArrowSort())
 
-  auto [domain, result] = arg1.sort().asPair();
+  auto domain = arg1.sort().domain();
+  auto result = arg1.sort().result();
 
   ASS(domain == arg2.sort())
 

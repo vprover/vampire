@@ -61,7 +61,7 @@ void* Term::operator new(size_t,unsigned arity, size_t preData)
 } // Term::operator new
 
 
-inline bool argSafeToShare(TermList t)
+inline bool safeToShare(TermList t)
 { return t.isSafe() && !t.isSpecialVar(); }
 
 /**
@@ -200,12 +200,6 @@ TermList TermList::head() const {
   return trm;
 }
 
-std::pair<TermList, TermList> TermList::asPair() const {
-  ASS(isArrowSort())
-
-  return {domain(), result()};
-}
-
 TermList TermList::domain() const {
   ASS(isArrowSort())
 
@@ -215,7 +209,12 @@ TermList TermList::domain() const {
 TermList TermList::result() const {
   ASS(isArrowSort())
 
-  return *term()->nthArgument(1);
+  if (term()->arity()==2) {
+    return *term()->nthArgument(1);
+  }
+  return TermList(AtomicSort::createFn(Signature::ARROW_SORT_CON, term()->arity()-1, [this](unsigned i) {
+    return *term()->nthArgument(i+1);
+  }));
 }
 
 TermList TermList::resultSort() const {
@@ -349,7 +348,7 @@ bool TermList::isTupleSort() const {
 }
 
 bool AtomicSort::isArrowSort() const {
-  return env.signature->isArrowCon(_functor);
+  return _functor == Signature::ARROW_SORT_CON;
 }
 
 bool AtomicSort::isBoolSort() const {
@@ -726,12 +725,16 @@ std::string Term::toString(bool mightNeedParens) const
   }
 
   if (isSort() && static_cast<const AtomicSort*>(this)->isArrowSort()) {
-    ASS_EQ(arity(), 2);
-    TermList arg1 = *(nthArgument(0));
-    TermList arg2 = *(nthArgument(1));
-    return StringUtils::addParens(
-      arg1.toString(/*mightNeedParens=*/true) + " > " +
-      arg2.toString(/*mightNeedParens=*/true), mightNeedParens);
+    ASS_GE(arity(), 2);
+
+    std::string res;
+    for (unsigned i = 0; i < arity(); i++) {
+      if (i > 0) {
+        res += " > ";  
+      }
+      res += nthArgument(i)->toString(/*mightNeedParens=*/true);
+    }
+    return StringUtils::addParens(res, mightNeedParens);
   }
 
 #if NICE_THEORY_OUTPUT
@@ -891,7 +894,7 @@ const std::string& Term::functionName() const
 }
 
 bool Term::isArrowSort() const {
-  return isSort() && env.signature->isArrowCon(_functor);
+  return isSort() && _functor == Signature::ARROW_SORT_CON;
 }
 
 bool Term::isApplication() const {
@@ -1023,7 +1026,7 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
 {
   ASS_EQ(env.signature->functionArity(function), arity);
 
-  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(args[i]); });
+  bool share = range(0, arity).all([&](auto i) { return safeToShare(args[i]); });
 
   auto allocTerm = [&]() {
     Term* s = new(arity) Term;
@@ -1158,16 +1161,9 @@ Term* Term::createLambda(TermList lambdaExp, VSList* vars, TermList expSort){
   s->makeSymbol(toNormalFunctor(SpecialFunctor::LAMBDA), 0);
   s->getSpecialData()->_lambdaData.lambdaExp = lambdaExp;
   s->getSpecialData()->_lambdaData._vars = vars;
-  Stack<TermList> revSorts;
-  VSList::Iterator vit(vars);
-  while(vit.hasNext()){
-    revSorts.push(vit.next().second);
-  }
-  TermList lambdaTmSort = expSort;
-  while(!revSorts.isEmpty()){
-    lambdaTmSort = AtomicSort::arrowSort(revSorts.pop(), lambdaTmSort);
-  }
-  s->getSpecialData()->_sort = lambdaTmSort;
+  auto sorts = TermStack::fromIterator(
+    iterTraits(VSList::Iterator(vars)).map([](auto p){ return p.second; }));
+  s->getSpecialData()->_sort = AtomicSort::arrowSort(sorts, expSort);
   return s;
 }
 
@@ -1258,7 +1254,7 @@ Term* Term::foolFalse(){
  */
 TermList AtomicSort::superSort(){
   // TODO this can technically collide with any sort term that uses 0 as functor
-  static AtomicSort* _super = new(0) AtomicSort(0, 0);
+  static AtomicSort* _super = createConstant(Signature::SUPER_SORT_CON);
   return TermList(_super);
 }
 
@@ -1287,21 +1283,11 @@ TermList AtomicSort::rationalSort(){
   return TermList(_rat);
 }
 
-TermList AtomicSort::arrowSort(TermList s1, TermList s2) {
-  static unsigned arrow = env.signature->getArrowConstructor();
-
-  return TermList(create2(arrow, s1, s2));
-}
-
 TermList AtomicSort::arrowSort(unsigned size, const TermList* types, TermList range) {
-  ASS_G(size, 0);
-
-  TermList res = range;
-  for (unsigned i = size; i-- > 0;) {
-    res = arrowSort(types[i], res);
+  if (!size) {
+    return range;
   }
-
-  return res;
+  return TermList(AtomicSort::createArrow(size, types, range));
 }
 
 TermList AtomicSort::arrowSort(const std::initializer_list<TermList>& types) {
@@ -1313,18 +1299,14 @@ TermList AtomicSort::arrowSort(const std::initializer_list<TermList>& types) {
 }
 
 TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool fromTop) {
-  TermList res = range;
-  if (fromTop) {
-    for (const auto& domSort : iterTraits(domSorts.iter())) {
-      res = arrowSort(domSort, res);
-    }
-  } else {
-    for (auto domSort : domSorts) {
-      res = arrowSort(domSort, res);
-    }
+  if (domSorts.isEmpty()) {
+    return range;
   }
+  return TermList(createArrow(domSorts.size(), domSorts.begin(), range, fromTop));
+}
 
-  return res;
+TermList AtomicSort::arrowSort(TermList s1, TermList s2) {
+  return TermList(arrowSort({ s1, s2 }));
 }
 
 AtomicSort* AtomicSort::createConstant(const std::string& name)
@@ -1428,17 +1410,19 @@ bool Term::isSuper() const {
 /** Create a new sort, and insert it into the sharing
  *  structure if all arguments are shared.
  */
-AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList* args)
+template<typename GetArg>
+AtomicSort* AtomicSort::createFn(unsigned typeCon, unsigned arity, GetArg getArg)
 {
-  ASS_EQ(env.signature->typeConArity(typeCon), arity);
+  // the arrow sort can take any number of arguments
+  ASS(typeCon == Signature::SUPER_SORT_CON || typeCon == Signature::ARROW_SORT_CON || env.signature->typeConArity(typeCon) == arity);
 
-  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(args[i]); });
+  bool share = range(0, arity).all([&](auto i) { return safeToShare(getArg(i)); });
 
   auto allocTerm = [&]() {
     AtomicSort* s = new(arity) AtomicSort(typeCon,arity);
     s->makeSymbol(typeCon,arity);
     for (auto i : range(0, arity)) {
-      *s->nthArgument(i) = args[i];
+      *s->nthArgument(i) = getArg(i);
     }
     return s;
   };
@@ -1447,8 +1431,8 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
     bool created = false;
     auto shared =
       env.sharing->_sorts.rawFindOrInsert(allocTerm,
-        Term::termHash(typeCon, [&](auto i){ return args[i]; }, arity),
-        [&](AtomicSort* t) { return t->functor() == typeCon && range(0, arity).all([&](auto i) { return args[i] == *t->nthArgument(i); }); },
+        Term::termHash(typeCon, [&](auto i){ return getArg(i); }, arity),
+        [&](AtomicSort* t) { return t->functor() == typeCon && range(0, arity).all([&](auto i) { return getArg(i) == *t->nthArgument(i); }); },
         created
         );
     if (created) {
@@ -1458,6 +1442,33 @@ AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList*
   } else {
     return allocTerm();
   }
+}
+
+AtomicSort* AtomicSort::create(unsigned typeCon, unsigned arity, const TermList* args)
+{
+  if (typeCon == Signature::ARROW_SORT_CON) {
+    ASS_G(arity,1);
+    return createArrow(arity-1, args, args[arity-1]);
+  }
+  return createFn(typeCon, arity, [&](unsigned i){ return args[i]; });
+}
+
+/** Create a new sort, and insert it into the sharing
+ *  structure if all arguments are shared.
+ */
+AtomicSort* AtomicSort::createArrow(unsigned arity, const TermList* domain, TermList codomain, bool fromTop)
+{
+  ASS_GE(arity, 1);
+  auto postArity = codomain.isArrowSort() ? codomain.term()->arity() : 1;
+  return createFn(Signature::ARROW_SORT_CON, arity+postArity, [&](unsigned i) {
+    if (i < arity) {
+      return domain[fromTop ? arity - i - 1 : i];
+    }
+    if (codomain.isArrowSort()) {
+      return *codomain.term()->nthArgument(i-arity);
+    }
+    return codomain;
+  });
 }
 
 /** Create a new complex sort, copy from @b sort its function symbol and
@@ -1531,7 +1542,7 @@ Literal* Literal::create(unsigned predicate, unsigned arity, bool polarity, GetA
   ASS(predicate != 0 || arity == 2)
   ASS_EQ(env.signature->predicateArity(predicate), arity);
 
-  bool share = range(0, arity).all([&](auto i) { return argSafeToShare(getArg(i)); });
+  bool share = range(0, arity).all([&](auto i) { return safeToShare(getArg(i)); });
   bool swapArgs = share && predicate == 0 && Indexing::TermSharing::argNormGt(getArg(0), getArg(1));
   auto normArg = [&](auto i) { return swapArgs ? getArg(1 - i) : getArg(i); };
 

@@ -298,7 +298,6 @@ public:
   TermList rhs() const;
   TermList lambdaBody() const;
   TermList head() const;
-  std::pair<TermList, TermList> asPair() const;
   TermList domain() const;
   TermList result() const;
   TermList resultSort() const;
@@ -531,8 +530,8 @@ public:
   /** @see nthArguement(int) */ 
   const TermList* nthArgument(int n) const
   {
-    ASS(n >= 0);
-    ASS((unsigned)n < _arity);
+    ASS_GE(n, 0);
+    ASS_L((unsigned)n, _arity);
 
     return flexibleTail() + (_arity - n);
   }
@@ -547,8 +546,8 @@ public:
    */ 
   TermList* nthArgument(int n)
   {
-    ASS(n >= 0);
-    ASS((unsigned)n < _arity);
+    ASS_GE(n, 0);
+    ASS_L((unsigned)n, _arity);
 
     return flexibleTail() + (_arity - n);
   }
@@ -1031,7 +1030,10 @@ public:
     info()._setSort(true);
   }
 
+  template<typename GetArg>
+  static AtomicSort* createFn(unsigned typeCon, unsigned arity, GetArg getArg);
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
+  static AtomicSort* createArrow(unsigned arity, const TermList* domain, TermList codomain, bool fromTop = false);
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
   static AtomicSort* create(AtomicSort const* t,TermList* args);
   static AtomicSort* createNonShared(AtomicSort const* sort,TermList* args);

@@ -349,8 +349,7 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
       auto argSort2 = au->subs().derefBound(t2.typeArg(0));
       if (t1.isVar() || t2.isVar()
        || argSort1.isVar() || argSort2.isVar()
-       || env.signature->isArrowCon(argSort1.functor())
-       || env.signature->isArrowCon(argSort2.functor())
+       || argSort1.term.isArrowSort() || argSort2.term.isArrowSort()
        || env.signature->isBoolCon(argSort1.functor())
        || env.signature->isBoolCon(argSort2.functor())
        ) {
@@ -1551,8 +1550,20 @@ bool AbstractingUnifier::unify(TermSpec t1, TermSpec t2, bool& progress)
       // TODO remove check for lambda term once HOL unification is properly done
       } else if(dt1.isTerm() && dt2.isTerm() && dt1.functor() == dt2.functor() && !dt1.term.isLambdaTerm()) {
 
-        for (auto p : dt1.allArgs().zip(dt2.allArgs())) {
-          pushTodo(p);
+        if (dt1.term.isArrowSort()) {
+          // arrow sorts are arbitrary length, unify them separately
+          auto t1 = dt1;
+          auto t2 = dt2;
+          while (t1.term.isArrowSort() && t2.term.isArrowSort()) {
+            pushTodo(std::make_pair(TermSpec(t1.term.domain(), t1.index), TermSpec(t2.term.domain(), t2.index)));
+            t1 = TermSpec(t1.term.result(), t1.index);
+            t2 = TermSpec(t2.term.result(), t2.index);
+          }
+          pushTodo(std::make_pair(t1, t2));
+        } else {
+          for (auto p : dt1.allArgs().zip(dt2.allArgs())) {
+            pushTodo(p);
+          }
         }
 
       } else {
