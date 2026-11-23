@@ -31,6 +31,7 @@ using namespace Test;
   DECL_SORT(s2)                                                                                               \
   DECL_LEFT_FUNC(left, {s}, s)                                                                                \
   DECL_RIGHT_FUNC(right, {s}, s)                                                                              \
+  DECL_POLY_CONST(h_, 1, arrow(s,alpha))                                                                      \
   DECL_POLY_CONST(h, 1, alpha)                                                                                \
   DECL_FUNC(f, {s, s}, s)                                                                                     \
   DECL_FUNC(g, {s}, s)                                                                                        \
@@ -286,6 +287,31 @@ TEST_SIMPLIFICATION(test_hol5,
   testerHOL()
     .simplifyWith({ clause({ lam(s, x.sort(s)) == g_ }) })
     .toSimplify({ clause({ lam(s, db0) != ap(f_, a) }) })
+    .expected({ /* nothing */ })
+    .justifications({ /* nothing */ });
+)
+
+// arrow argument simply matches the other one
+TEST_SIMPLIFICATION(test_hol6,
+  testerHOL()
+    .simplifyWith({ clause({ h(arrow(s,x)) == h_(x) }) })
+    .toSimplify({ clause({ h(arrow(s,s)) != g_ }) })
+    .expected({ clause({ h_(s) != g_ }) })
+)
+
+// arrow argument should match an entire sub-arrow
+TEST_SIMPLIFICATION(test_hol7,
+  testerHOL()
+    .simplifyWith({ clause({ h(arrow(s,x)) == h_(x) }) })
+    .toSimplify({ clause({ h(arrow({s,s},s)) != f_ }) })
+    .expected({ clause({ h_(arrow(s,s)) != f_ }) })
+)
+
+// arrow arguments should not match due to arity mismatch
+TEST_SIMPLIFICATION(test_hol8,
+  testerHOL()
+    .simplifyWith({ clause({ h(arrow(s,s)) == h_(s) }) })
+    .toSimplify({ clause({ h(arrow({s,s},s)) != f_ }) })
     .expected({ /* nothing */ })
     .justifications({ /* nothing */ });
 )
