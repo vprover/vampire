@@ -1,14 +1,16 @@
-% The model -fmbmp layered prints for fmb/cond-flip.p under -bce on, read back: r is a $cond
+% The model -fmbmp layered prints for fmb/cond-flip.p under -bce on, read back: r is defined
 % over its earlier version 'r_$1'.
 %
-% A conditional flip, printed by -fmbmp layered as what it is: a $cond with a case per tuple
-% the flip prescribes, over the version of the predicate below it for every other tuple.
+% A conditional flip, printed by -fmbmp layered as what it is: a definition of the
+% predicate over the version of it below the flip.
 %
 % Under -bce on, c1 is blocked on r(X,Y) (its only resolvent on r, with c2, is a tautology),
 % so it is eliminated, and the model reconstruction undoes that by a flip: wherever c1 is
 % false, i.e. s holds of both arguments and r does not, make r true. The model prints r as
-% $cond(((X0 = e) & (X1 = e')), $true, 'r_$1'(X0,X1)), 'r_$1' being r before the flip, a
-% table. Before, r was spelled out as a table.
+% r(X0,X1) <=> ('r_$1'(X0,X1) | ~(~s(X1) | ~s(X0) | 'r_$1'(X0,X1))), 'r_$1' being r before
+% the flip, a table. Before, r was spelled out as a table, and later as a $cond listing the
+% tuples the flip changes -- which is what a flip needing a fixed point still is (see
+% fmb/cond-flip-fixpoint.p).
 
 cnf(c1, axiom, r(X,Y) | ~s(X) | ~s(Y)).
 cnf(c2, axiom, ~r(X,Y) | s(X) | t(Y)).
@@ -38,9 +40,7 @@ tff('declare_r_$1',type,'r_$1': ( $i * $i ) > $o ).
 
 tff(a_definition,axiom,a = 'fmb_$i_1').
 tff(b_definition,axiom,b = 'fmb_$i_2').
-tff(r_symbolic_definition,axiom,![X0:$i, X1:$i]: (r(X0,X1) <=> $cond(
-           ((X0 = 'fmb_$i_2') & (X1 = 'fmb_$i_2')), $true,
-           'r_$1'(X0,X1)))).
+tff(r_symbolic_definition,axiom,![X0:$i, X1:$i]: (r(X0,X1) <=> ('r_$1'(X0,X1) | ~((~s(X1) | ~s(X0) | 'r_$1'(X0,X1)))))).
 tff(predicate_s,axiom,
            ~s('fmb_$i_1')
          & s('fmb_$i_2')

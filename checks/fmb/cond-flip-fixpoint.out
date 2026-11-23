@@ -1,0 +1,32 @@
+% Sorts in the size vectors: [$i]
+% Detected minimum model sizes of [2]
+% Detected maximum model sizes of [2]
+% TRYING [2]
+% Finite Model Found!
+% SZS status Satisfiable for cond-flip-fixpoint
+% SZS output start FiniteModel for cond-flip-fixpoint
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('declare_$i2',type,'fmb_$i_2':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1') | (X = 'fmb_$i_2')
+      ) ).
+
+tff('distinct_domain_$i',axiom,
+         'fmb_$i_1' != 'fmb_$i_2'
+).
+
+tff(declare_a,type,a : $i).
+tff(declare_b,type,b : $i).
+tff(declare_p,type,p: ( $i ) > $o ).
+tff('declare_p_$1',type,'p_$1': ( $i ) > $o ).
+tff('declare_p_$2',type,'p_$2': ( $i ) > $o ).
+
+tff(a_definition,axiom,a = 'fmb_$i_1').
+tff(b_definition,axiom,b = 'fmb_$i_2').
+tff(p_symbolic_definition,axiom,![X0:$i]: (p(X0) <=> $cond(
+           ((X0 = 'fmb_$i_1')), $true,
+           'p_$1'(X0)))).
+tff('p_$1_symbolic_definition',axiom,![X0:$i]: ('p_$1'(X0) <=> ('p_$2'(X0) | (~('p_$2'(b)) & (b = X0))))).
+tff('p_$2_symbolic_definition',axiom,![X0:$i]: ('p_$2'(X0) <=> $false)).
+% SZS output end FiniteModel for cond-flip-fixpoint

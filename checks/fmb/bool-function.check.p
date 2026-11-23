@@ -46,15 +46,17 @@ tff(declare_q,type,q: ( $i * $o ) > $o ).
 tff(declare_p,type,p: ( $i ) > $o ).
 tff(declare_r,type,r: ( $i ) > $o ).
 tff(declare_bG0,type,bG0 : ( $i ) > $o).
+tff('declare_r_$1',type,'r_$1': ( $i ) > $o ).
 
 tff(a_definition,axiom,a = 'fmb_$i_1').
 tff(b_definition,axiom,b = 'fmb_$i_2').
 tff(q_symbolic_definition,axiom,![X0:$i, X1:$o]: (q(X0,X1) <=> (? [X2:$i] : (p(X2) & (bG0(X2) = X1) & (X0 = X2))))).
 tff(p_symbolic_definition,axiom,![X0:$i]: (p(X0) <=> (a = X0))).
-tff(r_symbolic_definition,axiom,![X0:$i]: (r(X0) <=> (! [X1:$i] : (($true = bG0(X1)) | (X0 != X1))))).
+tff(r_symbolic_definition,axiom,![X0:$i]: (r(X0) <=> ('r_$1'(X0) | (bG0(X0) = $true)))).
 tff(predicate_bG0,axiom,
            bG0('fmb_$i_1')
          & bG0('fmb_$i_2')
 ).
 
+tff('r_$1_symbolic_definition',axiom,![X0:$i]: ('r_$1'(X0) <=> (! [X1:$i] : (($true = bG0(X1)) | (X0 != X1))))).
 vampire(model_check,model_end).

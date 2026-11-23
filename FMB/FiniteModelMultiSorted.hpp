@@ -107,7 +107,10 @@ public:
     initTables();
   }
 
-  ~FiniteModelMultiSorted() { deleteAllLayers(); }
+  ~FiniteModelMultiSorted() {
+    deleteAllLayers();
+    for (Problem::PredDef* pd : iterTraits(_flipDefs.iter())) delete pd;
+  }
 
   // does the model have an explicit table for this symbol? (i.e. was it among the used ones)
   bool funRepresented(unsigned f) const { return funTable(f) != nullptr; }
@@ -231,6 +234,9 @@ private:
   bool evaluateFormula(Formula*, DHMap<unsigned,unsigned, FnvHash, IdentityHash>& subst, Timestamp asOf);
 
   void restoreViaCondFlip(Problem::CondFlip*);
+  Problem::PredDef* condFlipAsDefinition(Problem::CondFlip*);
+  // the definitions condFlipAsDefinition made, which the layers point to; ours to delete
+  Stack<Problem::PredDef*> _flipDefs;
 
 
   std::string prepend(const char* prefix, std::string name) {

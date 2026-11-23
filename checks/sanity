@@ -568,9 +568,14 @@ check_exact_output fmb/chaindef.layered.check.out --input_syntax tptp --mode mod
 check_exact_output fmb/stale-definition.out --input_syntax tptp --statistics none -sa fmb -pel on -fmbmp layered fmb/stale-definition.p
 check_exact_output fmb/stale-definition.check.out --input_syntax tptp --mode model_check fmb/stale-definition.check.p
 check_exact_output fmb/version-name-clash.out --input_syntax tptp --statistics none -sa fmb -pel on -fmbmp layered fmb/version-name-clash.p
-# ... and a conditional flip is a $cond over the version below it (see fmb/cond-flip.p)
+# ... and a conditional flip is a definition over the version below it (see fmb/cond-flip.p),
+# evaluated on demand, so that a wide one over a large domain costs nothing (fmb/cond-flip-wide.p);
+# only a flip needing a fixed point is a $cond over that version (fmb/cond-flip-fixpoint.p)
 check_exact_output fmb/cond-flip.out --input_syntax tptp --statistics none -sa fmb -bce on -fmbmp layered fmb/cond-flip.p
 check_exact_output fmb/cond-flip.check.out --input_syntax tptp --mode model_check fmb/cond-flip.check.p
+check_exact_output fmb/cond-flip-wide.out --input_syntax tptp --statistics none -sa fmb -pel on -fmbss 41 -fmbmp layered fmb/cond-flip-wide.p
+check_exact_output fmb/cond-flip-fixpoint.out --input_syntax tptp --statistics none -sa fmb -bce on -fmbmp layered fmb/cond-flip-fixpoint.p
+check_exact_output fmb/cond-flip-fixpoint.check.out --input_syntax tptp --mode model_check fmb/cond-flip-fixpoint.check.p
 # ... which model_check loads as the flip it was printed from, a definition of the fall-back
 # with the cases on top; any other $cond stays an ordinary definition (fmb/model-cond-cases.p)
 check_exact_output fmb/model-cond-cases.out --input_syntax tptp --mode model_check fmb/model-cond-cases.p

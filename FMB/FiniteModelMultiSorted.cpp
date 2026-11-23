@@ -931,8 +931,9 @@ void FiniteModelMultiSorted::printCases(std::ostream& out, unsigned p, unsigned 
  * *versions* the model needs, a version being the stack up to one of its layers, and each
  * version as that layer is: a definition as its body, over the versions of the body's
  * symbols it reads (as of its own birth, see DefFunLayer::value); a trivial value as a
- * formula; a conditional flip as a $cond, one case per tuple the flip prescribes a value for,
- * over the version directly below it for every other tuple; a global flip as the negation of
+ * formula; a conditional flip as a definition over the version directly below it
+ * (condFlipAsDefinition), or, one needing a fixed point, as a $cond, one case per tuple the
+ * flip prescribes a value for, over that version for every other tuple; a global flip as the negation of
  * the version directly below it; and a table (or a trivial value under the self-check, or a
  * function into $o) as a table of the version's values.
  *
@@ -1637,6 +1638,93 @@ bool FiniteModelMultiSorted::applyPredDef(Problem::PredDef* pd, const DArray<uns
   return evaluateFormula(pd->_body,inner,asOf) == pd->_head->isPositive();
 }
 
+/**
+ * A conditional flip that needs no fixed point, as a definition of its predicate p over the
+ * version of p below it. The flip sets p(args) to its value v wherever the condition selects
+ * an assignment of the variables; so p at a tuple Y is v if
+ *    E := ? [Z] : (Y = args & cond)      (Z: the variables that are not head variables)
+ * holds, and what it was before otherwise:
+ *    p(Y) <=> (p(Y) | E)      for v = $true,      p(Y) <=> (p(Y) & ~E)      for v = $false.
+ * The p(Y) on the right is read as of the layer's birth (DefPredLayer::value), i.e. it is the
+ * version below; printed, that is 'p_$1'. Where an argument of p is a variable not met
+ * before, the head uses that variable itself and the equation goes away; so a flip a partial
+ * predicate definition elimination recorded, whose arguments are the definition's head
+ * variables, becomes simply p(X) <=> (p(X) | body).
+ *
+ * Reading the version below rather than the layer itself (as restoreViaCondFlip does) gives
+ * the same repair: without a fixed point, any other occurrence of p in the condition has
+ * the polarity of the blocking literal (Problem::addEliminatedBlockedClause), and the flip
+ * only moves p that way, so it cannot undo what it repairs.
+ *
+ * Unlike restoreViaCondFlip, nothing is enumerated: the layer is evaluated per tuple asked
+ * about, which is what keeps a flip of a wide predicate over a large domain affordable
+ * (disjoint/8 at size 41 in MGT095+1, checks/fmb/cond-flip-wide.p).
+ */
+Problem::PredDef* FiniteModelMultiSorted::condFlipAsDefinition(Problem::CondFlip* cf)
+{
+  ASS(!cf->_fixedPoint);
+  Literal* val = cf->_val;
+  unsigned p = val->functor();
+  OperatorType* ot = env.signature->getPredicate(p)->type();
+  unsigned arity = val->arity();
+
+  // all variables, bound ones included, so that the fresh ones below are fresh; and the free
+  // ones, which are what the flip ranges over
+  DHMap<unsigned,TermList, FnvHash, IdentityHash> allSorts, freeSorts;
+  SortHelper::collectVariableSorts(val,allSorts);
+  SortHelper::collectVariableSorts(cf->_cond,allSorts);
+  SortHelper::collectVariableSorts(val,freeSorts);
+  SortHelper::collectVariableSorts(cf->_cond,freeSorts,/*ignoreBound=*/true);
+  unsigned fresh = 0;
+  {
+    auto it = allSorts.domain();
+    while (it.hasNext()) fresh = std::max(fresh,it.next()+1);
+  }
+
+  DArray<TermList> headArgs(arity);
+  DHSet<unsigned, FnvHash, IdentityHash> headVars;
+  FormulaList* conjuncts = FormulaList::empty();
+  for (unsigned j = 0; j < arity; j++) {
+    TermList a = *val->nthArgument(j);
+    if (a.isVar() && !headVars.find(a.var())) {
+      headArgs[j] = a;
+      headVars.insert(a.var());
+    } else {
+      headArgs[j] = TermList::var(fresh);
+      headVars.insert(fresh++);
+      FormulaList::push(new AtomicFormula(Literal::createEquality(true,headArgs[j],a,ot->arg(j))),conjuncts);
+    }
+  }
+  Formula* cond = cf->_neg ? static_cast<Formula*>(new NegatedFormula(cf->_cond)) : cf->_cond;
+  FormulaList::push(cond,conjuncts); // the equations go first when printed
+  Formula* inner = FormulaList::length(conjuncts) == 1 ? conjuncts->head()
+                                                      : static_cast<Formula*>(new JunctionFormula(AND,conjuncts));
+  VSList* ex = VSList::empty();
+  {
+    // in variable order, for a stable print
+    Stack<unsigned> vars;
+    auto it = freeSorts.domain();
+    while (it.hasNext()) {
+      unsigned v = it.next();
+      if (!headVars.find(v)) vars.push(v);
+    }
+    vars.sort([](unsigned a, unsigned b) { return a > b; }); // cons reverses
+    for (unsigned v : iterTraits(vars.iter())) {
+      ex = VSList::cons({v,freeSorts.get(v)},ex);
+    }
+  }
+  Formula* selected = ex ? static_cast<Formula*>(new QuantifiedFormula(EXISTS,ex,inner)) : inner;
+
+  Literal* head = Literal::create(p,arity,true,headArgs.begin());
+  Formula* body;
+  if (val->isPositive()) {
+    body = new JunctionFormula(OR,FormulaList::cons(new AtomicFormula(head),FormulaList::singleton(selected)));
+  } else {
+    body = new JunctionFormula(AND,FormulaList::cons(new AtomicFormula(head),FormulaList::singleton(new NegatedFormula(selected))));
+  }
+  return new Problem::PredDef(head,body);
+}
+
 void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
 {
   // cf->outputDefinition(cout);
@@ -1647,6 +1735,7 @@ void FiniteModelMultiSorted::restoreViaCondFlip(Problem::CondFlip* cf)
   unsigned arity = sortMap.size();
 
 
+  // Only for a flip needing a fixed point; every other one is condFlipAsDefinition.
   // The layer goes on before it is filled, and everything below is read as of _now + 1 --
   // i.e. as of the model this step transforms, *plus this layer itself*. That self-read is
   // deliberate and is what the old code got from writing into the table as it went: the
@@ -1776,7 +1865,13 @@ void FiniteModelMultiSorted::restoreEliminatedDefinitions(Kernel::Problem* prob)
       }
       case Problem::IntereferenceKind::COND_FLIP: {
         Problem::CondFlip* cf = static_cast<Problem::CondFlip*>(i);
-        restoreViaCondFlip(cf);
+        if (cf->_fixedPoint) {
+          restoreViaCondFlip(cf); // a least fixed point: no definition over the version below
+        } else {
+          Problem::PredDef* pd = condFlipAsDefinition(cf);
+          _flipDefs.push(pd);
+          _p_layers[cf->_val->functor()].push(new DefPredLayer(pd,_now));
+        }
         break;
       }
 
