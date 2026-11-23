@@ -1801,6 +1801,30 @@ MainLoopResult FiniteModelBuilder::runImpl()
   return MainLoopResult(TerminationReason::REFUTATION_NOT_FOUND);
 }
 
+/**
+ * Whether a symbol of the signature takes an argument of sort $o, or is a function into $o:
+ * it may be printed, and with it the domain of $o (see onModelFound). (A predicate's own
+ * result, $o, is not a domain element.)
+ */
+static bool signatureMentionsBool()
+{
+  TermList boolSort = AtomicSort::boolSort();
+  for (unsigned f = 0; f < env.signature->functions(); f++) {
+    OperatorType* ot = env.signature->getFunction(f)->type();
+    if (ot->result() == boolSort) return true;
+    for (unsigned i = 0; i < ot->arity(); i++) {
+      if (ot->arg(i) == boolSort) return true;
+    }
+  }
+  for (unsigned p = 1; p < env.signature->predicates(); p++) { // 0 is equality
+    OperatorType* ot = env.signature->getPredicate(p)->type();
+    for (unsigned i = 0; i < ot->arity(); i++) {
+      if (ot->arg(i) == boolSort) return true;
+    }
+  }
+  return false;
+}
+
 void FiniteModelBuilder::onModelFound()
 {
   // Don't do any output if proof is off
@@ -1872,16 +1896,26 @@ void FiniteModelBuilder::onModelFound()
   for(unsigned p=0;p<usedPredicates.size();p++){ usedPredicates[p] = _symbolCounts.predicates[p]>0; }
 
   // $o is interpreted: its domain is {$false,$true} in every model, also when the clauses we
-  // solved never met it. They need not have: FOOL elimination can put $o into a definition
-  // that preprocessing then takes out of the clauses, to be replayed only now -- SEU502_8
-  // without its conjecture, emptysetE <=> ! [X0] : (in(X0,emptyset) => ! [X1:$o] : ($true = X1)).
-  // Left without a size, $o would be a one-element domain with $true and $false on the same
-  // element, and the replay would find ! [X1:$o] : ($true = X1) true (checks/fmb/bool-replay.p).
-  // So such an $o gets its two elements here, and the two FOOL constants a table each
-  // (filled in below, once the tables have their final layout).
+  // solved never met it. They need not have:
+  //  - FOOL elimination can put $o into a definition that preprocessing then takes out of
+  //    the clauses, to be replayed only now -- SEU502_8 without its conjecture,
+  //    emptysetE <=> ! [X0] : (in(X0,emptyset) => ! [X1:$o] : ($true = X1)). Left without a
+  //    size, $o would be a one-element domain with $true and $false on the same element, and
+  //    the replay would find ! [X1:$o] : ($true = X1) true (checks/fmb/bool-replay.p);
+  //  - a symbol over $o need not occur in any clause, and is printed all the same, with the
+  //    domain of $o -- SYN983_8 without its conjecture is just p: $o > $o and two constants,
+  //    and the printing used to crash on a one-element $o without FOOL constants
+  //    (checks/fmb/bool-unused.p).
+  // So such an $o gets its two elements here, the two FOOL constants (created if need be) a
+  // table each (filled in below, once the tables have their final layout).
   const unsigned boolCon = AtomicSort::boolSort().term()->functor();
-  const bool boolBuiltIn = env.signature->foolConstantsDefined() && vampireSortSizes[boolCon] == 0;
+  const bool boolBuiltIn = vampireSortSizes[boolCon] == 0 &&
+      (env.signature->foolConstantsDefined() || signatureMentionsBool());
   if (boolBuiltIn) {
+    for (unsigned i = 0; i < 2; i++) {
+      env.signature->getFoolConstantSymbol(i > 0); // they may be new symbols:
+    }
+    del_f.expand(env.signature->functions(),true); // nothing to read off the solver for them
     vampireSortSizes[boolCon] = 2;
     usedFunctions.expand(env.signature->functions(),false);
     for (unsigned i = 0; i < 2; i++) {

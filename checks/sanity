@@ -497,6 +497,11 @@ check_exact_output fmb/bool-replay.explicit.out --input_syntax tptp --statistics
 check_exact_output fmb/bool-replay.explicit.check.out --input_syntax tptp --mode model_check fmb/bool-replay.explicit.check.p
 check_exact_output fmb/bool-replay.layered.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered fmb/bool-replay.p
 check_exact_output fmb/bool-replay.layered.check.out --input_syntax tptp --mode model_check fmb/bool-replay.layered.check.p
+# ... and when a symbol over $o is printed that no clause mentions (see fmb/bool-unused.p)
+check_exact_output fmb/bool-unused.explicit.out --input_syntax tptp --statistics none -sa fmb -fmbmp explicit fmb/bool-unused.p
+check_exact_output fmb/bool-unused.explicit.check.out --input_syntax tptp --mode model_check fmb/bool-unused.explicit.check.p
+check_exact_output fmb/bool-unused.layered.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered fmb/bool-unused.p
+check_exact_output fmb/bool-unused.layered.check.out --input_syntax tptp --mode model_check fmb/bool-unused.layered.check.p
 
 # FMB: a predicate blocked clause elimination removes altogether is described only by the
 # recorded flips, so restoring them must materialize a table for it (see fmb/bceflip.p).
