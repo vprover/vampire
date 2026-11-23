@@ -1,0 +1,31 @@
+% The problem is propositional so there are no sorts!
+% Sorts in the size vectors: []
+% TRYING []
+% Finite Model Found!
+% SZS status Satisfiable for bool-replay
+% SZS output start FiniteModel for bool-replay
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1')
+      ) ).
+
+tff(finite_domain_bool,axiom,
+      ! [X:$o] : (
+         (X = $false) | (X = $true)
+      ) ).
+
+tff(distinct_domain_bool,axiom,
+         $false != $true
+).
+
+tff(declare_emptyset,type,emptyset : $i).
+tff(emptyset_definition,axiom,emptyset = 'fmb_$i_1').
+tff(declare_in,type,in: ( $i * $i ) > $o ).
+tff(predicate_in,axiom,
+           in('fmb_$i_1','fmb_$i_1')
+).
+
+tff(declare_emptysetE,type,emptysetE: $o ).
+tff(emptysetE_definition,axiom,~emptysetE).
+% SZS output end FiniteModel for bool-replay

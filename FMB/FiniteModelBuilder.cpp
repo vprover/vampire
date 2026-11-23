@@ -1871,6 +1871,24 @@ void FiniteModelBuilder::onModelFound()
   DArray<bool> usedPredicates(_symbolCounts.predicates.size());
   for(unsigned p=0;p<usedPredicates.size();p++){ usedPredicates[p] = _symbolCounts.predicates[p]>0; }
 
+  // $o is interpreted: its domain is {$false,$true} in every model, also when the clauses we
+  // solved never met it. They need not have: FOOL elimination can put $o into a definition
+  // that preprocessing then takes out of the clauses, to be replayed only now -- SEU502_8
+  // without its conjecture, emptysetE <=> ! [X0] : (in(X0,emptyset) => ! [X1:$o] : ($true = X1)).
+  // Left without a size, $o would be a one-element domain with $true and $false on the same
+  // element, and the replay would find ! [X1:$o] : ($true = X1) true (checks/fmb/bool-replay.p).
+  // So such an $o gets its two elements here, and the two FOOL constants a table each
+  // (filled in below, once the tables have their final layout).
+  const unsigned boolCon = AtomicSort::boolSort().term()->functor();
+  const bool boolBuiltIn = env.signature->foolConstantsDefined() && vampireSortSizes[boolCon] == 0;
+  if (boolBuiltIn) {
+    vampireSortSizes[boolCon] = 2;
+    usedFunctions.expand(env.signature->functions(),false);
+    for (unsigned i = 0; i < 2; i++) {
+      usedFunctions[env.signature->getFoolConstantSymbol(i > 0)] = true;
+    }
+  }
+
   // need a clone, because FiniteModelMultiSorted may want to modify its version later
   FiniteModelMultiSorted model(vampireSortSizes.clone(),std::move(usedFunctions),std::move(usedPredicates));
 
@@ -2015,6 +2033,11 @@ void FiniteModelBuilder::onModelFound()
   // so an undefined value here is a bug on our side
   try {
     model.eliminateSortFunctionsAndPredicates(_sortFunctions,_sortPredicates);
+    if (boolBuiltIn) { // the built-in $o from above: $false is element 1, $true element 2
+      for (unsigned i = 0; i < 2; i++) {
+        model.addFunctionDefinition(env.signature->getFoolConstantSymbol(i > 0),DArray<unsigned>(0),i+1);
+      }
+    }
     // sort elimination renumbers the domain elements, so it has to happen while the model is
     // still nothing but the tables copied above; only then is model_0 -- the model the replay
     // starts from -- fixed, and only then is it worth completing

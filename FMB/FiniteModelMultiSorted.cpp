@@ -212,12 +212,10 @@ void FiniteModelMultiSorted::installTrivialLayers()
   // elimination puts them in the problem, so they have a usage count and hence a table. A
   // trivial layer would give both the same value, collapsing $true and $false onto one
   // element -- boolValue would stop distinguishing them and toString's domain print would
-  // name the same element twice.
-  // Unless neither occurs: NewCNF defines them when it expands a quantifier over $o, and the
-  // clauses can then lose every occurrence (![X:$o]: (X | ~X) becomes two tautologies,
-  // checks/fmb/bool-builtin.p). Then $o has no domain in this model and nothing asks for one.
+  // name the same element twice. When the clauses lost every occurrence of them,
+  // FiniteModelBuilder::onModelFound builds $o in, tables included.
   ASS(!env.signature->foolConstantsDefined() ||
-      (funRepresented(env.signature->getFoolConstantSymbol(true)) ==
+      (funRepresented(env.signature->getFoolConstantSymbol(true)) &&
        funRepresented(env.signature->getFoolConstantSymbol(false))));
 }
 

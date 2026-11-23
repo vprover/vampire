@@ -491,6 +491,12 @@ check_exact_output fmb/bool.check.out --input_syntax tptp --mode model_check fmb
 check_exact_output fmb/bool-builtin.out --input_syntax tptp --statistics none -sa fmb -newcnf on fmb/bool-builtin.p
 check_exact_output fmb/bool-builtin.check.out --input_syntax tptp --mode model_check fmb/bool-builtin.check.p
 check_rejected 'the domain of $o is $false and $true' --input_syntax tptp --mode model_check fmb/model-bool-domain.p
+# ... and FMB gives $o its two elements also when the clauses never meet it, so that
+# replaying a definition quantifying over $o evaluates it correctly (see fmb/bool-replay.p)
+check_exact_output fmb/bool-replay.explicit.out --input_syntax tptp --statistics none -sa fmb -fmbmp explicit fmb/bool-replay.p
+check_exact_output fmb/bool-replay.explicit.check.out --input_syntax tptp --mode model_check fmb/bool-replay.explicit.check.p
+check_exact_output fmb/bool-replay.layered.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered fmb/bool-replay.p
+check_exact_output fmb/bool-replay.layered.check.out --input_syntax tptp --mode model_check fmb/bool-replay.layered.check.p
 
 # FMB: a predicate blocked clause elimination removes altogether is described only by the
 # recorded flips, so restoring them must materialize a table for it (see fmb/bceflip.p).
