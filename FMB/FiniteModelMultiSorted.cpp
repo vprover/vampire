@@ -325,6 +325,8 @@ bool FiniteModelMultiSorted::collectBodySymbols(TermList body, BodySymbols& out)
     if (t->isSpecial()) {
       switch (t->specialFunctor()) {
         case SpecialFunctor::FORMULA: // arity 0; everything is in the special data
+          // a formula in term position is an element of $o
+          out.sorts.push(AtomicSort::boolSort().term()->functor());
           if (!collectBodySymbols(t->getSpecialData()->getFormula(),out)) {
             return false;
           }

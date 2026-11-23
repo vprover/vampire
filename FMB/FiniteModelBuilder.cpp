@@ -1825,6 +1825,45 @@ static bool signatureMentionsBool()
   return false;
 }
 
+/**
+ * Whether a definition or flip the replay will evaluate mentions $o: quantifies over it, or
+ * has a formula in term position (FiniteModelMultiSorted::collectBodySymbols). Under
+ * -newcnf on, FOOL survives up to clausification, so a definition preprocessing takes out
+ * before that still has its ! [X:$o] -- and no FOOL constants exist yet
+ * (checks/fmb/bool-replay.p under -newcnf on). A body we cannot walk counts as mentioning $o.
+ */
+static bool interferencesMentionBool(Problem& prb)
+{
+  const unsigned boolCon = AtomicSort::boolSort().term()->functor();
+  for (Problem::Interference* i : iterTraits(prb.interferences.iter())) {
+    FiniteModelMultiSorted::BodySymbols syms;
+    bool walked = true;
+    switch (i->_kind) {
+      case Problem::IntereferenceKind::FUN_DEF:
+        walked = FiniteModelMultiSorted::collectBodySymbols(TermList(static_cast<Problem::FunDef*>(i)->_body),syms);
+        break;
+      case Problem::IntereferenceKind::PRED_DEF:
+        walked = FiniteModelMultiSorted::collectBodySymbols(static_cast<Problem::PredDef*>(i)->_body,syms);
+        break;
+      case Problem::IntereferenceKind::COND_FLIP: {
+        Problem::CondFlip* cf = static_cast<Problem::CondFlip*>(i);
+        walked = FiniteModelMultiSorted::collectBodySymbols(cf->_cond,syms);
+        for (unsigned j = 0; walked && j < cf->_val->arity(); j++) {
+          walked = FiniteModelMultiSorted::collectBodySymbols(*cf->_val->nthArgument(j),syms);
+        }
+        break;
+      }
+      default: // a global flip has no body
+        break;
+    }
+    if (!walked) return true;
+    for (unsigned s : iterTraits(syms.sorts.iter())) {
+      if (s == boolCon) return true;
+    }
+  }
+  return false;
+}
+
 void FiniteModelBuilder::onModelFound()
 {
   // Don't do any output if proof is off
@@ -1905,12 +1944,15 @@ void FiniteModelBuilder::onModelFound()
   //  - a symbol over $o need not occur in any clause, and is printed all the same, with the
   //    domain of $o -- SYN983_8 without its conjecture is just p: $o > $o and two constants,
   //    and the printing used to crash on a one-element $o without FOOL constants
-  //    (checks/fmb/bool-unused.p).
+  //    (checks/fmb/bool-unused.p);
+  //  - under -newcnf on, the definition of the first point is taken out before FOOL is
+  //    eliminated, so there are no FOOL constants either (interferencesMentionBool).
   // So such an $o gets its two elements here, the two FOOL constants (created if need be) a
   // table each (filled in below, once the tables have their final layout).
   const unsigned boolCon = AtomicSort::boolSort().term()->functor();
   const bool boolBuiltIn = vampireSortSizes[boolCon] == 0 &&
-      (env.signature->foolConstantsDefined() || signatureMentionsBool());
+      (env.signature->foolConstantsDefined() || signatureMentionsBool() ||
+       interferencesMentionBool(*env.getMainProblem()));
   if (boolBuiltIn) {
     for (unsigned i = 0; i < 2; i++) {
       env.signature->getFoolConstantSymbol(i > 0); // they may be new symbols:

@@ -150,7 +150,7 @@ public:
   struct BodySymbols {
     Stack<unsigned> funs;
     Stack<unsigned> preds; // equality left out: it is not in the model
-    Stack<unsigned> sorts; // of the variables the body quantifies over
+    Stack<unsigned> sorts; // of the variables the body quantifies over; $o for a formula in term position
   };
   // false if the body contains a special term other than a formula in term position, an
   // $ite or a $cond; then out is incomplete
