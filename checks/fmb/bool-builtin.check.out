@@ -1,0 +1,11 @@
+Using the built-in domain of $o
+Loading model...
+Detected model with 1 sorts.
+  domain for $o of size 2, domain elements are:
+    $false
+    $true
+Model loaded
+Checking formulas...
+Checking 1. ! [X0 : $o] : (X0 | ~ X0) [input]...
+Evaluates to True
+All formulas evaluated to True!

@@ -1,0 +1,16 @@
+% The problem is propositional so there are no sorts!
+% Sorts in the size vectors: []
+% TRYING []
+% Finite Model Found!
+% SZS status Satisfiable for bool-builtin
+% SZS output start FiniteModel for bool-builtin
+tff(finite_domain_bool,axiom,
+      ! [X:$o] : (
+         (X = $false) | (X = $true)
+      ) ).
+
+tff(distinct_domain_bool,axiom,
+         $false != $true
+).
+
+% SZS output end FiniteModel for bool-builtin

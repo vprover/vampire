@@ -1,0 +1,18 @@
+Finite domain axiom found:
+3. ! [X0] : (X0 = 'fmb_$i_1') [input]
+Finite domain axiom found:
+4. ! [X0 : $o] : ((X0 = $false) | (X0 = $true)) [input]
+Loading model...
+Detected model with 2 sorts.
+  domain for $i of size 1, domain elements are:
+    'fmb_$i_1'
+  domain for $o of size 2, domain elements are:
+    $true
+    $false
+Model loaded
+Checking formulas...
+Checking 1. emptysetE = (! [X0] : (in(X0,emptyset) => ! [X1 : $o] : X1)) [input]...
+Evaluates to True
+Checking 2. in(emptyset,emptyset) [input]...
+Evaluates to True
+All formulas evaluated to True!

@@ -1,0 +1,285 @@
+% Sorts in the size vectors: [$i]
+% Detected minimum model sizes of [2]
+% Detected maximum model sizes of [max]
+% TRYING [41]
+% Finite Model Found!
+% SZS status Satisfiable for cond-flip-wide
+% SZS output start FiniteModel for cond-flip-wide
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('declare_$i2',type,'fmb_$i_2':$i).
+tff('declare_$i3',type,'fmb_$i_3':$i).
+tff('declare_$i4',type,'fmb_$i_4':$i).
+tff('declare_$i5',type,'fmb_$i_5':$i).
+tff('declare_$i6',type,'fmb_$i_6':$i).
+tff('declare_$i7',type,'fmb_$i_7':$i).
+tff('declare_$i8',type,'fmb_$i_8':$i).
+tff('declare_$i9',type,'fmb_$i_9':$i).
+tff('declare_$i10',type,'fmb_$i_10':$i).
+tff('declare_$i11',type,'fmb_$i_11':$i).
+tff('declare_$i12',type,'fmb_$i_12':$i).
+tff('declare_$i13',type,'fmb_$i_13':$i).
+tff('declare_$i14',type,'fmb_$i_14':$i).
+tff('declare_$i15',type,'fmb_$i_15':$i).
+tff('declare_$i16',type,'fmb_$i_16':$i).
+tff('declare_$i17',type,'fmb_$i_17':$i).
+tff('declare_$i18',type,'fmb_$i_18':$i).
+tff('declare_$i19',type,'fmb_$i_19':$i).
+tff('declare_$i20',type,'fmb_$i_20':$i).
+tff('declare_$i21',type,'fmb_$i_21':$i).
+tff('declare_$i22',type,'fmb_$i_22':$i).
+tff('declare_$i23',type,'fmb_$i_23':$i).
+tff('declare_$i24',type,'fmb_$i_24':$i).
+tff('declare_$i25',type,'fmb_$i_25':$i).
+tff('declare_$i26',type,'fmb_$i_26':$i).
+tff('declare_$i27',type,'fmb_$i_27':$i).
+tff('declare_$i28',type,'fmb_$i_28':$i).
+tff('declare_$i29',type,'fmb_$i_29':$i).
+tff('declare_$i30',type,'fmb_$i_30':$i).
+tff('declare_$i31',type,'fmb_$i_31':$i).
+tff('declare_$i32',type,'fmb_$i_32':$i).
+tff('declare_$i33',type,'fmb_$i_33':$i).
+tff('declare_$i34',type,'fmb_$i_34':$i).
+tff('declare_$i35',type,'fmb_$i_35':$i).
+tff('declare_$i36',type,'fmb_$i_36':$i).
+tff('declare_$i37',type,'fmb_$i_37':$i).
+tff('declare_$i38',type,'fmb_$i_38':$i).
+tff('declare_$i39',type,'fmb_$i_39':$i).
+tff('declare_$i40',type,'fmb_$i_40':$i).
+tff('declare_$i41',type,'fmb_$i_41':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1') | (X = 'fmb_$i_2') | (X = 'fmb_$i_3') | (X = 'fmb_$i_4') | (X = 'fmb_$i_5') | 
+         (X = 'fmb_$i_6') | (X = 'fmb_$i_7') | (X = 'fmb_$i_8') | (X = 'fmb_$i_9') | (X = 'fmb_$i_10') | 
+         (X = 'fmb_$i_11') | (X = 'fmb_$i_12') | (X = 'fmb_$i_13') | (X = 'fmb_$i_14') | (X = 'fmb_$i_15') | 
+         (X = 'fmb_$i_16') | (X = 'fmb_$i_17') | (X = 'fmb_$i_18') | (X = 'fmb_$i_19') | (X = 'fmb_$i_20') | 
+         (X = 'fmb_$i_21') | (X = 'fmb_$i_22') | (X = 'fmb_$i_23') | (X = 'fmb_$i_24') | (X = 'fmb_$i_25') | 
+         (X = 'fmb_$i_26') | (X = 'fmb_$i_27') | (X = 'fmb_$i_28') | (X = 'fmb_$i_29') | (X = 'fmb_$i_30') | 
+         (X = 'fmb_$i_31') | (X = 'fmb_$i_32') | (X = 'fmb_$i_33') | (X = 'fmb_$i_34') | (X = 'fmb_$i_35') | 
+         (X = 'fmb_$i_36') | (X = 'fmb_$i_37') | (X = 'fmb_$i_38') | (X = 'fmb_$i_39') | (X = 'fmb_$i_40') | 
+         (X = 'fmb_$i_41')
+      ) ).
+
+tff('distinct_domain_$i',axiom,
+         'fmb_$i_1' != 'fmb_$i_2' & 'fmb_$i_1' != 'fmb_$i_3' & 'fmb_$i_1' != 'fmb_$i_4' & 'fmb_$i_1' != 'fmb_$i_5' & 'fmb_$i_1' != 'fmb_$i_6' & 
+         'fmb_$i_1' != 'fmb_$i_7' & 'fmb_$i_1' != 'fmb_$i_8' & 'fmb_$i_1' != 'fmb_$i_9' & 'fmb_$i_1' != 'fmb_$i_10' & 'fmb_$i_1' != 'fmb_$i_11' & 
+         'fmb_$i_1' != 'fmb_$i_12' & 'fmb_$i_1' != 'fmb_$i_13' & 'fmb_$i_1' != 'fmb_$i_14' & 'fmb_$i_1' != 'fmb_$i_15' & 'fmb_$i_1' != 'fmb_$i_16' & 
+         'fmb_$i_1' != 'fmb_$i_17' & 'fmb_$i_1' != 'fmb_$i_18' & 'fmb_$i_1' != 'fmb_$i_19' & 'fmb_$i_1' != 'fmb_$i_20' & 'fmb_$i_1' != 'fmb_$i_21' & 
+         'fmb_$i_1' != 'fmb_$i_22' & 'fmb_$i_1' != 'fmb_$i_23' & 'fmb_$i_1' != 'fmb_$i_24' & 'fmb_$i_1' != 'fmb_$i_25' & 'fmb_$i_1' != 'fmb_$i_26' & 
+         'fmb_$i_1' != 'fmb_$i_27' & 'fmb_$i_1' != 'fmb_$i_28' & 'fmb_$i_1' != 'fmb_$i_29' & 'fmb_$i_1' != 'fmb_$i_30' & 'fmb_$i_1' != 'fmb_$i_31' & 
+         'fmb_$i_1' != 'fmb_$i_32' & 'fmb_$i_1' != 'fmb_$i_33' & 'fmb_$i_1' != 'fmb_$i_34' & 'fmb_$i_1' != 'fmb_$i_35' & 'fmb_$i_1' != 'fmb_$i_36' & 
+         'fmb_$i_1' != 'fmb_$i_37' & 'fmb_$i_1' != 'fmb_$i_38' & 'fmb_$i_1' != 'fmb_$i_39' & 'fmb_$i_1' != 'fmb_$i_40' & 'fmb_$i_1' != 'fmb_$i_41' & 
+         'fmb_$i_2' != 'fmb_$i_3' & 'fmb_$i_2' != 'fmb_$i_4' & 'fmb_$i_2' != 'fmb_$i_5' & 'fmb_$i_2' != 'fmb_$i_6' & 'fmb_$i_2' != 'fmb_$i_7' & 
+         'fmb_$i_2' != 'fmb_$i_8' & 'fmb_$i_2' != 'fmb_$i_9' & 'fmb_$i_2' != 'fmb_$i_10' & 'fmb_$i_2' != 'fmb_$i_11' & 'fmb_$i_2' != 'fmb_$i_12' & 
+         'fmb_$i_2' != 'fmb_$i_13' & 'fmb_$i_2' != 'fmb_$i_14' & 'fmb_$i_2' != 'fmb_$i_15' & 'fmb_$i_2' != 'fmb_$i_16' & 'fmb_$i_2' != 'fmb_$i_17' & 
+         'fmb_$i_2' != 'fmb_$i_18' & 'fmb_$i_2' != 'fmb_$i_19' & 'fmb_$i_2' != 'fmb_$i_20' & 'fmb_$i_2' != 'fmb_$i_21' & 'fmb_$i_2' != 'fmb_$i_22' & 
+         'fmb_$i_2' != 'fmb_$i_23' & 'fmb_$i_2' != 'fmb_$i_24' & 'fmb_$i_2' != 'fmb_$i_25' & 'fmb_$i_2' != 'fmb_$i_26' & 'fmb_$i_2' != 'fmb_$i_27' & 
+         'fmb_$i_2' != 'fmb_$i_28' & 'fmb_$i_2' != 'fmb_$i_29' & 'fmb_$i_2' != 'fmb_$i_30' & 'fmb_$i_2' != 'fmb_$i_31' & 'fmb_$i_2' != 'fmb_$i_32' & 
+         'fmb_$i_2' != 'fmb_$i_33' & 'fmb_$i_2' != 'fmb_$i_34' & 'fmb_$i_2' != 'fmb_$i_35' & 'fmb_$i_2' != 'fmb_$i_36' & 'fmb_$i_2' != 'fmb_$i_37' & 
+         'fmb_$i_2' != 'fmb_$i_38' & 'fmb_$i_2' != 'fmb_$i_39' & 'fmb_$i_2' != 'fmb_$i_40' & 'fmb_$i_2' != 'fmb_$i_41' & 'fmb_$i_3' != 'fmb_$i_4' & 
+         'fmb_$i_3' != 'fmb_$i_5' & 'fmb_$i_3' != 'fmb_$i_6' & 'fmb_$i_3' != 'fmb_$i_7' & 'fmb_$i_3' != 'fmb_$i_8' & 'fmb_$i_3' != 'fmb_$i_9' & 
+         'fmb_$i_3' != 'fmb_$i_10' & 'fmb_$i_3' != 'fmb_$i_11' & 'fmb_$i_3' != 'fmb_$i_12' & 'fmb_$i_3' != 'fmb_$i_13' & 'fmb_$i_3' != 'fmb_$i_14' & 
+         'fmb_$i_3' != 'fmb_$i_15' & 'fmb_$i_3' != 'fmb_$i_16' & 'fmb_$i_3' != 'fmb_$i_17' & 'fmb_$i_3' != 'fmb_$i_18' & 'fmb_$i_3' != 'fmb_$i_19' & 
+         'fmb_$i_3' != 'fmb_$i_20' & 'fmb_$i_3' != 'fmb_$i_21' & 'fmb_$i_3' != 'fmb_$i_22' & 'fmb_$i_3' != 'fmb_$i_23' & 'fmb_$i_3' != 'fmb_$i_24' & 
+         'fmb_$i_3' != 'fmb_$i_25' & 'fmb_$i_3' != 'fmb_$i_26' & 'fmb_$i_3' != 'fmb_$i_27' & 'fmb_$i_3' != 'fmb_$i_28' & 'fmb_$i_3' != 'fmb_$i_29' & 
+         'fmb_$i_3' != 'fmb_$i_30' & 'fmb_$i_3' != 'fmb_$i_31' & 'fmb_$i_3' != 'fmb_$i_32' & 'fmb_$i_3' != 'fmb_$i_33' & 'fmb_$i_3' != 'fmb_$i_34' & 
+         'fmb_$i_3' != 'fmb_$i_35' & 'fmb_$i_3' != 'fmb_$i_36' & 'fmb_$i_3' != 'fmb_$i_37' & 'fmb_$i_3' != 'fmb_$i_38' & 'fmb_$i_3' != 'fmb_$i_39' & 
+         'fmb_$i_3' != 'fmb_$i_40' & 'fmb_$i_3' != 'fmb_$i_41' & 'fmb_$i_4' != 'fmb_$i_5' & 'fmb_$i_4' != 'fmb_$i_6' & 'fmb_$i_4' != 'fmb_$i_7' & 
+         'fmb_$i_4' != 'fmb_$i_8' & 'fmb_$i_4' != 'fmb_$i_9' & 'fmb_$i_4' != 'fmb_$i_10' & 'fmb_$i_4' != 'fmb_$i_11' & 'fmb_$i_4' != 'fmb_$i_12' & 
+         'fmb_$i_4' != 'fmb_$i_13' & 'fmb_$i_4' != 'fmb_$i_14' & 'fmb_$i_4' != 'fmb_$i_15' & 'fmb_$i_4' != 'fmb_$i_16' & 'fmb_$i_4' != 'fmb_$i_17' & 
+         'fmb_$i_4' != 'fmb_$i_18' & 'fmb_$i_4' != 'fmb_$i_19' & 'fmb_$i_4' != 'fmb_$i_20' & 'fmb_$i_4' != 'fmb_$i_21' & 'fmb_$i_4' != 'fmb_$i_22' & 
+         'fmb_$i_4' != 'fmb_$i_23' & 'fmb_$i_4' != 'fmb_$i_24' & 'fmb_$i_4' != 'fmb_$i_25' & 'fmb_$i_4' != 'fmb_$i_26' & 'fmb_$i_4' != 'fmb_$i_27' & 
+         'fmb_$i_4' != 'fmb_$i_28' & 'fmb_$i_4' != 'fmb_$i_29' & 'fmb_$i_4' != 'fmb_$i_30' & 'fmb_$i_4' != 'fmb_$i_31' & 'fmb_$i_4' != 'fmb_$i_32' & 
+         'fmb_$i_4' != 'fmb_$i_33' & 'fmb_$i_4' != 'fmb_$i_34' & 'fmb_$i_4' != 'fmb_$i_35' & 'fmb_$i_4' != 'fmb_$i_36' & 'fmb_$i_4' != 'fmb_$i_37' & 
+         'fmb_$i_4' != 'fmb_$i_38' & 'fmb_$i_4' != 'fmb_$i_39' & 'fmb_$i_4' != 'fmb_$i_40' & 'fmb_$i_4' != 'fmb_$i_41' & 'fmb_$i_5' != 'fmb_$i_6' & 
+         'fmb_$i_5' != 'fmb_$i_7' & 'fmb_$i_5' != 'fmb_$i_8' & 'fmb_$i_5' != 'fmb_$i_9' & 'fmb_$i_5' != 'fmb_$i_10' & 'fmb_$i_5' != 'fmb_$i_11' & 
+         'fmb_$i_5' != 'fmb_$i_12' & 'fmb_$i_5' != 'fmb_$i_13' & 'fmb_$i_5' != 'fmb_$i_14' & 'fmb_$i_5' != 'fmb_$i_15' & 'fmb_$i_5' != 'fmb_$i_16' & 
+         'fmb_$i_5' != 'fmb_$i_17' & 'fmb_$i_5' != 'fmb_$i_18' & 'fmb_$i_5' != 'fmb_$i_19' & 'fmb_$i_5' != 'fmb_$i_20' & 'fmb_$i_5' != 'fmb_$i_21' & 
+         'fmb_$i_5' != 'fmb_$i_22' & 'fmb_$i_5' != 'fmb_$i_23' & 'fmb_$i_5' != 'fmb_$i_24' & 'fmb_$i_5' != 'fmb_$i_25' & 'fmb_$i_5' != 'fmb_$i_26' & 
+         'fmb_$i_5' != 'fmb_$i_27' & 'fmb_$i_5' != 'fmb_$i_28' & 'fmb_$i_5' != 'fmb_$i_29' & 'fmb_$i_5' != 'fmb_$i_30' & 'fmb_$i_5' != 'fmb_$i_31' & 
+         'fmb_$i_5' != 'fmb_$i_32' & 'fmb_$i_5' != 'fmb_$i_33' & 'fmb_$i_5' != 'fmb_$i_34' & 'fmb_$i_5' != 'fmb_$i_35' & 'fmb_$i_5' != 'fmb_$i_36' & 
+         'fmb_$i_5' != 'fmb_$i_37' & 'fmb_$i_5' != 'fmb_$i_38' & 'fmb_$i_5' != 'fmb_$i_39' & 'fmb_$i_5' != 'fmb_$i_40' & 'fmb_$i_5' != 'fmb_$i_41' & 
+         'fmb_$i_6' != 'fmb_$i_7' & 'fmb_$i_6' != 'fmb_$i_8' & 'fmb_$i_6' != 'fmb_$i_9' & 'fmb_$i_6' != 'fmb_$i_10' & 'fmb_$i_6' != 'fmb_$i_11' & 
+         'fmb_$i_6' != 'fmb_$i_12' & 'fmb_$i_6' != 'fmb_$i_13' & 'fmb_$i_6' != 'fmb_$i_14' & 'fmb_$i_6' != 'fmb_$i_15' & 'fmb_$i_6' != 'fmb_$i_16' & 
+         'fmb_$i_6' != 'fmb_$i_17' & 'fmb_$i_6' != 'fmb_$i_18' & 'fmb_$i_6' != 'fmb_$i_19' & 'fmb_$i_6' != 'fmb_$i_20' & 'fmb_$i_6' != 'fmb_$i_21' & 
+         'fmb_$i_6' != 'fmb_$i_22' & 'fmb_$i_6' != 'fmb_$i_23' & 'fmb_$i_6' != 'fmb_$i_24' & 'fmb_$i_6' != 'fmb_$i_25' & 'fmb_$i_6' != 'fmb_$i_26' & 
+         'fmb_$i_6' != 'fmb_$i_27' & 'fmb_$i_6' != 'fmb_$i_28' & 'fmb_$i_6' != 'fmb_$i_29' & 'fmb_$i_6' != 'fmb_$i_30' & 'fmb_$i_6' != 'fmb_$i_31' & 
+         'fmb_$i_6' != 'fmb_$i_32' & 'fmb_$i_6' != 'fmb_$i_33' & 'fmb_$i_6' != 'fmb_$i_34' & 'fmb_$i_6' != 'fmb_$i_35' & 'fmb_$i_6' != 'fmb_$i_36' & 
+         'fmb_$i_6' != 'fmb_$i_37' & 'fmb_$i_6' != 'fmb_$i_38' & 'fmb_$i_6' != 'fmb_$i_39' & 'fmb_$i_6' != 'fmb_$i_40' & 'fmb_$i_6' != 'fmb_$i_41' & 
+         'fmb_$i_7' != 'fmb_$i_8' & 'fmb_$i_7' != 'fmb_$i_9' & 'fmb_$i_7' != 'fmb_$i_10' & 'fmb_$i_7' != 'fmb_$i_11' & 'fmb_$i_7' != 'fmb_$i_12' & 
+         'fmb_$i_7' != 'fmb_$i_13' & 'fmb_$i_7' != 'fmb_$i_14' & 'fmb_$i_7' != 'fmb_$i_15' & 'fmb_$i_7' != 'fmb_$i_16' & 'fmb_$i_7' != 'fmb_$i_17' & 
+         'fmb_$i_7' != 'fmb_$i_18' & 'fmb_$i_7' != 'fmb_$i_19' & 'fmb_$i_7' != 'fmb_$i_20' & 'fmb_$i_7' != 'fmb_$i_21' & 'fmb_$i_7' != 'fmb_$i_22' & 
+         'fmb_$i_7' != 'fmb_$i_23' & 'fmb_$i_7' != 'fmb_$i_24' & 'fmb_$i_7' != 'fmb_$i_25' & 'fmb_$i_7' != 'fmb_$i_26' & 'fmb_$i_7' != 'fmb_$i_27' & 
+         'fmb_$i_7' != 'fmb_$i_28' & 'fmb_$i_7' != 'fmb_$i_29' & 'fmb_$i_7' != 'fmb_$i_30' & 'fmb_$i_7' != 'fmb_$i_31' & 'fmb_$i_7' != 'fmb_$i_32' & 
+         'fmb_$i_7' != 'fmb_$i_33' & 'fmb_$i_7' != 'fmb_$i_34' & 'fmb_$i_7' != 'fmb_$i_35' & 'fmb_$i_7' != 'fmb_$i_36' & 'fmb_$i_7' != 'fmb_$i_37' & 
+         'fmb_$i_7' != 'fmb_$i_38' & 'fmb_$i_7' != 'fmb_$i_39' & 'fmb_$i_7' != 'fmb_$i_40' & 'fmb_$i_7' != 'fmb_$i_41' & 'fmb_$i_8' != 'fmb_$i_9' & 
+         'fmb_$i_8' != 'fmb_$i_10' & 'fmb_$i_8' != 'fmb_$i_11' & 'fmb_$i_8' != 'fmb_$i_12' & 'fmb_$i_8' != 'fmb_$i_13' & 'fmb_$i_8' != 'fmb_$i_14' & 
+         'fmb_$i_8' != 'fmb_$i_15' & 'fmb_$i_8' != 'fmb_$i_16' & 'fmb_$i_8' != 'fmb_$i_17' & 'fmb_$i_8' != 'fmb_$i_18' & 'fmb_$i_8' != 'fmb_$i_19' & 
+         'fmb_$i_8' != 'fmb_$i_20' & 'fmb_$i_8' != 'fmb_$i_21' & 'fmb_$i_8' != 'fmb_$i_22' & 'fmb_$i_8' != 'fmb_$i_23' & 'fmb_$i_8' != 'fmb_$i_24' & 
+         'fmb_$i_8' != 'fmb_$i_25' & 'fmb_$i_8' != 'fmb_$i_26' & 'fmb_$i_8' != 'fmb_$i_27' & 'fmb_$i_8' != 'fmb_$i_28' & 'fmb_$i_8' != 'fmb_$i_29' & 
+         'fmb_$i_8' != 'fmb_$i_30' & 'fmb_$i_8' != 'fmb_$i_31' & 'fmb_$i_8' != 'fmb_$i_32' & 'fmb_$i_8' != 'fmb_$i_33' & 'fmb_$i_8' != 'fmb_$i_34' & 
+         'fmb_$i_8' != 'fmb_$i_35' & 'fmb_$i_8' != 'fmb_$i_36' & 'fmb_$i_8' != 'fmb_$i_37' & 'fmb_$i_8' != 'fmb_$i_38' & 'fmb_$i_8' != 'fmb_$i_39' & 
+         'fmb_$i_8' != 'fmb_$i_40' & 'fmb_$i_8' != 'fmb_$i_41' & 'fmb_$i_9' != 'fmb_$i_10' & 'fmb_$i_9' != 'fmb_$i_11' & 'fmb_$i_9' != 'fmb_$i_12' & 
+         'fmb_$i_9' != 'fmb_$i_13' & 'fmb_$i_9' != 'fmb_$i_14' & 'fmb_$i_9' != 'fmb_$i_15' & 'fmb_$i_9' != 'fmb_$i_16' & 'fmb_$i_9' != 'fmb_$i_17' & 
+         'fmb_$i_9' != 'fmb_$i_18' & 'fmb_$i_9' != 'fmb_$i_19' & 'fmb_$i_9' != 'fmb_$i_20' & 'fmb_$i_9' != 'fmb_$i_21' & 'fmb_$i_9' != 'fmb_$i_22' & 
+         'fmb_$i_9' != 'fmb_$i_23' & 'fmb_$i_9' != 'fmb_$i_24' & 'fmb_$i_9' != 'fmb_$i_25' & 'fmb_$i_9' != 'fmb_$i_26' & 'fmb_$i_9' != 'fmb_$i_27' & 
+         'fmb_$i_9' != 'fmb_$i_28' & 'fmb_$i_9' != 'fmb_$i_29' & 'fmb_$i_9' != 'fmb_$i_30' & 'fmb_$i_9' != 'fmb_$i_31' & 'fmb_$i_9' != 'fmb_$i_32' & 
+         'fmb_$i_9' != 'fmb_$i_33' & 'fmb_$i_9' != 'fmb_$i_34' & 'fmb_$i_9' != 'fmb_$i_35' & 'fmb_$i_9' != 'fmb_$i_36' & 'fmb_$i_9' != 'fmb_$i_37' & 
+         'fmb_$i_9' != 'fmb_$i_38' & 'fmb_$i_9' != 'fmb_$i_39' & 'fmb_$i_9' != 'fmb_$i_40' & 'fmb_$i_9' != 'fmb_$i_41' & 'fmb_$i_10' != 'fmb_$i_11' & 
+         'fmb_$i_10' != 'fmb_$i_12' & 'fmb_$i_10' != 'fmb_$i_13' & 'fmb_$i_10' != 'fmb_$i_14' & 'fmb_$i_10' != 'fmb_$i_15' & 'fmb_$i_10' != 'fmb_$i_16' & 
+         'fmb_$i_10' != 'fmb_$i_17' & 'fmb_$i_10' != 'fmb_$i_18' & 'fmb_$i_10' != 'fmb_$i_19' & 'fmb_$i_10' != 'fmb_$i_20' & 'fmb_$i_10' != 'fmb_$i_21' & 
+         'fmb_$i_10' != 'fmb_$i_22' & 'fmb_$i_10' != 'fmb_$i_23' & 'fmb_$i_10' != 'fmb_$i_24' & 'fmb_$i_10' != 'fmb_$i_25' & 'fmb_$i_10' != 'fmb_$i_26' & 
+         'fmb_$i_10' != 'fmb_$i_27' & 'fmb_$i_10' != 'fmb_$i_28' & 'fmb_$i_10' != 'fmb_$i_29' & 'fmb_$i_10' != 'fmb_$i_30' & 'fmb_$i_10' != 'fmb_$i_31' & 
+         'fmb_$i_10' != 'fmb_$i_32' & 'fmb_$i_10' != 'fmb_$i_33' & 'fmb_$i_10' != 'fmb_$i_34' & 'fmb_$i_10' != 'fmb_$i_35' & 'fmb_$i_10' != 'fmb_$i_36' & 
+         'fmb_$i_10' != 'fmb_$i_37' & 'fmb_$i_10' != 'fmb_$i_38' & 'fmb_$i_10' != 'fmb_$i_39' & 'fmb_$i_10' != 'fmb_$i_40' & 'fmb_$i_10' != 'fmb_$i_41' & 
+         'fmb_$i_11' != 'fmb_$i_12' & 'fmb_$i_11' != 'fmb_$i_13' & 'fmb_$i_11' != 'fmb_$i_14' & 'fmb_$i_11' != 'fmb_$i_15' & 'fmb_$i_11' != 'fmb_$i_16' & 
+         'fmb_$i_11' != 'fmb_$i_17' & 'fmb_$i_11' != 'fmb_$i_18' & 'fmb_$i_11' != 'fmb_$i_19' & 'fmb_$i_11' != 'fmb_$i_20' & 'fmb_$i_11' != 'fmb_$i_21' & 
+         'fmb_$i_11' != 'fmb_$i_22' & 'fmb_$i_11' != 'fmb_$i_23' & 'fmb_$i_11' != 'fmb_$i_24' & 'fmb_$i_11' != 'fmb_$i_25' & 'fmb_$i_11' != 'fmb_$i_26' & 
+         'fmb_$i_11' != 'fmb_$i_27' & 'fmb_$i_11' != 'fmb_$i_28' & 'fmb_$i_11' != 'fmb_$i_29' & 'fmb_$i_11' != 'fmb_$i_30' & 'fmb_$i_11' != 'fmb_$i_31' & 
+         'fmb_$i_11' != 'fmb_$i_32' & 'fmb_$i_11' != 'fmb_$i_33' & 'fmb_$i_11' != 'fmb_$i_34' & 'fmb_$i_11' != 'fmb_$i_35' & 'fmb_$i_11' != 'fmb_$i_36' & 
+         'fmb_$i_11' != 'fmb_$i_37' & 'fmb_$i_11' != 'fmb_$i_38' & 'fmb_$i_11' != 'fmb_$i_39' & 'fmb_$i_11' != 'fmb_$i_40' & 'fmb_$i_11' != 'fmb_$i_41' & 
+         'fmb_$i_12' != 'fmb_$i_13' & 'fmb_$i_12' != 'fmb_$i_14' & 'fmb_$i_12' != 'fmb_$i_15' & 'fmb_$i_12' != 'fmb_$i_16' & 'fmb_$i_12' != 'fmb_$i_17' & 
+         'fmb_$i_12' != 'fmb_$i_18' & 'fmb_$i_12' != 'fmb_$i_19' & 'fmb_$i_12' != 'fmb_$i_20' & 'fmb_$i_12' != 'fmb_$i_21' & 'fmb_$i_12' != 'fmb_$i_22' & 
+         'fmb_$i_12' != 'fmb_$i_23' & 'fmb_$i_12' != 'fmb_$i_24' & 'fmb_$i_12' != 'fmb_$i_25' & 'fmb_$i_12' != 'fmb_$i_26' & 'fmb_$i_12' != 'fmb_$i_27' & 
+         'fmb_$i_12' != 'fmb_$i_28' & 'fmb_$i_12' != 'fmb_$i_29' & 'fmb_$i_12' != 'fmb_$i_30' & 'fmb_$i_12' != 'fmb_$i_31' & 'fmb_$i_12' != 'fmb_$i_32' & 
+         'fmb_$i_12' != 'fmb_$i_33' & 'fmb_$i_12' != 'fmb_$i_34' & 'fmb_$i_12' != 'fmb_$i_35' & 'fmb_$i_12' != 'fmb_$i_36' & 'fmb_$i_12' != 'fmb_$i_37' & 
+         'fmb_$i_12' != 'fmb_$i_38' & 'fmb_$i_12' != 'fmb_$i_39' & 'fmb_$i_12' != 'fmb_$i_40' & 'fmb_$i_12' != 'fmb_$i_41' & 'fmb_$i_13' != 'fmb_$i_14' & 
+         'fmb_$i_13' != 'fmb_$i_15' & 'fmb_$i_13' != 'fmb_$i_16' & 'fmb_$i_13' != 'fmb_$i_17' & 'fmb_$i_13' != 'fmb_$i_18' & 'fmb_$i_13' != 'fmb_$i_19' & 
+         'fmb_$i_13' != 'fmb_$i_20' & 'fmb_$i_13' != 'fmb_$i_21' & 'fmb_$i_13' != 'fmb_$i_22' & 'fmb_$i_13' != 'fmb_$i_23' & 'fmb_$i_13' != 'fmb_$i_24' & 
+         'fmb_$i_13' != 'fmb_$i_25' & 'fmb_$i_13' != 'fmb_$i_26' & 'fmb_$i_13' != 'fmb_$i_27' & 'fmb_$i_13' != 'fmb_$i_28' & 'fmb_$i_13' != 'fmb_$i_29' & 
+         'fmb_$i_13' != 'fmb_$i_30' & 'fmb_$i_13' != 'fmb_$i_31' & 'fmb_$i_13' != 'fmb_$i_32' & 'fmb_$i_13' != 'fmb_$i_33' & 'fmb_$i_13' != 'fmb_$i_34' & 
+         'fmb_$i_13' != 'fmb_$i_35' & 'fmb_$i_13' != 'fmb_$i_36' & 'fmb_$i_13' != 'fmb_$i_37' & 'fmb_$i_13' != 'fmb_$i_38' & 'fmb_$i_13' != 'fmb_$i_39' & 
+         'fmb_$i_13' != 'fmb_$i_40' & 'fmb_$i_13' != 'fmb_$i_41' & 'fmb_$i_14' != 'fmb_$i_15' & 'fmb_$i_14' != 'fmb_$i_16' & 'fmb_$i_14' != 'fmb_$i_17' & 
+         'fmb_$i_14' != 'fmb_$i_18' & 'fmb_$i_14' != 'fmb_$i_19' & 'fmb_$i_14' != 'fmb_$i_20' & 'fmb_$i_14' != 'fmb_$i_21' & 'fmb_$i_14' != 'fmb_$i_22' & 
+         'fmb_$i_14' != 'fmb_$i_23' & 'fmb_$i_14' != 'fmb_$i_24' & 'fmb_$i_14' != 'fmb_$i_25' & 'fmb_$i_14' != 'fmb_$i_26' & 'fmb_$i_14' != 'fmb_$i_27' & 
+         'fmb_$i_14' != 'fmb_$i_28' & 'fmb_$i_14' != 'fmb_$i_29' & 'fmb_$i_14' != 'fmb_$i_30' & 'fmb_$i_14' != 'fmb_$i_31' & 'fmb_$i_14' != 'fmb_$i_32' & 
+         'fmb_$i_14' != 'fmb_$i_33' & 'fmb_$i_14' != 'fmb_$i_34' & 'fmb_$i_14' != 'fmb_$i_35' & 'fmb_$i_14' != 'fmb_$i_36' & 'fmb_$i_14' != 'fmb_$i_37' & 
+         'fmb_$i_14' != 'fmb_$i_38' & 'fmb_$i_14' != 'fmb_$i_39' & 'fmb_$i_14' != 'fmb_$i_40' & 'fmb_$i_14' != 'fmb_$i_41' & 'fmb_$i_15' != 'fmb_$i_16' & 
+         'fmb_$i_15' != 'fmb_$i_17' & 'fmb_$i_15' != 'fmb_$i_18' & 'fmb_$i_15' != 'fmb_$i_19' & 'fmb_$i_15' != 'fmb_$i_20' & 'fmb_$i_15' != 'fmb_$i_21' & 
+         'fmb_$i_15' != 'fmb_$i_22' & 'fmb_$i_15' != 'fmb_$i_23' & 'fmb_$i_15' != 'fmb_$i_24' & 'fmb_$i_15' != 'fmb_$i_25' & 'fmb_$i_15' != 'fmb_$i_26' & 
+         'fmb_$i_15' != 'fmb_$i_27' & 'fmb_$i_15' != 'fmb_$i_28' & 'fmb_$i_15' != 'fmb_$i_29' & 'fmb_$i_15' != 'fmb_$i_30' & 'fmb_$i_15' != 'fmb_$i_31' & 
+         'fmb_$i_15' != 'fmb_$i_32' & 'fmb_$i_15' != 'fmb_$i_33' & 'fmb_$i_15' != 'fmb_$i_34' & 'fmb_$i_15' != 'fmb_$i_35' & 'fmb_$i_15' != 'fmb_$i_36' & 
+         'fmb_$i_15' != 'fmb_$i_37' & 'fmb_$i_15' != 'fmb_$i_38' & 'fmb_$i_15' != 'fmb_$i_39' & 'fmb_$i_15' != 'fmb_$i_40' & 'fmb_$i_15' != 'fmb_$i_41' & 
+         'fmb_$i_16' != 'fmb_$i_17' & 'fmb_$i_16' != 'fmb_$i_18' & 'fmb_$i_16' != 'fmb_$i_19' & 'fmb_$i_16' != 'fmb_$i_20' & 'fmb_$i_16' != 'fmb_$i_21' & 
+         'fmb_$i_16' != 'fmb_$i_22' & 'fmb_$i_16' != 'fmb_$i_23' & 'fmb_$i_16' != 'fmb_$i_24' & 'fmb_$i_16' != 'fmb_$i_25' & 'fmb_$i_16' != 'fmb_$i_26' & 
+         'fmb_$i_16' != 'fmb_$i_27' & 'fmb_$i_16' != 'fmb_$i_28' & 'fmb_$i_16' != 'fmb_$i_29' & 'fmb_$i_16' != 'fmb_$i_30' & 'fmb_$i_16' != 'fmb_$i_31' & 
+         'fmb_$i_16' != 'fmb_$i_32' & 'fmb_$i_16' != 'fmb_$i_33' & 'fmb_$i_16' != 'fmb_$i_34' & 'fmb_$i_16' != 'fmb_$i_35' & 'fmb_$i_16' != 'fmb_$i_36' & 
+         'fmb_$i_16' != 'fmb_$i_37' & 'fmb_$i_16' != 'fmb_$i_38' & 'fmb_$i_16' != 'fmb_$i_39' & 'fmb_$i_16' != 'fmb_$i_40' & 'fmb_$i_16' != 'fmb_$i_41' & 
+         'fmb_$i_17' != 'fmb_$i_18' & 'fmb_$i_17' != 'fmb_$i_19' & 'fmb_$i_17' != 'fmb_$i_20' & 'fmb_$i_17' != 'fmb_$i_21' & 'fmb_$i_17' != 'fmb_$i_22' & 
+         'fmb_$i_17' != 'fmb_$i_23' & 'fmb_$i_17' != 'fmb_$i_24' & 'fmb_$i_17' != 'fmb_$i_25' & 'fmb_$i_17' != 'fmb_$i_26' & 'fmb_$i_17' != 'fmb_$i_27' & 
+         'fmb_$i_17' != 'fmb_$i_28' & 'fmb_$i_17' != 'fmb_$i_29' & 'fmb_$i_17' != 'fmb_$i_30' & 'fmb_$i_17' != 'fmb_$i_31' & 'fmb_$i_17' != 'fmb_$i_32' & 
+         'fmb_$i_17' != 'fmb_$i_33' & 'fmb_$i_17' != 'fmb_$i_34' & 'fmb_$i_17' != 'fmb_$i_35' & 'fmb_$i_17' != 'fmb_$i_36' & 'fmb_$i_17' != 'fmb_$i_37' & 
+         'fmb_$i_17' != 'fmb_$i_38' & 'fmb_$i_17' != 'fmb_$i_39' & 'fmb_$i_17' != 'fmb_$i_40' & 'fmb_$i_17' != 'fmb_$i_41' & 'fmb_$i_18' != 'fmb_$i_19' & 
+         'fmb_$i_18' != 'fmb_$i_20' & 'fmb_$i_18' != 'fmb_$i_21' & 'fmb_$i_18' != 'fmb_$i_22' & 'fmb_$i_18' != 'fmb_$i_23' & 'fmb_$i_18' != 'fmb_$i_24' & 
+         'fmb_$i_18' != 'fmb_$i_25' & 'fmb_$i_18' != 'fmb_$i_26' & 'fmb_$i_18' != 'fmb_$i_27' & 'fmb_$i_18' != 'fmb_$i_28' & 'fmb_$i_18' != 'fmb_$i_29' & 
+         'fmb_$i_18' != 'fmb_$i_30' & 'fmb_$i_18' != 'fmb_$i_31' & 'fmb_$i_18' != 'fmb_$i_32' & 'fmb_$i_18' != 'fmb_$i_33' & 'fmb_$i_18' != 'fmb_$i_34' & 
+         'fmb_$i_18' != 'fmb_$i_35' & 'fmb_$i_18' != 'fmb_$i_36' & 'fmb_$i_18' != 'fmb_$i_37' & 'fmb_$i_18' != 'fmb_$i_38' & 'fmb_$i_18' != 'fmb_$i_39' & 
+         'fmb_$i_18' != 'fmb_$i_40' & 'fmb_$i_18' != 'fmb_$i_41' & 'fmb_$i_19' != 'fmb_$i_20' & 'fmb_$i_19' != 'fmb_$i_21' & 'fmb_$i_19' != 'fmb_$i_22' & 
+         'fmb_$i_19' != 'fmb_$i_23' & 'fmb_$i_19' != 'fmb_$i_24' & 'fmb_$i_19' != 'fmb_$i_25' & 'fmb_$i_19' != 'fmb_$i_26' & 'fmb_$i_19' != 'fmb_$i_27' & 
+         'fmb_$i_19' != 'fmb_$i_28' & 'fmb_$i_19' != 'fmb_$i_29' & 'fmb_$i_19' != 'fmb_$i_30' & 'fmb_$i_19' != 'fmb_$i_31' & 'fmb_$i_19' != 'fmb_$i_32' & 
+         'fmb_$i_19' != 'fmb_$i_33' & 'fmb_$i_19' != 'fmb_$i_34' & 'fmb_$i_19' != 'fmb_$i_35' & 'fmb_$i_19' != 'fmb_$i_36' & 'fmb_$i_19' != 'fmb_$i_37' & 
+         'fmb_$i_19' != 'fmb_$i_38' & 'fmb_$i_19' != 'fmb_$i_39' & 'fmb_$i_19' != 'fmb_$i_40' & 'fmb_$i_19' != 'fmb_$i_41' & 'fmb_$i_20' != 'fmb_$i_21' & 
+         'fmb_$i_20' != 'fmb_$i_22' & 'fmb_$i_20' != 'fmb_$i_23' & 'fmb_$i_20' != 'fmb_$i_24' & 'fmb_$i_20' != 'fmb_$i_25' & 'fmb_$i_20' != 'fmb_$i_26' & 
+         'fmb_$i_20' != 'fmb_$i_27' & 'fmb_$i_20' != 'fmb_$i_28' & 'fmb_$i_20' != 'fmb_$i_29' & 'fmb_$i_20' != 'fmb_$i_30' & 'fmb_$i_20' != 'fmb_$i_31' & 
+         'fmb_$i_20' != 'fmb_$i_32' & 'fmb_$i_20' != 'fmb_$i_33' & 'fmb_$i_20' != 'fmb_$i_34' & 'fmb_$i_20' != 'fmb_$i_35' & 'fmb_$i_20' != 'fmb_$i_36' & 
+         'fmb_$i_20' != 'fmb_$i_37' & 'fmb_$i_20' != 'fmb_$i_38' & 'fmb_$i_20' != 'fmb_$i_39' & 'fmb_$i_20' != 'fmb_$i_40' & 'fmb_$i_20' != 'fmb_$i_41' & 
+         'fmb_$i_21' != 'fmb_$i_22' & 'fmb_$i_21' != 'fmb_$i_23' & 'fmb_$i_21' != 'fmb_$i_24' & 'fmb_$i_21' != 'fmb_$i_25' & 'fmb_$i_21' != 'fmb_$i_26' & 
+         'fmb_$i_21' != 'fmb_$i_27' & 'fmb_$i_21' != 'fmb_$i_28' & 'fmb_$i_21' != 'fmb_$i_29' & 'fmb_$i_21' != 'fmb_$i_30' & 'fmb_$i_21' != 'fmb_$i_31' & 
+         'fmb_$i_21' != 'fmb_$i_32' & 'fmb_$i_21' != 'fmb_$i_33' & 'fmb_$i_21' != 'fmb_$i_34' & 'fmb_$i_21' != 'fmb_$i_35' & 'fmb_$i_21' != 'fmb_$i_36' & 
+         'fmb_$i_21' != 'fmb_$i_37' & 'fmb_$i_21' != 'fmb_$i_38' & 'fmb_$i_21' != 'fmb_$i_39' & 'fmb_$i_21' != 'fmb_$i_40' & 'fmb_$i_21' != 'fmb_$i_41' & 
+         'fmb_$i_22' != 'fmb_$i_23' & 'fmb_$i_22' != 'fmb_$i_24' & 'fmb_$i_22' != 'fmb_$i_25' & 'fmb_$i_22' != 'fmb_$i_26' & 'fmb_$i_22' != 'fmb_$i_27' & 
+         'fmb_$i_22' != 'fmb_$i_28' & 'fmb_$i_22' != 'fmb_$i_29' & 'fmb_$i_22' != 'fmb_$i_30' & 'fmb_$i_22' != 'fmb_$i_31' & 'fmb_$i_22' != 'fmb_$i_32' & 
+         'fmb_$i_22' != 'fmb_$i_33' & 'fmb_$i_22' != 'fmb_$i_34' & 'fmb_$i_22' != 'fmb_$i_35' & 'fmb_$i_22' != 'fmb_$i_36' & 'fmb_$i_22' != 'fmb_$i_37' & 
+         'fmb_$i_22' != 'fmb_$i_38' & 'fmb_$i_22' != 'fmb_$i_39' & 'fmb_$i_22' != 'fmb_$i_40' & 'fmb_$i_22' != 'fmb_$i_41' & 'fmb_$i_23' != 'fmb_$i_24' & 
+         'fmb_$i_23' != 'fmb_$i_25' & 'fmb_$i_23' != 'fmb_$i_26' & 'fmb_$i_23' != 'fmb_$i_27' & 'fmb_$i_23' != 'fmb_$i_28' & 'fmb_$i_23' != 'fmb_$i_29' & 
+         'fmb_$i_23' != 'fmb_$i_30' & 'fmb_$i_23' != 'fmb_$i_31' & 'fmb_$i_23' != 'fmb_$i_32' & 'fmb_$i_23' != 'fmb_$i_33' & 'fmb_$i_23' != 'fmb_$i_34' & 
+         'fmb_$i_23' != 'fmb_$i_35' & 'fmb_$i_23' != 'fmb_$i_36' & 'fmb_$i_23' != 'fmb_$i_37' & 'fmb_$i_23' != 'fmb_$i_38' & 'fmb_$i_23' != 'fmb_$i_39' & 
+         'fmb_$i_23' != 'fmb_$i_40' & 'fmb_$i_23' != 'fmb_$i_41' & 'fmb_$i_24' != 'fmb_$i_25' & 'fmb_$i_24' != 'fmb_$i_26' & 'fmb_$i_24' != 'fmb_$i_27' & 
+         'fmb_$i_24' != 'fmb_$i_28' & 'fmb_$i_24' != 'fmb_$i_29' & 'fmb_$i_24' != 'fmb_$i_30' & 'fmb_$i_24' != 'fmb_$i_31' & 'fmb_$i_24' != 'fmb_$i_32' & 
+         'fmb_$i_24' != 'fmb_$i_33' & 'fmb_$i_24' != 'fmb_$i_34' & 'fmb_$i_24' != 'fmb_$i_35' & 'fmb_$i_24' != 'fmb_$i_36' & 'fmb_$i_24' != 'fmb_$i_37' & 
+         'fmb_$i_24' != 'fmb_$i_38' & 'fmb_$i_24' != 'fmb_$i_39' & 'fmb_$i_24' != 'fmb_$i_40' & 'fmb_$i_24' != 'fmb_$i_41' & 'fmb_$i_25' != 'fmb_$i_26' & 
+         'fmb_$i_25' != 'fmb_$i_27' & 'fmb_$i_25' != 'fmb_$i_28' & 'fmb_$i_25' != 'fmb_$i_29' & 'fmb_$i_25' != 'fmb_$i_30' & 'fmb_$i_25' != 'fmb_$i_31' & 
+         'fmb_$i_25' != 'fmb_$i_32' & 'fmb_$i_25' != 'fmb_$i_33' & 'fmb_$i_25' != 'fmb_$i_34' & 'fmb_$i_25' != 'fmb_$i_35' & 'fmb_$i_25' != 'fmb_$i_36' & 
+         'fmb_$i_25' != 'fmb_$i_37' & 'fmb_$i_25' != 'fmb_$i_38' & 'fmb_$i_25' != 'fmb_$i_39' & 'fmb_$i_25' != 'fmb_$i_40' & 'fmb_$i_25' != 'fmb_$i_41' & 
+         'fmb_$i_26' != 'fmb_$i_27' & 'fmb_$i_26' != 'fmb_$i_28' & 'fmb_$i_26' != 'fmb_$i_29' & 'fmb_$i_26' != 'fmb_$i_30' & 'fmb_$i_26' != 'fmb_$i_31' & 
+         'fmb_$i_26' != 'fmb_$i_32' & 'fmb_$i_26' != 'fmb_$i_33' & 'fmb_$i_26' != 'fmb_$i_34' & 'fmb_$i_26' != 'fmb_$i_35' & 'fmb_$i_26' != 'fmb_$i_36' & 
+         'fmb_$i_26' != 'fmb_$i_37' & 'fmb_$i_26' != 'fmb_$i_38' & 'fmb_$i_26' != 'fmb_$i_39' & 'fmb_$i_26' != 'fmb_$i_40' & 'fmb_$i_26' != 'fmb_$i_41' & 
+         'fmb_$i_27' != 'fmb_$i_28' & 'fmb_$i_27' != 'fmb_$i_29' & 'fmb_$i_27' != 'fmb_$i_30' & 'fmb_$i_27' != 'fmb_$i_31' & 'fmb_$i_27' != 'fmb_$i_32' & 
+         'fmb_$i_27' != 'fmb_$i_33' & 'fmb_$i_27' != 'fmb_$i_34' & 'fmb_$i_27' != 'fmb_$i_35' & 'fmb_$i_27' != 'fmb_$i_36' & 'fmb_$i_27' != 'fmb_$i_37' & 
+         'fmb_$i_27' != 'fmb_$i_38' & 'fmb_$i_27' != 'fmb_$i_39' & 'fmb_$i_27' != 'fmb_$i_40' & 'fmb_$i_27' != 'fmb_$i_41' & 'fmb_$i_28' != 'fmb_$i_29' & 
+         'fmb_$i_28' != 'fmb_$i_30' & 'fmb_$i_28' != 'fmb_$i_31' & 'fmb_$i_28' != 'fmb_$i_32' & 'fmb_$i_28' != 'fmb_$i_33' & 'fmb_$i_28' != 'fmb_$i_34' & 
+         'fmb_$i_28' != 'fmb_$i_35' & 'fmb_$i_28' != 'fmb_$i_36' & 'fmb_$i_28' != 'fmb_$i_37' & 'fmb_$i_28' != 'fmb_$i_38' & 'fmb_$i_28' != 'fmb_$i_39' & 
+         'fmb_$i_28' != 'fmb_$i_40' & 'fmb_$i_28' != 'fmb_$i_41' & 'fmb_$i_29' != 'fmb_$i_30' & 'fmb_$i_29' != 'fmb_$i_31' & 'fmb_$i_29' != 'fmb_$i_32' & 
+         'fmb_$i_29' != 'fmb_$i_33' & 'fmb_$i_29' != 'fmb_$i_34' & 'fmb_$i_29' != 'fmb_$i_35' & 'fmb_$i_29' != 'fmb_$i_36' & 'fmb_$i_29' != 'fmb_$i_37' & 
+         'fmb_$i_29' != 'fmb_$i_38' & 'fmb_$i_29' != 'fmb_$i_39' & 'fmb_$i_29' != 'fmb_$i_40' & 'fmb_$i_29' != 'fmb_$i_41' & 'fmb_$i_30' != 'fmb_$i_31' & 
+         'fmb_$i_30' != 'fmb_$i_32' & 'fmb_$i_30' != 'fmb_$i_33' & 'fmb_$i_30' != 'fmb_$i_34' & 'fmb_$i_30' != 'fmb_$i_35' & 'fmb_$i_30' != 'fmb_$i_36' & 
+         'fmb_$i_30' != 'fmb_$i_37' & 'fmb_$i_30' != 'fmb_$i_38' & 'fmb_$i_30' != 'fmb_$i_39' & 'fmb_$i_30' != 'fmb_$i_40' & 'fmb_$i_30' != 'fmb_$i_41' & 
+         'fmb_$i_31' != 'fmb_$i_32' & 'fmb_$i_31' != 'fmb_$i_33' & 'fmb_$i_31' != 'fmb_$i_34' & 'fmb_$i_31' != 'fmb_$i_35' & 'fmb_$i_31' != 'fmb_$i_36' & 
+         'fmb_$i_31' != 'fmb_$i_37' & 'fmb_$i_31' != 'fmb_$i_38' & 'fmb_$i_31' != 'fmb_$i_39' & 'fmb_$i_31' != 'fmb_$i_40' & 'fmb_$i_31' != 'fmb_$i_41' & 
+         'fmb_$i_32' != 'fmb_$i_33' & 'fmb_$i_32' != 'fmb_$i_34' & 'fmb_$i_32' != 'fmb_$i_35' & 'fmb_$i_32' != 'fmb_$i_36' & 'fmb_$i_32' != 'fmb_$i_37' & 
+         'fmb_$i_32' != 'fmb_$i_38' & 'fmb_$i_32' != 'fmb_$i_39' & 'fmb_$i_32' != 'fmb_$i_40' & 'fmb_$i_32' != 'fmb_$i_41' & 'fmb_$i_33' != 'fmb_$i_34' & 
+         'fmb_$i_33' != 'fmb_$i_35' & 'fmb_$i_33' != 'fmb_$i_36' & 'fmb_$i_33' != 'fmb_$i_37' & 'fmb_$i_33' != 'fmb_$i_38' & 'fmb_$i_33' != 'fmb_$i_39' & 
+         'fmb_$i_33' != 'fmb_$i_40' & 'fmb_$i_33' != 'fmb_$i_41' & 'fmb_$i_34' != 'fmb_$i_35' & 'fmb_$i_34' != 'fmb_$i_36' & 'fmb_$i_34' != 'fmb_$i_37' & 
+         'fmb_$i_34' != 'fmb_$i_38' & 'fmb_$i_34' != 'fmb_$i_39' & 'fmb_$i_34' != 'fmb_$i_40' & 'fmb_$i_34' != 'fmb_$i_41' & 'fmb_$i_35' != 'fmb_$i_36' & 
+         'fmb_$i_35' != 'fmb_$i_37' & 'fmb_$i_35' != 'fmb_$i_38' & 'fmb_$i_35' != 'fmb_$i_39' & 'fmb_$i_35' != 'fmb_$i_40' & 'fmb_$i_35' != 'fmb_$i_41' & 
+         'fmb_$i_36' != 'fmb_$i_37' & 'fmb_$i_36' != 'fmb_$i_38' & 'fmb_$i_36' != 'fmb_$i_39' & 'fmb_$i_36' != 'fmb_$i_40' & 'fmb_$i_36' != 'fmb_$i_41' & 
+         'fmb_$i_37' != 'fmb_$i_38' & 'fmb_$i_37' != 'fmb_$i_39' & 'fmb_$i_37' != 'fmb_$i_40' & 'fmb_$i_37' != 'fmb_$i_41' & 'fmb_$i_38' != 'fmb_$i_39' & 
+         'fmb_$i_38' != 'fmb_$i_40' & 'fmb_$i_38' != 'fmb_$i_41' & 'fmb_$i_39' != 'fmb_$i_40' & 'fmb_$i_39' != 'fmb_$i_41' & 'fmb_$i_40' != 'fmb_$i_41'
+).
+
+tff(declare_a,type,a : $i).
+tff(declare_b,type,b : $i).
+tff(declare_f,type,f : ( $i ) > $i).
+tff(declare_q,type,q: ( $i ) > $o ).
+tff(declare_w,type,w: ( $i * $i * $i * $i * $i * $i * $i * $i ) > $o ).
+tff('declare_w_$1',type,'w_$1': ( $i * $i * $i * $i * $i * $i * $i * $i ) > $o ).
+
+tff(a_definition,axiom,a = 'fmb_$i_1').
+tff(b_definition,axiom,b = 'fmb_$i_2').
+tff(function_f,axiom,
+           f('fmb_$i_1') = 'fmb_$i_2'
+         & f('fmb_$i_2') = 'fmb_$i_3'
+         & f('fmb_$i_3') = 'fmb_$i_4'
+         & f('fmb_$i_4') = 'fmb_$i_3'
+         & f('fmb_$i_5') = 'fmb_$i_2'
+         & f('fmb_$i_6') = 'fmb_$i_2'
+         & f('fmb_$i_7') = 'fmb_$i_2'
+         & f('fmb_$i_8') = 'fmb_$i_9'
+         & f('fmb_$i_9') = 'fmb_$i_2'
+         & f('fmb_$i_10') = 'fmb_$i_2'
+         & f('fmb_$i_11') = 'fmb_$i_5'
+         & f('fmb_$i_12') = 'fmb_$i_5'
+         & f('fmb_$i_13') = 'fmb_$i_5'
+         & f('fmb_$i_14') = 'fmb_$i_5'
+         & f('fmb_$i_15') = 'fmb_$i_5'
+         & f('fmb_$i_16') = 'fmb_$i_5'
+         & f('fmb_$i_17') = 'fmb_$i_5'
+         & f('fmb_$i_18') = 'fmb_$i_4'
+         & f('fmb_$i_19') = 'fmb_$i_4'
+         & f('fmb_$i_20') = 'fmb_$i_11'
+         & f('fmb_$i_21') = 'fmb_$i_11'
+         & f('fmb_$i_22') = 'fmb_$i_11'
+         & f('fmb_$i_23') = 'fmb_$i_11'
+         & f('fmb_$i_24') = 'fmb_$i_11'
+         & f('fmb_$i_25') = 'fmb_$i_11'
+         & f('fmb_$i_26') = 'fmb_$i_20'
+         & f('fmb_$i_27') = 'fmb_$i_11'
+         & f('fmb_$i_28') = 'fmb_$i_20'
+         & f('fmb_$i_29') = 'fmb_$i_20'
+         & f('fmb_$i_30') = 'fmb_$i_28'
+         & f('fmb_$i_31') = 'fmb_$i_24'
+         & f('fmb_$i_32') = 'fmb_$i_11'
+         & f('fmb_$i_33') = 'fmb_$i_29'
+         & f('fmb_$i_34') = 'fmb_$i_26'
+         & f('fmb_$i_35') = 'fmb_$i_13'
+         & f('fmb_$i_36') = 'fmb_$i_28'
+         & f('fmb_$i_37') = 'fmb_$i_31'
+         & f('fmb_$i_38') = 'fmb_$i_33'
+         & f('fmb_$i_39') = 'fmb_$i_15'
+         & f('fmb_$i_40') = 'fmb_$i_10'
+         & f('fmb_$i_41') = 'fmb_$i_22'
+).
+
+tff(q_symbolic_definition,axiom,![X0:$i]: (q(X0) <=> (b = X0))).
+tff(w_symbolic_definition,axiom,![X0:$i, X1:$i, X2:$i, X3:$i, X4:$i, X5:$i, X6:$i, X7:$i]: (w(X0,X1,X2,X3,X4,X5,X6,X7) <=> ('w_$1'(X0,X1,X2,X3,X4,X5,X6,X7) | (q(X7) | q(X0))))).
+tff('w_$1_symbolic_definition',axiom,![X0:$i, X1:$i, X2:$i, X3:$i, X4:$i, X5:$i, X6:$i, X7:$i]: ('w_$1'(X0,X1,X2,X3,X4,X5,X6,X7) <=> ((b = X7) & (a = X6) & (b = X5) & (a = X4) & (b = X3) & (a = X2) & (b = X1) & (a = X0)))).
+% SZS output end FiniteModel for cond-flip-wide

@@ -1,0 +1,23 @@
+Finite domain axiom found:
+5. ! [X0] : ((X0 = 'fmb_$i_1') | (X0 = 'fmb_$i_2')) [input]
+Finite domain axiom found:
+7. ! [X0 : $o] : ((X0 = $false) | (X0 = $true)) [input]
+Loading model...
+Detected model with 2 sorts.
+  domain for $i of size 2, domain elements are:
+    'fmb_$i_1'
+    'fmb_$i_2'
+  domain for $o of size 2, domain elements are:
+    $true
+    $false
+Model loaded
+Checking formulas...
+Checking 1. ! [X0] : (p(X0) => q(X0,r(X0))) [input]...
+Evaluates to True
+Checking 2. p(a) [input]...
+Evaluates to True
+Checking 3. ~q(b,$true) [input]...
+Evaluates to True
+Checking 4. r(a) | r(b) [input]...
+Evaluates to True
+All formulas evaluated to True!

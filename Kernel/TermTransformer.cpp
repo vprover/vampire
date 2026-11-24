@@ -76,7 +76,8 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
 
     case SpecialFunctor::LAMBDA:
       NOT_IMPLEMENTED;
-    case SpecialFunctor::MATCH: {
+    case SpecialFunctor::MATCH:
+    case SpecialFunctor::COND: {
       DArray<TermList> terms(term->arity());
       bool unchanged = true;
       for (unsigned i = 0; i < term->arity(); i++) {
@@ -87,7 +88,7 @@ Term* TermTransformerCommon::transformSpecial(Term* term)
       if (unchanged) {
         return term;
       }
-      return Term::createMatch(sd->getSort(), sd->getMatchedSort(), term->arity(), terms.begin());
+      return Term::createMatchOrCond(term, sd->getSort(), term->arity(), terms.begin());
     }
 
   }

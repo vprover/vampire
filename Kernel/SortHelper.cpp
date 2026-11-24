@@ -451,6 +451,20 @@ static void collectVariableSortsIter(CollectTask task, DHMap<unsigned,TermList, 
             }
             break;
           }
+
+          case SpecialFunctor::COND: {
+            CollectTask newTask(COLLECT_TERMLIST);
+
+            // the conditions, at the even indices, are $o-sorted; the values at
+            // the odd ones and the final else all have the sort of the whole term
+            for (unsigned int i = 0; i < term->arity(); i++) {
+              newTask.ts = *term->nthArgument(i);
+              newTask.contextSort = (i % 2 == 0 && i + 1 < term->arity())
+                                  ? AtomicSort::boolSort() : sd->getSort();
+              todo.push(newTask);
+            }
+            break;
+          }
         }
       } break;
 

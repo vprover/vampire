@@ -195,7 +195,7 @@ check_szs_status Satisfiable -sa fmb -fmbdsb on fmb/detect-sort-bounds.p
 check_szs_status Satisfiable -sa fmb -newcnf off fmb/sort-inference-equality.p
 check_szs_status Satisfiable -sa fmb -newcnf on fmb/sort-inference-equality.p
 # not just the status, as that is printed before the (wrong) model is even built
-check_output_contains "X = 'fmb_\$i_1' | X = 'fmb_\$i_2'" -sa fmb -fmbes contour -sas cadical fmb/contour-monotonic.p
+check_output_contains "(X = 'fmb_\$i_1') | (X = 'fmb_\$i_2')" -sa fmb -fmbes contour -sas cadical fmb/contour-monotonic.p
 # strict sort constraints in contour: a cycle of them means giving up, and they may push a sort past its max
 check_szs_status GaveUp -sa fmb -fmbes contour -fmbdsb on -t 5 fmb/contour-strict-cycle.p
 check_szs_status Unsatisfiable -sa fmb -fmbes contour -fmbdsb on -t 5 fmb/contour-strict-at-max.p
@@ -313,6 +313,8 @@ check_szs_status Unsatisfiable parse/smtlib2-mutual-recursion.smt2
 check_szs_status Unsatisfiable -newcnf on parse/let-bind-variable.smt2
 check_szs_status Unsatisfiable -qa synthesis parse/assert-synth-max5.smt2
 check_szs_status Unsatisfiable parse/define-const.smt2
+check_szs_status Theorem parse/cond.p
+check_szs_status Theorem -newcnf on parse/cond.p
 
 # TPTP parser regression tests: small inputs documenting expected parser
 # behavior, one or two per fix; see the header comments in the files and the
@@ -455,6 +457,158 @@ check_szs_status Theorem -t 1d -to lpo -sos on -sosts on -doe on Problems/SWW/SW
 # Forward ground joinability
 check_szs_status Satisfiable -t 5d -fgj on Problems/SWV/SWV021-1.p
 check_szs_status Unsatisfiable -t 5d -fgj on -bd all Problems/SWW/SWW436-1.p
+
+# Unused function definitions must be recorded in the order they are eliminated, so that a
+# model reconstruction replaying them backwards restores a definition's dependencies before
+# the definition itself (see the comment in fmb/chaindef.p). Exact output, because the thing
+# under test is the order the recorded definitions come back out in.
+check_exact_output fmb/chaindef.out --input_syntax tptp --statistics none -fde unused fmb/chaindef.p
+
+# FMB: model construction with preprocessing-eliminated symbols (see the comment in fmb/sortelim.p)
+check_szs_status Satisfiable -sa fmb --fmb_adjust_sorts function fmb/sortelim.p
+check_szs_status Satisfiable -sa fmb --fmb_adjust_sorts predicate fmb/sortelim.p
+check_szs_status Satisfiable -sa fmb --random_polarities on fmb/sortelim.p
+check_szs_status Satisfiable -sa fmb -updr off -bce on fmb/sortelim.p
+
+# FMB: the size of a CONTOUR model must not be retracted for a monotonic sort
+# (see the comment in fmb/monotonic-contour.p); both SAT solvers must agree,
+# it used to depend on how the unconstrained markers happened to be assigned.
+# NB: unlike above, check_szs_status cannot see this defect -- a model of the wrong
+# size still reports Satisfiable -- hence the exact output. (With the in-run self-check
+# switched on, FMB_CHECK_MODEL_AGAINST_INPUT in FMB/ModelLayer.hpp, the FMB .out files here
+# gain its "FMB model self-check passed" line and will not match.)
+check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas cadical -fmbes contour fmb/monotonic-contour.p
+check_exact_output fmb/monotonic-contour.out --input_syntax tptp --statistics none -sa fmb -sas minisat -fmbes contour fmb/monotonic-contour.p
+
+# FMB: $o as an ordinary modelled sort (see the comment in fmb/bool.p). Exact output,
+# because the point is how the boolean domain and its two elements are printed -- and
+# because the printed model has to be re-readable, which the round-trip below checks
+check_szs_status Satisfiable -sa fmb fmb/bool.p
+check_exact_output fmb/bool.out --input_syntax tptp --statistics none -sa fmb fmb/bool.p
+check_exact_output fmb/bool.check.out --input_syntax tptp --mode model_check fmb/bool.check.p
+# ... and a model that leaves out the domain of $o is read with the built-in one, while one
+# that gives a different domain for it is refused (see fmb/bool-builtin.p)
+check_exact_output fmb/bool-builtin.out --input_syntax tptp --statistics none -sa fmb -newcnf on fmb/bool-builtin.p
+check_exact_output fmb/bool-builtin.check.out --input_syntax tptp --mode model_check fmb/bool-builtin.check.p
+check_rejected 'the domain of $o is $false and $true' --input_syntax tptp --mode model_check fmb/model-bool-domain.p
+# ... and FMB gives $o its two elements also when the clauses never meet it, so that
+# replaying a definition quantifying over $o evaluates it correctly (see fmb/bool-replay.p)
+check_exact_output fmb/bool-replay.explicit.out --input_syntax tptp --statistics none -sa fmb -fmbmp explicit fmb/bool-replay.p
+check_exact_output fmb/bool-replay.explicit.check.out --input_syntax tptp --mode model_check fmb/bool-replay.explicit.check.p
+check_exact_output fmb/bool-replay.layered.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered fmb/bool-replay.p
+check_exact_output fmb/bool-replay.layered.check.out --input_syntax tptp --mode model_check fmb/bool-replay.layered.check.p
+check_exact_output fmb/bool-replay.newcnf.explicit.out --input_syntax tptp --statistics none -sa fmb -newcnf on -fmbmp explicit fmb/bool-replay.p
+check_exact_output fmb/bool-replay.newcnf.explicit.check.out --input_syntax tptp --mode model_check fmb/bool-replay.newcnf.explicit.check.p
+check_exact_output fmb/bool-replay.newcnf.layered.out --input_syntax tptp --statistics none -sa fmb -newcnf on -fmbmp layered fmb/bool-replay.p
+check_exact_output fmb/bool-replay.newcnf.layered.check.out --input_syntax tptp --mode model_check fmb/bool-replay.newcnf.layered.check.p
+# ... and when a symbol over $o is printed that no clause mentions (see fmb/bool-unused.p)
+check_exact_output fmb/bool-unused.explicit.out --input_syntax tptp --statistics none -sa fmb -fmbmp explicit fmb/bool-unused.p
+check_exact_output fmb/bool-unused.explicit.check.out --input_syntax tptp --mode model_check fmb/bool-unused.explicit.check.p
+check_exact_output fmb/bool-unused.layered.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered fmb/bool-unused.p
+check_exact_output fmb/bool-unused.layered.check.out --input_syntax tptp --mode model_check fmb/bool-unused.layered.check.p
+
+# FMB: a predicate blocked clause elimination removes altogether is described only by the
+# recorded flips, so restoring them must materialize a table for it (see fmb/bceflip.p).
+# Exact output again, for the reason given above and because the defect showed as a crash
+# *after* the SZS status line -- which neither check_szs_status nor the stderr grep in
+# run_vampire can see
+check_exact_output fmb/bceflip.out --input_syntax tptp --statistics none -sa fmb -bce on fmb/bceflip.p
+check_exact_output fmb/bceflip.check.out --input_syntax tptp --mode model_check fmb/bceflip.check.p
+
+# FMB: $cond in what the model is checked against (see the comments in the two problems).
+# The self-check reads the un-preprocessed input, so it meets the $cond that FOOLElimination
+# has long since compiled away; model_check evaluates it against a loaded model.
+# Exact output for the first, because a self-check failure raises USER_ERROR only *after*
+# the SZS status line, so check_szs_status alone would not notice it
+check_exact_output fmb/cond.out --input_syntax tptp --statistics none -sa fmb fmb/cond.p
+check_exact_output fmb/cond.check.out --input_syntax tptp --mode model_check fmb/cond.check.p
+
+# FMB: a sort with no domain in the model, mentioned by symbols that are printed anyway
+# (see fmb/domainless-sort.p). Exact output, because the defect was a crash while printing
+# the model, i.e. after the SZS status line; and the round-trip, because the singleton
+# printed for that sort is what makes the model readable at all
+check_exact_output fmb/domainless-sort.out --input_syntax tptp --statistics none -sa fmb fmb/domainless-sort.p
+check_exact_output fmb/domainless-sort.check.out --input_syntax tptp --mode model_check fmb/domainless-sort.check.p
+
+# FMB: $o has exactly two elements, and fmb_start_size is only a suggestion against a
+# detected maximum (see fmb/bool-start-size.p). Exact output, because the defect was a
+# crash while printing a model with three booleans, after the SZS status line; and a start
+# size above every maximum must still find bool.p's model rather than give up
+check_exact_output fmb/bool-start-size.out --input_syntax tptp --statistics none -sa fmb -fmbss 3 fmb/bool-start-size.p
+check_szs_status Satisfiable -sa fmb -fmbss 16 fmb/bool.p
+
+# FMB: a sort bound by a domain-closure axiom must not be raised by the EPR rule's constant
+# count (see fmb/closure-start-size.p). The defect was a wrong model, which the (now
+# switched off) in-run self-check rejected; the round trip is what rejects it now
+check_exact_output fmb/closure-start-size.out --input_syntax tptp --statistics none -sa fmb -fmbss 4 fmb/closure-start-size.p
+check_exact_output fmb/closure-start-size.check.out --input_syntax tptp --mode model_check fmb/closure-start-size.check.p
+
+# FMB: $distinct in the input, which the self-check and model_check read before preprocessing
+# has expanded it (see fmb/distinct.p). Exact output for both: the self-check failure came
+# after the SZS status line, and model_check used to stop on the marker as a missing symbol
+check_exact_output fmb/distinct.out --input_syntax tptp --statistics none -sa fmb fmb/distinct.p
+check_exact_output fmb/distinct.check.out --input_syntax tptp --mode model_check fmb/distinct.check.p
+
+# FMB: a propositional problem under -fmbas predicate, whose one collapsed sort stands for
+# no vampire sort (see fmb/propositional-collapsed.p). Exact output, because the defect was an
+# assertion while printing the "% Sorts in the size vectors:" line
+check_exact_output fmb/propositional-collapsed.out --input_syntax tptp --statistics none -sa fmb -fmbas predicate fmb/propositional-collapsed.p
+# ... and read back, although such a model has no finite_domain axiom at all
+check_exact_output fmb/propositional-collapsed.check.out --input_syntax tptp --mode model_check fmb/propositional-collapsed.check.p
+
+# FMB: -fmbmp layered prints every introduced symbol a printed definition mentions (iG1 for
+# fmb/cond.p), and model_check reads symbolic definitions back, in whatever order the file has
+# them (fmb/chaindef.layered.check.p). Exact output, so that a change to the printing shows
+check_exact_output fmb/cond.layered.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered fmb/cond.p
+check_exact_output fmb/cond.layered.check.out --input_syntax tptp --mode model_check fmb/cond.layered.check.p
+check_exact_output fmb/chaindef.layered.check.out --input_syntax tptp --mode model_check fmb/chaindef.layered.check.p
+# ... and a definition that is stale by printing time reads an earlier version of a symbol,
+# printed under a name of its own: 'x_$1' (see fmb/stale-definition.p), or with a longer
+# separator where that name is taken (fmb/version-name-clash.p)
+check_exact_output fmb/stale-definition.out --input_syntax tptp --statistics none -sa fmb -pel on -fmbmp layered fmb/stale-definition.p
+check_exact_output fmb/stale-definition.check.out --input_syntax tptp --mode model_check fmb/stale-definition.check.p
+check_exact_output fmb/version-name-clash.out --input_syntax tptp --statistics none -sa fmb -pel on -fmbmp layered fmb/version-name-clash.p
+# ... and a conditional flip is a definition over the version below it (see fmb/cond-flip.p),
+# evaluated on demand, so that a wide one over a large domain costs nothing (fmb/cond-flip-wide.p);
+# only a flip needing a fixed point is a $cond over that version (fmb/cond-flip-fixpoint.p)
+check_exact_output fmb/cond-flip.out --input_syntax tptp --statistics none -sa fmb -bce on -fmbmp layered fmb/cond-flip.p
+check_exact_output fmb/cond-flip.check.out --input_syntax tptp --mode model_check fmb/cond-flip.check.p
+check_exact_output fmb/cond-flip-wide.out --input_syntax tptp --statistics none -sa fmb -pel on -fmbss 41 -fmbmp layered fmb/cond-flip-wide.p
+check_exact_output fmb/cond-flip-fixpoint.out --input_syntax tptp --statistics none -sa fmb -bce on -fmbmp layered fmb/cond-flip-fixpoint.p
+check_exact_output fmb/cond-flip-fixpoint.check.out --input_syntax tptp --mode model_check fmb/cond-flip-fixpoint.check.p
+# ... which model_check loads as the flip it was printed from, a definition of the fall-back
+# with the cases on top; any other $cond stays an ordinary definition (fmb/model-cond-cases.p)
+check_exact_output fmb/model-cond-cases.out --input_syntax tptp --mode model_check fmb/model-cond-cases.p
+# ... and a function into $o, which TPTP reads back as a predicate, is printed as one
+# (see fmb/bool-function.p)
+check_exact_output fmb/bool-function.out --input_syntax tptp --statistics none -sa fmb -pel multi -fmbmp layered fmb/bool-function.p
+check_exact_output fmb/bool-function.check.out --input_syntax tptp --mode model_check fmb/bool-function.check.p
+
+# FMB on a problem preprocessing leaves without clauses (see fmb/no-clauses.p): it used to say
+# Satisfiable with no model, it now builds and prints one like for any other problem
+check_exact_output fmb/no-clauses.explicit.out --input_syntax tptp --statistics none -sa fmb -fmbmp explicit fmb/no-clauses.p
+check_exact_output fmb/no-clauses.layered.out --input_syntax tptp --statistics none -sa fmb -fmbmp layered fmb/no-clauses.p
+check_exact_output fmb/no-clauses.check.out --input_syntax tptp --mode model_check fmb/no-clauses.check.p
+# ... and on one without symbols at all, whose model is empty but still a model, printed
+# between the markers and read back (see fmb/no-symbols.p); no model block at all is refused
+check_exact_output fmb/no-symbols.out --input_syntax tptp --statistics none -sa fmb fmb/no-symbols.p
+check_exact_output fmb/no-symbols.check.out --input_syntax tptp --mode model_check fmb/no-symbols.check.p
+check_rejected 'No model found!' --input_syntax tptp --mode model_check fmb/cond.p
+# model_check rejects what makes a symbolic definition unusable, when it loads the model
+check_rejected "The model's definitions are cyclic: f_symbolic_definition -> g_symbolic_definition -> h2_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-cycle.p
+check_rejected "The model's definitions are cyclic: f_symbolic_definition -> f_symbolic_definition" --input_syntax tptp --mode model_check fmb/model-self-reference.p
+check_rejected 'the arguments of k(X0,X0) must be pairwise distinct' --input_syntax tptp --mode model_check fmb/model-bad-head.p
+check_rejected 'f is defined twice in the model, by f_symbolic_definition and by table cells in function_f' --input_syntax tptp --mode model_check fmb/model-defined-twice.p
+check_rejected 'The model gives two different values to a cell, the second time in function_f_again' --input_syntax tptp --mode model_check fmb/model-cell-conflict.p
+check_rejected 'mentions g, which the model neither tabulates nor defines' --input_syntax tptp --mode model_check fmb/model-undefined-symbol.p
+
+# FMB with $let in the input (see fmb/let.p): the self-check skips what it cannot evaluate, and
+# printing the model used to assert on :=, the parser's polymorphic $let binding predicate,
+# after the SZS status line -- hence exact output. model_check refuses such a unit by name
+# rather than as "polymorphic"
+check_exact_output fmb/let.out --input_syntax tptp --statistics none -sa fmb fmb/let.p
+check_rejected 'it contains a construct the model checker does not support (such as $let)' --input_syntax tptp --mode model_check fmb/let.check.p
+
 
 # Synthesis without and with uncomputables
 check_szs_status Unsatisfiable -qa synthesis synthesis/max2.smt2

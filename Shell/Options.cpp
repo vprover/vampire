@@ -804,7 +804,7 @@ Options::Options ()
        .tag = OptionTag::THEORIES})
   , _fmbStartSize("fmb_start_size",this,1,
       {.short_name = "fmbss",
-       .description = "Set the initial model size for finite model building",
+       .description = "Suggest the initial model size for finite model building (sorts with detected model size bounds clamp this value to stay within)",
        .tag = OptionTag::FMB})
   , _fmbSymmetryRatio("fmb_symmetry_ratio",this,1.0,
       {.short_name = "fmbsr",
@@ -849,6 +849,14 @@ Options::Options ()
   , _fmbUseSimplifyingSolver("fmb_use_simplifying_solver",this,true,
       {.short_name = "fmbuss",
        .description = "Allow the SAT solver to internally simplify the instance.",
+       .tag = OptionTag::FMB})
+  , _fmbModelPrinting("fmb_model_printing",this,FMBModelPrinting::EXPLICIT,{"explicit","layered"},
+      {.short_name = "fmbmp",
+       .description = "How a found model is printed. With <explicit>, every symbol of the input is spelled out as a"
+       " table, which may be large, but needs nothing else to be read back. With <layered>, each step of the"
+       " model's reconstruction is printed as it is: symbols are defined by formulas where the reconstruction"
+       " did so, earlier versions of a symbol get names of their own (f_$1, f_$2, ...), and the introduced"
+       " symbols these mention are printed too.",
        .tag = OptionTag::FMB})
   , _forbiddenOptions("forbidden_options",this,"",
       {.description = "If some of the specified options are set to a forbidden state, vampire will fail to start, or in portfolio modes it will skip such strategies. The expected syntax is <opt1>=<val1>:<opt2>:<val2>:...:<optn>=<valN>",
@@ -1289,13 +1297,6 @@ Options::Options ()
        .tag = OptionTag::OUTPUT})
   , _printClausifierPremises("print_clausifier_premises",this,false,
       {.description = "Output how the clausified problem was derived.",
-       .tag = OptionTag::OUTPUT})
-    // Note that while we have the code in place thanks to Giles, Geoff didn't like the functionality
-    // (and, arguably, since it in general incomplete in the sense that sometimes the domain elements are anyway necessary,
-    // it's a bit ugly for its non-uniformity and for mixing syntax - the constants - with semantics - domain elements)
-    // To sum up, we have a feature maybe nobody really likes? A candidate for removal.
-  , _replaceDomainElements("replace_domain_elements",this,false,
-      {.description = "When printing a finite model, try hard to look for constants from the original formulation to use instead of domain elements.",
        .tag = OptionTag::OUTPUT})
   , _proof("proof",this,Proof::ON,{"off","on","proofcheck","tptp","property","smt2_proofcheck","smtcheck"},
       {.short_name = "p",
@@ -2284,6 +2285,12 @@ Options::Options ()
     // make the next hard - RSTC will make FMB crash (as RSTC correctly does not trigger hadIncompleteTransformation; still it probably does not make sense to use ep with fmb)
     _saturationAlgorithm.addHardConstraint(If(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)).then(_equalityProxy.is(notEqual(EqualityProxy::RSTC))));
 
+    // TheoryAxioms::applyFOOL leaves out the boolean domain axiom when this is on, relying on
+    // the rule to do that job instead. FMB has no such rule, so it would happily build a
+    // boolean domain of three or more elements.
+    _FOOLParamodulation.addHardConstraint(If(equal(true)).then(
+      _saturationAlgorithm.is(notEqual(SaturationAlgorithm::FINITE_MODEL_BUILDING))));
+
     auto ProperSaturationAlgorithm = [this] {
       return Or(_saturationAlgorithm.is(equal(SaturationAlgorithm::LRS)),
                 _saturationAlgorithm.is(equal(SaturationAlgorithm::OTTER)),
@@ -2322,6 +2329,8 @@ Options::Options ()
 
     _fmbUseSimplifyingSolver.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbUseSimplifyingSolver.onlyUsefulWith(_satSolver.is(equal(SatSolver::MINISAT)));
+
+    _fmbModelPrinting.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _selection.onlyUsefulWith2(ProperSaturationAlgorithm());
 
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());

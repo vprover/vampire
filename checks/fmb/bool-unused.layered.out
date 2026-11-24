@@ -1,0 +1,23 @@
+% The problem is propositional so there are no sorts!
+% Sorts in the size vectors: []
+% TRYING []
+% Finite Model Found!
+% SZS status Satisfiable for bool-unused
+% SZS output start FiniteModel for bool-unused
+tff(finite_domain_bool,axiom,
+      ! [X:$o] : (
+         (X = $false) | (X = $true)
+      ) ).
+
+tff(distinct_domain_bool,axiom,
+         $false != $true
+).
+
+tff(declare_a,type,a: $o ).
+tff(declare_b,type,b: $o ).
+tff(declare_p,type,p: ( $o ) > $o ).
+
+tff(a_definition,axiom,~a).
+tff(b_definition,axiom,~b).
+tff(p_symbolic_definition,axiom,![X0:$o]: (p(X0) <=> $false)).
+% SZS output end FiniteModel for bool-unused

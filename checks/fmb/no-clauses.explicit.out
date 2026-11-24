@@ -1,0 +1,30 @@
+% The problem is propositional so there are no sorts!
+% Sorts in the size vectors: []
+% TRYING []
+% Finite Model Found!
+% SZS status Satisfiable for no-clauses
+% SZS output start FiniteModel for no-clauses
+tff('declare_$i1',type,'fmb_$i_1':$i).
+tff('finite_domain_$i',axiom,
+      ! [X:$i] : (
+         (X = 'fmb_$i_1')
+      ) ).
+
+tff(declare_c,type,c : $i).
+tff(c_definition,axiom,c = 'fmb_$i_1').
+tff(declare_p,type,p: ( $i ) > $o ).
+tff(predicate_p,axiom,
+           p('fmb_$i_1')
+).
+
+tff(declare_t,type,t: ( $i ) > $o ).
+tff(predicate_t,axiom,
+           t('fmb_$i_1')
+).
+
+tff(declare_n,type,n: ( $i ) > $o ).
+tff(predicate_n,axiom,
+           ~n('fmb_$i_1')
+).
+
+% SZS output end FiniteModel for no-clauses

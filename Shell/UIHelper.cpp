@@ -604,13 +604,13 @@ void UIHelper::outputSatisfiableResult(std::ostream& out)
 	  <<" for " << env.options->problemName << endl;
   }
   if (env.options->proof() != Options::Proof::OFF) {
-    if (!env.statistics->model.empty()) {
+    if (env.statistics->model) {
       if (szsOutputMode()) {
         out << "% SZS output start FiniteModel for " << env.options->problemName << endl;
       } else {
         out << "# Finite Model:" << endl;
       }
-      out << env.statistics->model;
+      out << *env.statistics->model;
       if (szsOutputMode()) {
         out << "% SZS output end FiniteModel for " << env.options->problemName << endl;
       }

@@ -652,6 +652,7 @@ void Property::scan(TermList ts)
         break;
 
       case SpecialFunctor::MATCH:
+      case SpecialFunctor::COND:
         _hasFOOL = true;
         break;
 
