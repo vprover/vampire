@@ -33,7 +33,13 @@ public:
     auto uwa = opt.unificationWithAbstraction();
     auto fpi = opt.unificationWithAbstractionFixedPointIteration();
     if constexpr (higherOrder) {
-      return _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.higherOrderUnifMaxWeight(), opt.functionExtensionality()==Options::FunctionExtensionality::ABSTRACTION);
+      auto it = _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.higherOrderUnifMaxWeight(), opt.functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION);
+      if (uwa != Options::UnificationWithAbstraction::OFF) {
+        return it;
+      }
+      // syntactic unification also goes into lambda bodies; see RetrievalAlgorithms::keepsDBIndicesBound
+      return pvi(iterTraits(std::move(it))
+                     .filter([t](auto const &qr) { return RetrievalAlgorithms::keepsDBIndicesBound(*qr.unifier, t, qr.data->term); }));
     } else {
       return _is.getUwa(t, uwa, fpi, /*funcExt=*/false);
     }

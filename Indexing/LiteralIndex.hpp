@@ -32,7 +32,12 @@ public:
   { return _is.getUnifications(lit, complementary, retrieveSubstitutions); }
 
   auto getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return _is.getUwa(lit, complementary, uwa, fixedPointIteration); }
+  {
+    // in higher-order logic, syntactic unification also goes into lambda bodies; see RetrievalAlgorithms::keepsDBIndicesBound
+    bool check = env.higherOrder() && uwa == Options::UnificationWithAbstraction::OFF;
+    return iterTraits(_is.getUwa(lit, complementary, uwa, fixedPointIteration))
+        .filter([lit, check](auto const &qr) { return !check || RetrievalAlgorithms::keepsDBIndicesBound(*qr.unifier, lit, qr.data->literal); });
+  }
 
   template<bool higherOrder>
   auto getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
