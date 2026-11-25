@@ -702,7 +702,10 @@ public:
   /** Set the number of variable _occurrences_ */
   void setNumVarOccs(unsigned v)
   {
-    ASS(!_isTwoVarEquality);
+    if(_isTwoVarEquality) {
+      ASS_EQ(v,2);
+      return;
+    }
     _vars = v;
   } // setVars
 
