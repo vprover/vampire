@@ -1260,6 +1260,17 @@ Options::Options ()
       {.short_name = "nicw",
        .description = "Non-literal parts of clauses (such as its split history) will also contribute to the weight",
        .tag = OptionTag::AVATAR})
+  , _holSelectionWeight("hol_selection_weight",this,HolSelectionWeight::OFF,
+      {"off","no_enc_sorts","fo_like"},
+      {.short_name = "hsw",
+       .description = "How the clause weight used for clause selection treats the higher-order encoding, to bring it closer to the weight of the clause in a first-order encoding. "
+        "off: the ordinary weight; "
+        "no_enc_sorts: the sort arguments that the encoding adds (on applications, lambdas, de Bruijn indices, proxies and choice) and the sort of an equality do not count, "
+        "while the type arguments of (polymorphic) signature symbols still do; "
+        "fo_like: as no_enc_sorts, and moreover application nodes count 0 along the spine of a term whose head is a symbol, so f @ a @ b weighs like f(a,b) "
+        "(they still count 1 each when the head is a variable or a de Bruijn index). "
+        "Only clause selection is affected (not orderings or simplifications); with a value other than off, the early weight-limit checks of lrs are disabled.",
+       .tag = OptionTag::SATURATION})
   , _normalize("normalize",this,false,
       {.short_name = "norm",
        .description = "Normalize the problem so that the ordering of clauses etc does not effect proof search.",
@@ -2684,6 +2695,9 @@ Options::Options ()
 
     _nonliteralsInClauseWeight.onlyUsefulWith(_splitting.is(equal(true)));
     // _nonliteralsInClauseWeight.addProblemConstraint(mayHaveNonUnits()); (for the same reason this is disabled in splitting)
+
+    _holSelectionWeight.onlyUsefulWith(ProperSaturationAlgorithm());
+    _holSelectionWeight.addProblemConstraint(hasHigherOrder());
 
 //*********************** SAT solver (used in various places)  ***********************
 #if VZ3

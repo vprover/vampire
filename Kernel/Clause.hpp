@@ -225,6 +225,15 @@ public:
   }
   unsigned computeWeightForClauseSelection(const Shell::Options& opt) const;
 
+  /**
+   * The literal part of the weight for clause selection: the ordinary weight, unless
+   * -hol_selection_weight says otherwise.
+   */
+  unsigned literalWeightForClauseSelection(const Shell::Options &opt) const;
+  /** The traversal behind literalWeightForClauseSelection(), run even when -hol_selection_weight
+   * is off (it then equals weight(), which the unit tests check). */
+  unsigned customLiteralWeightForClauseSelection(const Shell::Options &opt) const;
+
   /*
    * single source of truth for computation of weightForClauseSelection
    */

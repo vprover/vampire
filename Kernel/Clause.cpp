@@ -21,6 +21,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 
@@ -575,17 +576,126 @@ unsigned Clause::getNumeralWeight() const {
   return res;
 } // getNumeralWeight
 
+/** Whether the type arguments of @b t count under -hol_selection_weight other than off:
+ * those of signature symbols do, those added by the higher-order encoding do not. */
+static bool hasSignatureTypeArgs(Term *t)
+{
+  if (t->isLiteral()) {
+    return true; // equality is handled by the caller
+  }
+  if (t->isApplication() || t->isLambdaTerm() || t->deBruijnIndex().isSome() || t->isChoice()) {
+    return false;
+  }
+  return env.signature->getFunction(t->functor())->proxy() == Proxy::NOT_PROXY;
+}
+
+/** A rigid head is a symbol: anything but a variable, a de Bruijn index or a lambda (a beta-redex). */
+static bool isRigidHead(TermList head)
+{
+  return head.isTerm() && !head.term()->deBruijnIndex().isSome() && !head.term()->isLambdaTerm();
+}
+
+/**
+ * The weight of the literals for clause selection under -hol_selection_weight @b mode.
+ *
+ * Every symbol and variable occurrence counts 1, as in the ordinary weight, except that, unless
+ * @b mode is off, the sort arguments added by the higher-order encoding (and the sort of an
+ * equality) do not count and, under fo_like, application nodes along a spine with a rigid head
+ * do not count either. With @b mode off, this is exactly the ordinary weight (computeWeight()).
+ */
+static unsigned customSelectionWeight(const Clause &cl, Options::HolSelectionWeight mode)
+{
+  using Mode = Options::HolSelectionWeight;
+  const bool allSorts = mode == Mode::OFF;
+
+  auto typeArgsWeight = [allSorts](Term *t) {
+    unsigned w = 0;
+    if (allSorts || hasSignatureTypeArgs(t)) {
+      for (unsigned i = 0; i < t->numTypeArguments(); i++) {
+        w += t->typeArg(i).weight();
+      }
+    }
+    return w;
+  };
+
+  unsigned result = 0;
+  Recycled<Stack<TermList>> todo;
+  for (Literal *lit : cl.iterLits()) {
+    if (lit->isTwoVarEquality()) {
+      // the ordinary weight is 3 + (sort weight - 1), see TermSharing::computeAndSetSharedVarEqData
+      result += 3 + (allSorts ? lit->twoVarEqSort().weight() - 1 : 0);
+      continue;
+    }
+    result += 1;
+    if (lit->isEquality()) {
+      if (allSorts) {
+        result += SortHelper::getEqualityArgumentSort(lit).weight() - 1;
+      }
+    }
+    else {
+      result += typeArgsWeight(lit);
+    }
+    for (unsigned i = 0; i < lit->numTermArguments(); i++) {
+      todo->push(lit->termArg(i));
+    }
+
+    while (todo->isNonEmpty()) {
+      TermList t = todo->pop();
+      if (t.isVar()) {
+        result += 1;
+        continue;
+      }
+      Term *trm = t.term();
+      if (trm->isSpecial()) { // not expected after clausification; fall back to the ordinary weight
+        result += trm->weight();
+        continue;
+      }
+      if (!trm->isApplication()) {
+        result += 1 + typeArgsWeight(trm);
+        for (unsigned i = 0; i < trm->numTermArguments(); i++) {
+          todo->push(trm->termArg(i));
+        }
+        continue;
+      }
+      // an application: walk down its whole spine h @ a1 @ ... @ an at once, as the treatment
+      // of its @ nodes depends on the head h
+      unsigned spineLength = 0;
+      TermList head = t;
+      while (head.isTerm() && head.term()->isApplication()) {
+        Term *node = head.term();
+        result += typeArgsWeight(node);
+        todo->push(node->termArg(1));
+        spineLength++;
+        head = node->termArg(0);
+      }
+      todo->push(head);
+      if (mode != Mode::FO_LIKE || !isRigidHead(head)) {
+        result += spineLength;
+      }
+    }
+  }
+  return result;
+} // customSelectionWeight
+
+unsigned Clause::customLiteralWeightForClauseSelection(const Options &opt) const
+{
+  return customSelectionWeight(*this, opt.holSelectionWeight());
+}
+
+unsigned Clause::literalWeightForClauseSelection(const Options &opt) const
+{
+  if (opt.holSelectionWeight() != Options::HolSelectionWeight::OFF) {
+    return customLiteralWeightForClauseSelection(opt);
+  }
+  return _weight ? _weight : computeWeight();
+}
+
 /**
  * compute weight of the clause used by clause selection and cache it
  */
 unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
 {
-  unsigned w = 0;
-  if (_weight) {
-    w = _weight;
-  } else {
-    w = computeWeight();
-  }
+  unsigned w = literalWeightForClauseSelection(opt);
 
   unsigned splWeight = 0;
   if (opt.nonliteralsInClauseWeight()) {

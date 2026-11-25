@@ -110,6 +110,7 @@ set(UNIT_TESTS
     UnitTests/tSATClause.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
+    UnitTests/tSelectionWeight.cpp
     UnitTests/tSet.cpp
     UnitTests/tSimpleCongruenceClosure.cpp
     UnitTests/tSkipList.cpp

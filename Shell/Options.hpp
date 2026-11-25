@@ -521,6 +521,15 @@ public:
     UNUSED = 2
   };
 
+  /** How the weight used for clause selection treats the higher-order encoding.
+   * Each value includes the previous one. */
+  enum class HolSelectionWeight : unsigned int {
+    OFF = 0,          // the ordinary weight
+    NO_ENC_SORTS = 1, // the sort arguments the encoding adds (on @, λ, de Bruijn indices, proxies and choice) and the sort
+                      // of an equality do not count; type arguments of signature symbols still do
+    FO_LIKE = 2       // ... and @ counts 0 along the spine of a term whose head is a symbol, so f @ a @ b weighs like f(a,b)
+  };
+
   /**
    * Possible values for predicate_elimination.
    */
@@ -1500,6 +1509,7 @@ public:
   bool splitting() const { return _splitting.actualValue; }
   void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
+  HolSelectionWeight holSelectionWeight() const { return _holSelectionWeight.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
   unsigned sineToAgeGeneralityThreshold() const { return _sineToAgeGeneralityThreshold.actualValue; }
@@ -1825,6 +1835,7 @@ private:
 
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
+  ChoiceOptionValue<HolSelectionWeight> _holSelectionWeight;
   BoolOptionValue _normalize;
   BoolOptionValue _shuffleInput;
   BoolOptionValue _randomPolarities;
