@@ -441,6 +441,9 @@ bool AWPassiveClauseContainer::exceedsAgeLimit(unsigned, const Inference& infere
 bool AWPassiveClauseContainer::exceedsWeightLimit(unsigned w, unsigned numPositiveLiterals, const Inference& inference) const
 {
   if (_weightSelectionMaxWeight == UINT_MAX) return false;
+  // w estimates the ordinary weight, which can exceed the first-order-like one of -hol_fo_weight, so it is no lower bound then
+  if (_opt.holFoWeight())
+    return false;
 
   const unsigned numeralWeight = 0; // heuristic: we don't want to compute the numeral weight during estimates and conservatively assume that it is 0.
   const unsigned splitWeight = 0; // also conservatively assuming 0

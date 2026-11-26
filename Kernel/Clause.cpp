@@ -21,6 +21,7 @@
 #include "Lib/Allocator.hpp"
 #include "Lib/Environment.hpp"
 #include "Lib/Int.hpp"
+#include "Lib/Recycled.hpp"
 #include "Lib/SharedSet.hpp"
 #include "Lib/Stack.hpp"
 
@@ -575,17 +576,93 @@ unsigned Clause::getNumeralWeight() const {
   return res;
 } // getNumeralWeight
 
+/** Whether the type arguments of @b t count in the first-order-like weight:
+ * those of signature symbols do, those added by the higher-order encoding do not. */
+static bool hasSignatureTypeArgs(Term *t)
+{
+  if (t->isLiteral()) {
+    return true; // equality is handled by the caller
+  }
+  if (t->isApplication() || t->isLambdaTerm() || t->deBruijnIndex().isSome() || t->isChoice()) {
+    return false;
+  }
+  return env.signature->getFunction(t->functor())->proxy() == Proxy::NOT_PROXY;
+}
+
+/** A rigid head is a symbol: anything but a variable, a de Bruijn index or a lambda (a beta-redex). */
+static bool isRigidHead(TermList head)
+{
+  return head.isTerm() && !head.term()->deBruijnIndex().isSome() && !head.term()->isLambdaTerm();
+}
+
+unsigned Clause::foLikeWeight() const
+{
+  auto typeArgsWeight = [](Term *t) {
+    unsigned w = 0;
+    if (hasSignatureTypeArgs(t)) {
+      for (unsigned i = 0; i < t->numTypeArguments(); i++) {
+        w += t->typeArg(i).weight();
+      }
+    }
+    return w;
+  };
+
+  unsigned result = 0;
+  Recycled<Stack<TermList>> todo;
+  for (Literal *lit : iterLits()) {
+    if (lit->isTwoVarEquality()) {
+      result += 3; // the equality and its two variables
+      continue;
+    }
+    result += 1;
+    if (!lit->isEquality()) { // the sort of an equality does not count
+      result += typeArgsWeight(lit);
+    }
+    todo->loadFromIterator(termArgIter(lit));
+
+    while (todo->isNonEmpty()) {
+      TermList t = todo->pop();
+      if (t.isVar()) {
+        result += 1;
+        continue;
+      }
+      Term *trm = t.term();
+      if (trm->isSpecial()) {
+        ASS(false) // not expected after clausification; fall back to the ordinary weight
+        result += trm->weight();
+        continue;
+      }
+      if (!trm->isApplication()) {
+        result += 1 + typeArgsWeight(trm);
+        todo->loadFromIterator(termArgIter(trm));
+        continue;
+      }
+      // an application: walk down its whole spine h @ a1 @ ... @ an at once,
+      // as its @ nodes count only if the head h is not rigid
+      unsigned spineLength = 0;
+      TermList head = t;
+      while (head.isTerm() && head.term()->isApplication()) {
+        Term *node = head.term();
+        result += typeArgsWeight(node);
+        todo->push(node->termArg(1));
+        spineLength++;
+        head = node->termArg(0);
+      }
+      todo->push(head);
+      if (!isRigidHead(head)) {
+        result += spineLength;
+      }
+    }
+  }
+  return result;
+} // Clause::foLikeWeight
+
 /**
  * compute weight of the clause used by clause selection and cache it
  */
 unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
 {
-  unsigned w = 0;
-  if (_weight) {
-    w = _weight;
-  } else {
-    w = computeWeight();
-  }
+  unsigned w = opt.holFoWeight() ? foLikeWeight() : weight();
 
   unsigned splWeight = 0;
   if (opt.nonliteralsInClauseWeight()) {
