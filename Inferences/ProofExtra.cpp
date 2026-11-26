@@ -47,4 +47,24 @@ void TwoLiteralRewriteInferenceExtra::output(std::ostream &out) const {
   rewrite.output(out);
 }
  
+void InductionHyperresolutionExtra::output(std::ostream &out) const {
+  out << "substitutions=[";
+  bool first = true;
+  for (const auto& [unit, bindings] : substitutions) {
+    if (!first) { out << ","; }
+    first = false;
+    out << unit->number() << ":[";
+    for (unsigned i = 0; i < bindings.size(); i++) {
+      if (i) { out << ","; }
+      out << "X" << bindings[i].first << "->" << bindings[i].second;
+    }
+    out << "]";
+  }
+  out << "]";
+}
+
+void TermAlgebraLiteralExtra::output(std::ostream &out) const {
+  out << "literal=" << literal << ",argument=" << argument;
+}
+
 }// namespace Inferences

@@ -21,6 +21,9 @@
 #include "Lib/VirtualIterator.hpp"
 
 #include "Saturation/SaturationAlgorithm.hpp"
+#include "Shell/Options.hpp"
+
+#include "Inferences/ProofExtra.hpp"
 
 #include "TermAlgebraReasoning.hpp"
 
@@ -85,6 +88,15 @@ namespace Inferences {
     return (s && t && s != t);
   }
 
+  /** The replay certificate of a term algebra inference: the premise literal it acts on. */
+  static void recordTermAlgebraLiteral(Clause* res, unsigned literal, unsigned argument = 0)
+  {
+    auto proofExtra = env.options->proofExtra();
+    if (proofExtra == Options::ProofExtra::REPLAY || proofExtra == Options::ProofExtra::FULL) {
+      env.proofExtra.insert(res, new TermAlgebraLiteralExtra(literal, argument));
+    }
+  }
+
   // true iff the literal has the form f(x1 ... xn) = f(y1 ... yn)
   // where f is a term algebra constructor
   bool sameConstructorsEquality(Literal *lit)
@@ -110,6 +122,7 @@ namespace Inferences {
         if (lit->isPositive()) {
           // equality of the form f(x) = g(y), delete literal from clause
           Clause* res = removeLit(c, i, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_DISTINCTNESS, c));
+          recordTermAlgebraLiteral(res, i);
           return res;
         } else {
           // inequality of the form f(x) != g(y) are theory tautologies
@@ -157,6 +170,12 @@ namespace Inferences {
                                            SortHelper::getArgSort(_lit->nthArgument(0)->term(), _index));
       
       Clause * res = replaceLit(_clause, _lit, l, GeneratingInference1(InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING, _clause));
+      for (unsigned k = 0; k < _clause->length(); k++) {
+        if ((*_clause)[k] == _lit) {
+          recordTermAlgebraLiteral(res, k, _index - _lit->nthArgument(0)->term()->numTypeArguments());
+          break;
+        }
+      }
       _index++;
       return res;
     }
@@ -206,6 +225,7 @@ namespace Inferences {
                                                     *lit->nthArgument(1)->term()->nthArgument(0),
                                                     SortHelper::getArgSort(lit->nthArgument(0)->term(), 0));
           Clause* res = replaceLit(c, lit, newlit, SimplifyingInference1(InferenceRule::TERM_ALGEBRA_POSITIVE_INJECTIVITY_SIMPLIFYING, c));
+          recordTermAlgebraLiteral(res, i);
           return res;
         }
       }
@@ -269,7 +289,9 @@ namespace Inferences {
           resLits->push(newLit);
         }
 
-        return Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_NEGATIVE_INJECTIVITY_SIMPLIFYING, c));       
+        Clause* res = Clause::fromStack(*resLits,SimplifyingInference1(InferenceRule::TERM_ALGEBRA_NEGATIVE_INJECTIVITY_SIMPLIFYING, c));
+        recordTermAlgebraLiteral(res, i);
+        return res;
       }
     }
     return c;

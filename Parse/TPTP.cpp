@@ -38,6 +38,7 @@
 #include "Shell/DistinctGroupExpansion.hpp"
 #include "Shell/UIHelper.hpp"
 #include "Shell/Rectify.hpp"
+#include "Shell/TermAlgebra.hpp"
 
 #include "Parse/TPTP.hpp"
 
@@ -1506,6 +1507,12 @@ void TPTP::tff(bool tcf)
     _bools.push(isDistinctObject);
     _states.push(END_TFF);
     _states.push(TYPE);
+    return;
+  }
+
+  if (tp == "datatype" || tp == "codatatype") {
+    consumeToken(T_COMMA);
+    datatypeDeclaration(tp == "codatatype");
     return;
   }
 
@@ -4240,6 +4247,177 @@ void TPTP::endTff()
     //cout << "added: " + symbol->name() + " of type " + ot->toString() + " and functor " << fun << endl;
   }
 } // endTff
+
+/**
+ * Look up a symbol by name alone. Datatype declarations name symbols without
+ * their arity, so a name declared at several arities is ambiguous.
+ */
+static bool uniqueSymbolByName(const std::string& name, unsigned count,
+    std::function<const Signature::Symbol*(unsigned)> get, unsigned& out)
+{
+  bool found = false;
+  for (unsigned i = 0; i < count; i++) {
+    if (get(i)->name() != name) { continue; }
+    if (found) {
+      USER_ERROR("Symbol " + name + " in a datatype declaration is declared at several arities");
+    }
+    found = true;
+    out = i;
+  }
+  return found;
+}
+
+/**
+ * Read the body of a (co)datatype unit, after its role and comma.
+ *
+ * Vampire extension. The type constructor and its constructors must already be
+ * declared by "type" units; the unit marks them as a term algebra:
+ *
+ *   tff(nat_type, type, nat: $tType).
+ *   tff(zero_type, type, zero: nat).
+ *   tff(succ_type, type, succ: nat > nat).
+ *   tff(nat_def, datatype, nat: [zero, succ(pred)]).
+ *
+ * A constructor lists either a destructor name for each of its arguments or none,
+ * in which case fresh destructors are introduced. A destructor that is already
+ * declared must have the type `T(A1..An) > argument sort`. A polymorphic
+ * constructor `!>[A1..An: $tType]: ... > T(A1..An)` must take the datatype's
+ * parameters in order. Mutually recursive datatypes are one unit each, after
+ * all of their declarations.
+ */
+void TPTP::datatypeDeclaration(bool codatatype)
+{
+  if (_isThf) {
+    USER_ERROR("datatype units are only supported in tff and tcf");
+  }
+  int lpars = 0;
+  while (getTok(0).tag == T_LPAR) {
+    resetToks();
+    lpars++;
+  }
+  Token typeTok = getTok(0);
+  std::string typeName = name();
+  unsigned typeCon;
+  if (!uniqueSymbolByName(typeName, env.signature->typeCons(),
+        [](unsigned i) { return env.signature->getTypeCon(i); }, typeCon)) {
+    PARSE_ERROR_TOK("datatype " + typeName + " is not a declared type", typeTok);
+  }
+  unsigned nTypeArgs = env.signature->getTypeCon(typeCon)->arity();
+  TermStack params;
+  for (unsigned i = 0; i < nTypeArgs; i++) {
+    params.push(TermList::var(i));
+  }
+  TermList taSort(AtomicSort::create(typeCon, nTypeArgs, params.begin()));
+  if (env.signature->isTermAlgebraSort(taSort)) {
+    USER_ERROR("Datatype " + typeName + " is declared twice");
+  }
+
+  consumeToken(T_COLON);
+  consumeToken(T_LBRA);
+  // Read the whole list first: no destructor may be a constructor of this datatype.
+  Stack<std::pair<unsigned, Stack<std::string>>> entries;
+  for (;;) {
+    Token ctorTok = getTok(0);
+    std::string ctorName = name();
+    unsigned functor;
+    if (!uniqueSymbolByName(ctorName, env.signature->functions(),
+          [](unsigned i) { return env.signature->getFunction(i); }, functor)) {
+      PARSE_ERROR_TOK("constructor " + ctorName + " is not a declared function", ctorTok);
+    }
+    const Signature::Symbol* ctor = env.signature->getFunction(functor);
+    OperatorType* ctorType = ctor->type();
+    if (ctorType->numTypeArguments() != nTypeArgs || ctorType->result() != taSort) {
+      USER_ERROR("Constructor " + ctorName + " of type " + ctorType->toString() +
+                 " does not construct " + taSort.toString() + " over the datatype's parameters in order");
+    }
+    if (ctor->termAlgebraCons()) {
+      USER_ERROR("Constructor " + ctorName + " is listed twice or belongs to two datatypes");
+    }
+    if (ctor->termAlgebraDest()) {
+      USER_ERROR("Constructor " + ctorName + " is already a destructor");
+    }
+    env.signature->markTermAlgebraConstructor(functor);
+
+    Stack<std::string> destructorNames;
+    if (getTok(0).tag == T_LPAR) {
+      resetToks();
+      for (;;) {
+        destructorNames.push(name());
+        if (getTok(0).tag != T_COMMA) { break; }
+        resetToks();
+      }
+      consumeToken(T_RPAR);
+      unsigned nArgs = ctorType->arity() - nTypeArgs;
+      if (destructorNames.size() != nArgs) {
+        USER_ERROR("Constructor " + ctorName + " has " + Int::toString(nArgs) + " arguments but " +
+                   Int::toString(destructorNames.size()) + " destructors");
+      }
+    }
+    entries.push(std::make_pair(functor, std::move(destructorNames)));
+
+    if (getTok(0).tag != T_COMMA) { break; }
+    resetToks();
+  }
+  consumeToken(T_RBRA);
+  while (lpars--) {
+    consumeToken(T_RPAR);
+  }
+  // annotations are allowed and ignored, as for type declarations
+  skipToRPAR();
+  consumeToken(T_DOT);
+
+  Stack<TermAlgebraConstructor*> constructors;
+  for (auto& [functor, destructorNames] : entries) {
+    const Signature::Symbol* ctor = env.signature->getFunction(functor);
+    OperatorType* ctorType = ctor->type();
+    unsigned nArgs = ctorType->arity() - nTypeArgs;
+    Lib::Array<unsigned> destructors(nArgs);
+    for (unsigned i = 0; i < nArgs; i++) {
+      TermList argSort = ctorType->arg(nTypeArgs + i);
+      bool isPredicate = argSort == AtomicSort::boolSort();
+      OperatorType* type = isPredicate ? OperatorType::getPredicateType({ taSort }, nTypeArgs)
+                                       : OperatorType::getFunctionType({ taSort }, argSort, nTypeArgs);
+      Signature::Symbol* destructor;
+      if (destructorNames.isEmpty()) {
+        std::string prefix = ctor->name() + "_arg" + Int::toString(i + 1);
+        destructor = isPredicate ? env.signature->addFreshPredicate(type, prefix.c_str())
+                                 : env.signature->addFreshFunction(type, prefix.c_str());
+      } else {
+        const std::string& destructorName = destructorNames[i];
+        // functions and predicates are separate tables; a name in the wrong one is a type error
+        unsigned other;
+        if (isPredicate ? uniqueSymbolByName(destructorName, env.signature->functions(),
+                            [](unsigned j) { return env.signature->getFunction(j); }, other)
+                        : uniqueSymbolByName(destructorName, env.signature->predicates(),
+                            [](unsigned j) { return env.signature->getPredicate(j); }, other)) {
+          USER_ERROR("Destructor " + destructorName + " is declared as a " +
+                     (isPredicate ? "function" : "predicate") + " but should have type " + type->toString());
+        }
+        bool added;
+        destructor = isPredicate ? env.signature->addPredicate(destructorName, type, added)
+                                 : env.signature->addFunction(destructorName, type, added);
+        if (!added && destructor->type() != type) {
+          USER_ERROR("Destructor " + destructorName + " is declared with type " +
+                     destructor->type()->toString() + " but should have type " + type->toString());
+        }
+        if (destructor->termAlgebraCons()) {
+          USER_ERROR("Destructor " + destructorName + " is a constructor");
+        }
+        if (destructor->termAlgebraDest()) {
+          USER_ERROR("Destructor " + destructorName + " belongs to two constructors");
+        }
+      }
+      destructors[i] = destructor->markTermAlgebraDest()->number();
+    }
+    constructors.push(new TermAlgebraConstructor(functor, destructors));
+  }
+
+  auto ta = new TermAlgebra(taSort, constructors.size(), constructors.begin(), codatatype);
+  if (ta->emptyDomain()) {
+    USER_ERROR("Datatype " + typeName + " defines an empty sort");
+  }
+  env.signature->addTermAlgebra(ta);
+} // datatypeDeclaration
 
 
 OperatorType* TPTP::constructOperatorType(Type* t, VList* vars, DHSet<unsigned, FnvHash, IdentityHash>* ivars)

@@ -22,6 +22,9 @@
 #include "Kernel/Term.hpp"
 #include "Lib/ProofExtra.hpp"
 
+#include <utility>
+#include <vector>
+
 namespace Inferences {
 
 // inferences that use one literal from their main premise
@@ -85,6 +88,31 @@ struct TwoLiteralRewriteInferenceExtra : public InferenceExtra {
   TwoLiteralInferenceExtra selected;
   // rewrite information
   RewriteInferenceExtra rewrite;
+};
+
+/**
+ * Induction hyperresolution: for every premise, the images in the conclusion
+ * of the premise's variables. Applying them makes the conclusion a
+ * propositional consequence of the instantiated premises.
+ */
+struct InductionHyperresolutionExtra : public InferenceExtra {
+  using Bindings = std::vector<std::pair<unsigned, Kernel::TermList>>;
+  std::vector<std::pair<Kernel::Unit*, Bindings>> substitutions;
+
+  void output(std::ostream &out) const override;
+};
+
+/**
+ * A term algebra inference on one literal of its single premise: the
+ * literal's index and, for generating injectivity, the index of the
+ * constructor argument among the term arguments.
+ */
+struct TermAlgebraLiteralExtra : public InferenceExtra {
+  TermAlgebraLiteralExtra(unsigned literal, unsigned argument = 0) : literal(literal), argument(argument) {}
+  unsigned literal;
+  unsigned argument;
+
+  void output(std::ostream &out) const override;
 };
 } // namespace Inferences
 

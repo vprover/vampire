@@ -38,6 +38,9 @@
 #include "Shell/NNF.hpp"
 #include "Shell/Rectify.hpp"
 #include "Shell/AnswerLiteralManager.hpp"
+#include "Shell/Options.hpp"
+
+#include "Inferences/ProofExtra.hpp"
 
 #include "Induction.hpp"
 
@@ -1042,8 +1045,11 @@ Clause* resolveClausesHelper(const InductionContext& context, const InductionIns
   ASS(eIt.hasNext());
   auto cl = indInst.cls[eIt.next()];
   auto premises = UnitList::singleton(cl);
+  Stack<Clause*> inductionClauses;
+  inductionClauses.push(cl);
   for (const auto& index : iterTraits(eIt)) {
     UnitList::push(indInst.cls[index],premises);
+    inductionClauses.push(indInst.cls[index]);
   }
 
   // This replaces the placeholder terms with the terms we induct on in the result literals.
@@ -1082,7 +1088,38 @@ Clause* resolveClausesHelper(const InductionContext& context, const InductionIns
     UnitList::push(cl, premises);
   }
 
-  return Clause::fromStack(*resLits, GeneratingInferenceMany(InferenceRule::INDUCTION_HYPERRESOLUTION, premises));
+  auto res = Clause::fromStack(*resLits, GeneratingInferenceMany(InferenceRule::INDUCTION_HYPERRESOLUTION, premises));
+
+  // The replay certificate: every premise variable's image in the conclusion.
+  auto proofExtra = env.options->proofExtra();
+  if (proofExtra == Options::ProofExtra::REPLAY || proofExtra == Options::ProofExtra::FULL) {
+    struct TermImage : public TermReplacement {
+      using TermReplacement::TermReplacement;
+      TermList of(TermList t) { return transform(t); }
+    } image(getContextReplacementMap(context, /*inverse=*/true));
+    auto extra = new InductionHyperresolutionExtra();
+    auto record = [&](Clause* premise, int bank) {
+      InductionHyperresolutionExtra::Bindings bindings;
+      std::set<unsigned> seen;
+      for (Literal* lit : premise->iterLits()) {
+        VariableIterator vit(lit);
+        while (vit.hasNext()) {
+          unsigned v = vit.next().var();
+          if (!seen.insert(v).second) { continue; }
+          bindings.emplace_back(v, image.of(indInst.subst.apply(TermList::var(v), bank)));
+        }
+      }
+      extra->substitutions.emplace_back(premise, std::move(bindings));
+    };
+    for (Clause* inductionClause : inductionClauses) {
+      record(inductionClause, INDUCTION_CLAUSE_BANK);
+    }
+    for (unsigned i = 0; i < context._cls.size(); i++) {
+      record(context._cls[i].first, NUM_SPECIAL_BANKS + i);
+    }
+    env.proofExtra.insert(res, extra);
+  }
+  return res;
 }
 
 void InductionClauseIterator::resolveClauses(const InductionInstance& indInst, const InductionContext& context)

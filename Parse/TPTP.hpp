@@ -782,6 +782,7 @@ private:
   void tag();
   void endFof();
   void endTff();
+  void datatypeDeclaration(bool codatatype);
   std::filesystem::path resolveInclude(const std::filesystem::path included);
   void include();
   void type();

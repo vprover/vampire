@@ -21,6 +21,7 @@
 #include "Shell/FunctionDefinition.hpp"
 #include "Shell/InferenceReplay.hpp"
 #include "Shell/Options.hpp"
+#include "Inferences/ProofExtra.hpp"
 
 #include <algorithm>
 #include <map>
@@ -779,6 +780,60 @@ std::string tptpAvatarSplitInstantiationReplayAnnotation(Unit* conclusion)
 }
 
 
+/**
+ * Certificates of Vampire's datatype inferences, recorded when the clause was
+ * created: `unifier([subs(fP,[b(X0,t),…]),…])` for induction hyperresolution,
+ * one entry per parent in printed order, and
+ * `term_algebra_literal(literal(fP,i))` (with `argument(j)` for generating
+ * injectivity) for the term algebra rules.
+ */
+std::string tptpDatatypeReplayAnnotation(Unit* unit)
+{
+  const auto* extra = env.proofExtra.find(unit);
+  if (!extra) { return ""; }
+  switch (unit->inference().rule()) {
+  case InferenceRule::INDUCTION_HYPERRESOLUTION: {
+    const auto* induction = static_cast<const Inferences::InductionHyperresolutionExtra*>(extra);
+    std::ostringstream out;
+    out << "unifier([";
+    bool first = true;
+    UnitIterator parents = unit->getParents();
+    while (parents.hasNext()) {
+      Unit* parent = parents.next();
+      auto entry = std::find_if(induction->substitutions.begin(), induction->substitutions.end(),
+        [parent](const auto& substitution) { return substitution.first == parent; });
+      if (entry == induction->substitutions.end()) { return ""; }
+      if (!first) { out << ','; }
+      first = false;
+      out << "subs(" << replayUnitId(parent) << ",[";
+      for (unsigned i = 0; i < entry->second.size(); ++i) {
+        if (i) { out << ','; }
+        out << "b(X" << entry->second[i].first << ',' << tptpReplayTerm(entry->second[i].second) << ')';
+      }
+      out << "])";
+    }
+    out << "])";
+    return out.str();
+  }
+  case InferenceRule::TERM_ALGEBRA_DISTINCTNESS:
+  case InferenceRule::TERM_ALGEBRA_POSITIVE_INJECTIVITY_SIMPLIFYING:
+  case InferenceRule::TERM_ALGEBRA_NEGATIVE_INJECTIVITY_SIMPLIFYING:
+  case InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING: {
+    const auto* literal = static_cast<const Inferences::TermAlgebraLiteralExtra*>(extra);
+    UnitIterator parents = unit->getParents();
+    if (!parents.hasNext()) { return ""; }
+    std::string result = "term_algebra_literal(literal(" + replayUnitId(parents.next()) + "," +
+      Int::toString(literal->literal) + "))";
+    if (unit->inference().rule() == InferenceRule::TERM_ALGEBRA_INJECTIVITY_GENERATING) {
+      result += ",term_algebra_argument(" + Int::toString(literal->argument) + ")";
+    }
+    return result;
+  }
+  default:
+    return "";
+  }
+}
+
 void InferenceStore::TPTPReplayProofPrinter::appendInferenceReplayAnnotations(
     Unit* unit, std::string& status,
     Shell::InferenceRecorder::InferenceReplayAnnotation& replay)
@@ -819,6 +874,7 @@ void InferenceStore::TPTPReplayProofPrinter::appendInferenceReplayAnnotations(
   }
   append(tptpDefinitionUnfoldingReplayAnnotation(unit));
   append(tptpAvatarSplitInstantiationReplayAnnotation(unit));
+  if (_replay) { append(tptpDatatypeReplayAnnotation(unit)); }
 }
 
 std::string InferenceStore::TPTPReplayProofPrinter::parentlessReplayAnnotation(
