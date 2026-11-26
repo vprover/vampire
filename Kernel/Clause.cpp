@@ -576,7 +576,7 @@ unsigned Clause::getNumeralWeight() const {
   return res;
 } // getNumeralWeight
 
-/** Whether the type arguments of @b t count under -hol_selection_weight other than off:
+/** Whether the type arguments of @b t count in the first-order-like weight:
  * those of signature symbols do, those added by the higher-order encoding do not. */
 static bool hasSignatureTypeArgs(Term *t)
 {
@@ -595,22 +595,11 @@ static bool isRigidHead(TermList head)
   return head.isTerm() && !head.term()->deBruijnIndex().isSome() && !head.term()->isLambdaTerm();
 }
 
-/**
- * The weight of the literals for clause selection under -hol_selection_weight @b mode.
- *
- * Every symbol and variable occurrence counts 1, as in the ordinary weight, except that, unless
- * @b mode is off, the sort arguments added by the higher-order encoding (and the sort of an
- * equality) do not count and, under fo_like, application nodes along a spine with a rigid head
- * do not count either. With @b mode off, this is exactly the ordinary weight (computeWeight()).
- */
-static unsigned customSelectionWeight(const Clause &cl, Options::HolSelectionWeight mode)
+unsigned Clause::foLikeWeight() const
 {
-  using Mode = Options::HolSelectionWeight;
-  const bool allSorts = mode == Mode::OFF;
-
-  auto typeArgsWeight = [allSorts](Term *t) {
+  auto typeArgsWeight = [](Term *t) {
     unsigned w = 0;
-    if (allSorts || hasSignatureTypeArgs(t)) {
+    if (hasSignatureTypeArgs(t)) {
       for (unsigned i = 0; i < t->numTypeArguments(); i++) {
         w += t->typeArg(i).weight();
       }
@@ -620,19 +609,13 @@ static unsigned customSelectionWeight(const Clause &cl, Options::HolSelectionWei
 
   unsigned result = 0;
   Recycled<Stack<TermList>> todo;
-  for (Literal *lit : cl.iterLits()) {
+  for (Literal *lit : iterLits()) {
     if (lit->isTwoVarEquality()) {
-      // the ordinary weight is 3 + (sort weight - 1), see TermSharing::computeAndSetSharedVarEqData
-      result += 3 + (allSorts ? lit->twoVarEqSort().weight() - 1 : 0);
+      result += 3; // the equality and its two variables
       continue;
     }
     result += 1;
-    if (lit->isEquality()) {
-      if (allSorts) {
-        result += SortHelper::getEqualityArgumentSort(lit).weight() - 1;
-      }
-    }
-    else {
+    if (!lit->isEquality()) { // the sort of an equality does not count
       result += typeArgsWeight(lit);
     }
     todo->loadFromIterator(termArgIter(lit));
@@ -654,8 +637,8 @@ static unsigned customSelectionWeight(const Clause &cl, Options::HolSelectionWei
         todo->loadFromIterator(termArgIter(trm));
         continue;
       }
-      // an application: walk down its whole spine h @ a1 @ ... @ an at once, as the treatment
-      // of its @ nodes depends on the head h
+      // an application: walk down its whole spine h @ a1 @ ... @ an at once,
+      // as its @ nodes count only if the head h is not rigid
       unsigned spineLength = 0;
       TermList head = t;
       while (head.isTerm() && head.term()->isApplication()) {
@@ -666,33 +649,20 @@ static unsigned customSelectionWeight(const Clause &cl, Options::HolSelectionWei
         head = node->termArg(0);
       }
       todo->push(head);
-      if (mode != Mode::FO_LIKE || !isRigidHead(head)) {
+      if (!isRigidHead(head)) {
         result += spineLength;
       }
     }
   }
   return result;
-} // customSelectionWeight
-
-unsigned Clause::customLiteralWeightForClauseSelection(const Options &opt) const
-{
-  return customSelectionWeight(*this, opt.holSelectionWeight());
-}
-
-unsigned Clause::literalWeightForClauseSelection(const Options &opt) const
-{
-  if (opt.holSelectionWeight() != Options::HolSelectionWeight::OFF) {
-    return customLiteralWeightForClauseSelection(opt);
-  }
-  return _weight ? _weight : computeWeight();
-}
+} // Clause::foLikeWeight
 
 /**
  * compute weight of the clause used by clause selection and cache it
  */
 unsigned Clause::computeWeightForClauseSelection(const Options& opt) const
 {
-  unsigned w = literalWeightForClauseSelection(opt);
+  unsigned w = opt.holFoWeight() ? foLikeWeight() : weight();
 
   unsigned splWeight = 0;
   if (opt.nonliteralsInClauseWeight()) {

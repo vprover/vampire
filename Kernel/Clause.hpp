@@ -226,13 +226,13 @@ public:
   unsigned computeWeightForClauseSelection(const Shell::Options& opt) const;
 
   /**
-   * The literal part of the weight for clause selection: the ordinary weight, unless
-   * -hol_selection_weight says otherwise.
+   * A first-order-like weight of the literals, used for clause selection under -hol_fo_weight.
+   * Every symbol and variable occurrence counts 1, as in weight(), except that the sort arguments
+   * added by the higher-order encoding (on applications, lambdas, de Bruijn indices, proxies and
+   * choice) and the sort of an equality do not count, and neither do the application nodes along
+   * a spine whose head is a symbol, so f @ a @ b weighs like f(a,b).
    */
-  unsigned literalWeightForClauseSelection(const Shell::Options &opt) const;
-  /** The traversal behind literalWeightForClauseSelection(), run even when -hol_selection_weight
-   * is off (it then equals weight(), which the unit tests check). */
-  unsigned customLiteralWeightForClauseSelection(const Shell::Options &opt) const;
+  unsigned foLikeWeight() const;
 
   /*
    * single source of truth for computation of weightForClauseSelection

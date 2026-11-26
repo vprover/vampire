@@ -50,6 +50,7 @@ set(UNIT_TESTS
     UnitTests/tDeque.cpp
     UnitTests/tDisagreement.cpp
     UnitTests/tDynamicHeap.cpp
+    UnitTests/tFoLikeWeight.cpp
     UnitTests/tFunctionDefinitionHandler.cpp
     UnitTests/tHash.cpp
     UnitTests/tIndexManager.cpp
@@ -110,7 +111,6 @@ set(UNIT_TESTS
     UnitTests/tSATClause.cpp
     UnitTests/tSATSolver.cpp
     UnitTests/tSATSubsumptionResolution.cpp
-    UnitTests/tSelectionWeight.cpp
     UnitTests/tSet.cpp
     UnitTests/tSimpleCongruenceClosure.cpp
     UnitTests/tSkipList.cpp
