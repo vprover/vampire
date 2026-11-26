@@ -68,20 +68,23 @@ class Signature
     >;
   using SymbolMap = Map<SymbolKey, unsigned, SymbolKeyHash>;
  public:
-  /** Function or predicate symbol */
-  
+
+  /** INTERNAL TYPE CONSTRUCTORS */
+
+  /** The super sort, underlying all type constructors */
+  static constexpr unsigned SUPER_SORT_CON=0;
   /** The default sort of all individuals, always in the non-sorted case */  
-  static const unsigned DEFAULT_SORT_CON=0;
+  static constexpr unsigned DEFAULT_SORT_CON=1;
   /** Boolean sort */
-  static const unsigned BOOL_SRT_CON=1;
+  static constexpr unsigned BOOL_SORT_CON=2;
   /** sort of integers */
-  static const unsigned INTEGER_SRT_CON=2;
+  static constexpr unsigned INTEGER_SORT_CON=3;
   /** sort of rationals */
-  static const unsigned RATIONAL_SRT_CON=3;
+  static constexpr unsigned RATIONAL_SORT_CON=4;
   /** sort of reals */  
-  static const unsigned REAL_SRT_CON=4;
+  static constexpr unsigned REAL_SORT_CON=5;
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
-  static const unsigned FIRST_USER_CON=5;
+  static constexpr unsigned FIRST_USER_CON=6;
   
   class Symbol {
     friend class Signature;
@@ -658,16 +661,12 @@ class Signature
     return con < FIRST_USER_CON;
   }
 
-  bool isInterpretedNonDefault(unsigned con) const{
+  bool isInterpretedNonDefault(unsigned con) const {
     return con < FIRST_USER_CON && con != DEFAULT_SORT_CON;    
   }
 
   bool isNonDefaultCon(unsigned con) const{
     return con >= FIRST_USER_CON;    
-  }
-
-  bool isBoolCon(unsigned con) const{
-    return con == BOOL_SRT_CON;    
   }
 
   bool isTupleCon(unsigned con) {
@@ -756,26 +755,6 @@ class Signature
   bool isFoolConstantSymbol(bool isTrue, unsigned number){
     if(!_foolConstantsDefined) return false;
     return isTrue ? number==_foolTrue : number==_foolFalse;
-  }
-
-  unsigned getDefaultSort(){
-    return addTypeCon("$i", 0)->number();
-  }
-
-  unsigned getBoolSort(){
-    return addTypeCon("$o", 0)->number();
-  }
-
-  unsigned getRealSort(){
-    return addTypeCon("$real", 0)->number();
-  }
-
-  unsigned getIntSort(){
-    return addTypeCon("$int", 0)->number();
-  }  
-
-  unsigned getRatSort(){
-    return addTypeCon("$rat", 0)->number();
   }
 
   unsigned getArrowConstructor(){
@@ -894,6 +873,13 @@ private:
   static void registerSymbol(Stack<Symbol*>& symbols, Symbol* symbol) {
     ASS_EQ(symbol->number(), symbols.size());
     symbols.push(symbol);
+  }
+
+  void addInternalTypeCon(unsigned number, std::string name, OperatorType* type) {
+    registerSymbol(_typeCons, new Symbol(number, name, type, /* interpreted */ false, /* preventQuoting */ false));
+    auto k = key(name,type->arity());
+    ASS(!_typeConNames.find(k));
+    _typeConNames.insert(k,number);
   }
 
   Stack<TermList> _dividesNvalues;

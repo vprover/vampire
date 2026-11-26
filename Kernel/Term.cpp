@@ -333,7 +333,7 @@ bool AtomicSort::isArrowSort() const {
 }
 
 bool AtomicSort::isBoolSort() const {
-  return env.signature->isBoolCon(_functor);
+  return _functor == Signature::BOOL_SORT_CON;
 }
 
 bool AtomicSort::isArraySort() const {
@@ -1175,37 +1175,35 @@ Term* Term::foolFalse(){
 }
 
 /*
- * NOTE: by design the term that represent $tType is not shared
- * and also is not linked to a symbol in the signature.
+ * NOTE: by design the term that represent $tType is not shared.
  */
 TermList AtomicSort::superSort(){
-  // TODO this can technically collide with any sort term that uses 0 as functor
-  static AtomicSort* _super = new(0) AtomicSort(0, 0);
+  static auto _super = new(0) AtomicSort(Signature::SUPER_SORT_CON, 0);
   return TermList(_super);
 }
 
 TermList AtomicSort::defaultSort(){
-  static AtomicSort* _default = createConstant(env.signature->getDefaultSort());
+  static auto _default = createConstant(Signature::DEFAULT_SORT_CON);
   return TermList(_default);
 }
 
 TermList AtomicSort::boolSort(){
-  static AtomicSort* _bool = createConstant(env.signature->getBoolSort());
+  static auto _bool = createConstant(Signature::BOOL_SORT_CON);
   return TermList(_bool);
 }
 
 TermList AtomicSort::intSort(){
-  static AtomicSort* _int = createConstant(env.signature->getIntSort());
+  static auto _int = createConstant(Signature::INTEGER_SORT_CON);
   return TermList(_int);
 }
 
 TermList AtomicSort::realSort(){
-  static AtomicSort* _real = createConstant(env.signature->getRealSort());
+  static auto _real = createConstant(Signature::REAL_SORT_CON);
   return TermList(_real);
 }
 
 TermList AtomicSort::rationalSort(){
-  static AtomicSort* _rat = createConstant(env.signature->getRatSort());
+  static auto _rat = createConstant(Signature::RATIONAL_SORT_CON);
   return TermList(_rat);
 }
 

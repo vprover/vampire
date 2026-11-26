@@ -337,13 +337,13 @@ static std::ostream &operator<<(std::ostream &out, SortName<Prefix> name) {
   switch(name.functor) {
   case Signature::DEFAULT_SORT_CON:
     return out << prefix << "iota";
-  case Signature::BOOL_SRT_CON:
+  case Signature::BOOL_SORT_CON:
     return out << prefix << "Bool";
-  case Signature::INTEGER_SRT_CON:
+  case Signature::INTEGER_SORT_CON:
     return out << prefix << "Int";
   // SMT-LIB doesn't have rationals
-  case Signature::RATIONAL_SRT_CON:
-  case Signature::REAL_SRT_CON:
+  case Signature::RATIONAL_SORT_CON:
+  case Signature::REAL_SORT_CON:
     return out << prefix << "Real";
   }
   return out << '|' << prefix << '_' << env.signature->getTypeCon(name.functor)->name() << '|';

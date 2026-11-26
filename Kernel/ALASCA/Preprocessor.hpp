@@ -177,7 +177,7 @@ class AlascaPreprocessor
 
   unsigned integerTypeConsConversion(unsigned f)
   {
-    if (env.signature->getIntSort() == f) { return env.signature->getRealSort(); }
+    if (Signature::INTEGER_SORT_CON == f) { return Signature::REAL_SORT_CON; }
     return f;
   }
 

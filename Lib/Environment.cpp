@@ -49,16 +49,6 @@ Environment::Environment()
 
   //view comment in Signature.cpp
   signature->addEquality();
-  // These functions are called here in order to ensure the order
-  // of creation of these sorts. The order is VITAL. 
-  //
-  // A number of places in the code rely on the type constructor for
-  // $i being 0, that for $o being 1 and so on.
-  AtomicSort::defaultSort();
-  AtomicSort::boolSort();
-  AtomicSort::intSort();
-  AtomicSort::realSort();
-  AtomicSort::rationalSort();
 } // Environment::Environment
 
 Environment::~Environment()

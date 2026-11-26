@@ -188,6 +188,12 @@ Signature::Signature ():
     _termAlgebras()
 {
   ALWAYS(createDistinctGroup() == STRING_DISTINCT_GROUP);
+  addInternalTypeCon(SUPER_SORT_CON, "$tType", OperatorType::getSuperType());
+  addInternalTypeCon(DEFAULT_SORT_CON, "$i", OperatorType::getTypeConType(0));
+  addInternalTypeCon(BOOL_SORT_CON, "$o", OperatorType::getTypeConType(0));
+  addInternalTypeCon(INTEGER_SORT_CON, "$int", OperatorType::getTypeConType(0));
+  addInternalTypeCon(RATIONAL_SORT_CON, "$rat", OperatorType::getTypeConType(0));
+  addInternalTypeCon(REAL_SORT_CON, "$real", OperatorType::getTypeConType(0));
 } // Signature::Signature
 
 /* Adding equality predicate used to be carried out in the constructor.

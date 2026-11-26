@@ -163,7 +163,7 @@ std::string FiniteModelMultiSorted::toString()
       continue;
 
     std::string sortName = env.signature->typeConName(s);
-    std::string sortNameLabel = (env.signature->isBoolCon(s)) ? "bool" : sortName;
+    std::string sortNameLabel = s == Signature::BOOL_SORT_CON ? "bool" : sortName;
 
     // skip declaring $i, we know what it is
     if(!env.signature->isDefaultSortCon(s))

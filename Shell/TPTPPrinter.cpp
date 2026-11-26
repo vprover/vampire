@@ -51,7 +51,6 @@ using TPTPOutput::disjunction;
 using TPTPOutput::InputName;
 using TPTPOutput::Language;
 using TPTPOutput::Reference;
-using TPTPOutput::variableRef;
 using TPTPOutput::QuantifiedVariables;
 using TPTPOutput::quantified;
 namespace Role = TPTPOutput::Role;
@@ -180,7 +179,7 @@ bool needsTPTPTypeDeclaration(SymbolType type, unsigned number)
     if (sig.isArrayCon(number) || sig.isTupleCon(number) || sig.isArrowCon(number)) {
       return false;
     }
-    if (sig.isDefaultSortCon(number) && (!sig.isBoolCon(number) || !env.options->showFOOL())) {
+    if (sig.isDefaultSortCon(number) && (number != Signature::BOOL_SORT_CON || !env.options->showFOOL())) {
       return false;
     }
     break;
@@ -225,7 +224,7 @@ void printSymbolDeclarationsOfType(std::ostream& out, Language language, SymbolT
     }
     const Signature::Symbol* symbol = env.signature->getSymbol(type, number);
     out << language << '(' << Reference{namePrefix, number} << ',' << Role::TYPE << ',';
-    if (type == SymbolType::TYPE_CON && env.signature->isBoolCon(number)) {
+    if (type == SymbolType::TYPE_CON && number == Signature::BOOL_SORT_CON) {
       ASS(env.options->showFOOL());
       out << "$bool";
     } else {

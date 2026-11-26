@@ -68,7 +68,7 @@ private:
   unsigned _typeArgsArity; /** number of quantified variables of this type */
 
   // constructors kept private
-  OperatorType(OperatorKey* key, unsigned vLength) : _key(key), _typeArgsArity(vLength) {}
+  OperatorType(OperatorKey* key, unsigned typeArity) : _key(key), _typeArgsArity(typeArity) {}
 
   /**
    * Convenience functions for creating a key
@@ -149,6 +149,12 @@ public:
    */
   static OperatorType* getTypeConType(unsigned arity) {
     return getFunctionTypeUniformRange(arity, AtomicSort::superSort(), AtomicSort::superSort());
+  }
+
+  static OperatorType* getSuperType() {
+    static auto key = OperatorKey::allocate(1);
+    static OperatorType type(key, 0);
+    return &type;
   }
 
   OperatorKey* key() const { return _key; }

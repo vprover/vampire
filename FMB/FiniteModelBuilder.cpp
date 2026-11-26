@@ -1831,7 +1831,7 @@ void FiniteModelBuilder::onModelFound()
   vampireSortSizes.ensure(env.signature->typeCons());
   for(unsigned vSort=0;vSort<env.signature->typeCons();vSort++){
     unsigned size = 1;
-    if(env.signature->isInterpretedNonDefault(vSort) && !env.signature->isBoolCon(vSort)){ size=0;}
+    if(env.signature->isInterpretedNonDefault(vSort) && vSort != Signature::BOOL_SORT_CON){ size=0;}
     unsigned dsort;
     if(_sortedSignature->vampireToDistinctParent.find(vSort,dsort)){
       size = _distinctSortSizes[dsort];
