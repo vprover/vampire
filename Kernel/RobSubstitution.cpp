@@ -316,8 +316,11 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
     // Inside a lambda body, an ordinary variable must not be bound to a term with a loose
-    // de Bruijn index: it stands for a term outside the binder. (Special variables of the
-    // substitution trees stand for subterm positions, so they may; cf. CodeTree's matching.)
+    // de Bruijn index: it stands for a term outside the binder (the rule code-tree matching
+    // applies in CodeTree::Matcher::doAssignVar). Special variables of the substitution trees
+    // stand for subterm positions, so they may; a special variable's binding can still bring a
+    // loose index into an ordinary variable's binding later, which is why retrieval post-filters
+    // with RetrievalAlgorithms::keepsDBIndicesBound.
     } else if(dt1.isVar() && (dt1.term.isSpecialVar() || !dt2.term.containsLooseDBIndex()) && !occurs(dt1.varSpec(), dt2)) {
       bind(dt1.varSpec(), dt2);
 
