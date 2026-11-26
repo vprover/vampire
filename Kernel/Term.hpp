@@ -43,7 +43,7 @@
 #include "Lib/Recycled.hpp"
 
 // the number of bits used for "TermList::_info::distinctVars"
-#define TERM_DIST_VAR_BITS 19
+#define TERM_DIST_VAR_BITS 20
 // maximum number that fits in a TERM_DIST_VAR_BITS-bit unsigned integer
 #define TERM_DIST_VAR_UNKNOWN ((1 << TERM_DIST_VAR_BITS)-1)
 
@@ -265,7 +265,6 @@ public:
   static bool sameTop(TermList ss, TermList tt);
   static bool sameTopFunctor(TermList ss, TermList tt);
   static bool equals(TermList t1, TermList t2);
-  static bool allShared(TermList* args);
   static TermList var(unsigned var, bool special = false) { return TermList(var, special); }
   /** if not var, the inner term must be shared */
   unsigned weight() const;
@@ -298,16 +297,11 @@ public:
   TermList rhs() const;
   TermList lambdaBody() const;
   TermList head() const;
-  std::pair<TermList, TermList> asPair() const;
   TermList domain() const;
   TermList result() const;
   TermList resultSort() const;
   TermList replaceSubterm(TermList what, TermList by, bool liftFreeIndices = false) const;
   /* End higher-order terms */
-
-#if VDEBUG
-  void assertValid() const;
-#endif
 
   inline bool operator==(const TermList& t) const
   { return _content==t._content; }
@@ -340,8 +334,6 @@ private:
     unsigned literal : 1;
     /** true if atomic sort */
     unsigned sort : 1;
-    /** true if term contains at least one term var */
-    unsigned hasTermVar : 1;
     /** Ordering comparison result for commutative term arguments, one of
      * 0 (unknown) 1 (less), 2 (equal), 3 (greater), 4 (incomparable)
      * @see Term::ArgumentOrder */
@@ -368,14 +360,13 @@ private:
     BITFIELD_MEMBER(bool, _hasLambda, _setHasLambda, 1,
     BITFIELD_MEMBER(bool, _hasBetaRedex, _setHasBetaRedex, 1,
     BITFIELD_MEMBER(bool, _hasEtaRedex, _setHasEtaRedex, 1,
-    BITFIELD_MEMBER(bool, _hasTermVar, _setHasTermVar, 1,
     BITFIELD_MEMBER(bool, _sort, _setSort, 1,
     BITFIELD_MEMBER(bool, _literal, _setLiteral, 1,
     BITFIELD_MEMBER(bool, _shared, _setShared, 1,
     BITFIELD_MEMBER(bool, _polarity, _setPolarity, 1,
     BITFIELD_MEMBER(unsigned, _tag, _setTag, TERM_TAG_BITS,
     END_BITFIELD
-  )))))))))))))
+  ))))))))))))
   BITFIELD_PTR_GET(Term, _term, 0)
   BITFIELD_PTR_SET(Term, _setTerm, 0)
 
@@ -481,9 +472,6 @@ public:
     return Term::create(fn, *stack); 
   }
   static Term* create(Term* t,TermList* args);
-  static Term* createNonShared(unsigned function, unsigned arity, TermList* arg);
-  static Term* createNonShared(Term* t,TermList* args);
-  static Term* createNonShared(Term* t);
   static Term* cloneNonShared(Term* t);
 
   /** Create a new constant and insert in into the sharing structure */
@@ -655,14 +643,6 @@ public:
     return numVarOccs() == 0;
   } // ground
 
-  /** True if the term contains a term variable (type variables don't count)
-   *  Only applicable to shared terms */
-  bool hasTermVar() const
-  {
-    ASS(shared());
-    return info()._hasTermVar();
-  } // ground
-
   /** True if the term is shared */
   bool shared() const
   { return info()._shared(); } // shared
@@ -728,12 +708,6 @@ public:
     }
     _vars = v;
   } // setVars
-
-  void setHasTermVar(bool b)
-  {
-    ASS(shared() && !isSort())
-    info()._setHasTermVar(b);
-  }
 
   /** Return the number of variable _occurrences_ */
   unsigned numVarOccs() const
@@ -826,12 +800,6 @@ public:
     return res;
   }
 
-#if VDEBUG
-  std::string headerToString() const;
-  void assertValid() const;
-#endif
-
-
   static TermIterator getVariableIterator(TermList tl);
 
   // the number of _distinct_ variables within the term
@@ -847,16 +815,6 @@ public:
       ASS_L(info()._distinctVars(),0x100000);
       return info()._distinctVars();
     }
-  }
-
-  bool couldBeInstanceOf(Term* t)
-  {
-    ASS(shared());
-    ASS(t->shared());
-    if(t->functor()!=functor()) {
-      return false;
-    }
-    return true;
   }
 
   bool containsSubterm(TermList v) const;
@@ -887,7 +845,7 @@ public:
    * everything below it, and left all of it unchanged, so that a later evaluation
    * can skip the whole subtree.
    *
-   * Unlike weight(), color() or hasTermVar(), this is not a property of the term
+   * Unlike weight() or color(), this is not a property of the term
    * but a cache belonging to one particular evaluator (much like _kboWeight belongs
    * to one KBO). The owner is the single InterpretedEvaluation of a saturation run;
    * nobody else may set it, and every other user of InterpretedLiteralEvaluator
@@ -1020,7 +978,7 @@ class AtomicSort
   : public Term
 {
 public:
-  AtomicSort();
+  AtomicSort() = default;
   explicit AtomicSort(const AtomicSort& t) throw();
 
   AtomicSort(unsigned functor,unsigned arity) throw()
@@ -1034,9 +992,7 @@ public:
   static AtomicSort* create(unsigned typeCon, unsigned arity, const TermList* args);
   static AtomicSort* create2(unsigned tc, TermList arg1, TermList arg2);
   static AtomicSort* create(AtomicSort const* t,TermList* args);
-  static AtomicSort* createNonShared(AtomicSort const* sort,TermList* args);
   static AtomicSort* createConstant(unsigned typeCon) { return create(typeCon,0,0); }
-  static AtomicSort* createConstant(const std::string& name);
 
   /** True if the sort is a higher-order arrow sort */
   bool isArrowSort() const;
@@ -1064,10 +1020,6 @@ public:
   static TermList intSort();
   static TermList realSort();
   static TermList rationalSort();
-
-private:
-
-  static AtomicSort* createNonShared(unsigned typeCon, unsigned arity, TermList* arg);
 };
 
 /**
@@ -1082,7 +1034,7 @@ public:
   bool isEquality() const
   { return functor() == 0; }
 
-  Literal();
+  Literal() = default;
   explicit Literal(const Literal& l) throw();
 
   /**

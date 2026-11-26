@@ -200,12 +200,6 @@ TermList TermList::head() const {
   return trm;
 }
 
-std::pair<TermList, TermList> TermList::asPair() const {
-  ASS(isArrowSort())
-
-  return {domain(), result()};
-}
-
 TermList TermList::domain() const {
   ASS(isArrowSort())
 
@@ -305,20 +299,6 @@ bool TermList::equals(TermList t1, TermList t2)
       stack.push(ss->next());
       stack.push(tt->next());
     }
-  }
-  return true;
-}
-
-/**
- * Return true if all proper terms in the @ args list are shared
- */
-bool TermList::allShared(TermList* args)
-{
-  while (args->isNonEmpty()) {
-    if (args->isTerm() && !args->term()->shared()) {
-      return false;
-    }
-    args = args->next();
   }
   return true;
 }
@@ -425,9 +405,8 @@ bool Term::containsSubterm(TermList trm) const
       stack.push(ts->next());
     }
     if (ts->isTerm()) {
-      ASSERT_VALID(*ts->term());
       if (ts->term()->arity()) {
-	stack.push(ts->term()->args());
+        stack.push(ts->term()->args());
       }
     }
     if (stack.isEmpty()) {
@@ -1050,48 +1029,6 @@ Term* Term::create(unsigned function, unsigned arity, const TermList* args)
   }
 }
 
-/** Create a new complex term, copy from @b t its function symbol and
- *  from the array @b args its arguments. Do not insert it into the sharing
- *  structure.
- * @since 07/01/2008 Torrevieja
- */
-Term* Term::createNonShared(Term* t,TermList* args)
-{
-  int arity = t->arity();
-  Term* s = new(arity) Term(*t);
-  s->_evalNormalForm = 0; // only shared terms carry this cache, @see isEvalNormalForm()
-  TermList* ss = s->args();
-  for (int i = 0;i < arity;i++) {
-    ASS(!args[i].isEmpty());
-    *ss-- = args[i];
-  }
-  return s;
-} // Term::createNonShared(const Term* t,Term* args)
-
-
-
-/** Create a new complex term, and do not insert it into the sharing
- *  structure.
- */
-Term* Term::createNonShared(unsigned function, unsigned arity, TermList* args)
-{
-  ASS_EQ(env.signature->functionArity(function), arity);
-
-  Term* s = new(arity) Term;
-  s->makeSymbol(function,arity);
-
-  TermList* ss = s->args();
-
-  TermList* curArg = args;
-  TermList* argStopper = args+arity;
-  while (curArg!=argStopper) {
-    *ss = *curArg;
-    --ss;
-    ++curArg;
-  }
-  return s;
-}
-
 /**
  * Create a (condition ? thenBranch : elseBranch) expression
  * and return the resulting term
@@ -1197,21 +1134,6 @@ Term *Term::createMatch(TermList sort, TermList matchedSort, unsigned int arity,
 
   return s;
 }
-
-/** Create a new complex term, copy from @b t its function symbol and arity.
- *  Initialize its arguments by a dummy special variable.
- */
-Term* Term::createNonShared(Term* t)
-{
-  int arity = t->arity();
-  Term* s = new(arity) Term(*t);
-  s->_evalNormalForm = 0; // only shared terms carry this cache, @see isEvalNormalForm()
-  TermList* ss = s->args();
-  for (int i = 0;i < arity;i++) {
-    (*ss--).makeSpecialVar(0);
-  }
-  return s;
-} // Term::createNonShared(const Term* t)
 
 /** Create clone of complex term @b t. Do not insert it into the sharing
  *  structure.
@@ -1325,11 +1247,6 @@ TermList AtomicSort::arrowSort(const TermStack& domSorts, TermList range, bool f
   }
 
   return res;
-}
-
-AtomicSort* AtomicSort::createConstant(const std::string& name)
-{
-  return createConstant(env.signature->addTypeCon(name,0)->number());
 }
 
 TermList AtomicSort::arraySort(TermList indexSort, TermList innerSort)
@@ -1470,43 +1387,10 @@ AtomicSort* AtomicSort::create(AtomicSort const* sort,TermList* args)
   return AtomicSort::create(sort->functor(), sort->arity(), args);
 }
 
-AtomicSort* AtomicSort::createNonShared(AtomicSort const* sort,TermList* args) {
-  int arity = sort->arity();
-  AtomicSort* s = new(arity) AtomicSort(*sort);
-
-  TermList* ss = s->args();
-  for (int i = 0; i < arity; i++) {
-    ASS(!args[i].isEmpty())
-    *ss-- = args[i];
-  }
-  return s;
-}
-
 AtomicSort* AtomicSort::create2(unsigned tc, TermList arg1, TermList arg2)
 {
   TermList args[] = {arg1, arg2};
   return AtomicSort::create(tc, 2, args);
-}
-
-
-/** Create a new complex sort, and do not insert it into the sharing
- *  structure.
- */
-AtomicSort* AtomicSort::createNonShared(unsigned typeCon, unsigned arity, TermList* args)
-{
-  ASS_EQ(env.signature->typeConArity(typeCon), arity);
-
-  AtomicSort* s = new(arity) AtomicSort(typeCon, arity);
-  TermList* ss = s->args();
-
-  TermList* curArg = args;
-  TermList* argStopper = args+arity;
-  while (curArg!=argStopper) {
-    *ss = *curArg;
-    --ss;
-    ++curArg;
-  }
-  return s;
 }
 
 /**
@@ -1702,45 +1586,6 @@ Term::Term() throw()
   info()._setTag(FUN);
   info()._setDistinctVars(TERM_DIST_VAR_UNKNOWN);
 } // Term::Term
-
-Literal::Literal()
-{
-}
-
-AtomicSort::AtomicSort()
-{
-}
-
-#if VDEBUG
-std::string Term::headerToString() const
-{
-  std::string s("functor: ");
-  s += Int::toString(_functor) + ", arity: " + Int::toString(_arity)
-    + ", weight: " + Int::toString(_weight)
-    + ", vars: " + Int::toString(_vars)
-    + ", polarity: " + Int::toString(info()._polarity())
-    + ", shared: " + Int::toString(info()._shared())
-    + ", literal: " + Int::toString(info()._literal())
-    + ", order: " + Int::toString(info()._order())
-    + ", tag: " + Int::toString(info()._tag());
-  return s;
-}
-
-void Term::assertValid() const
-{
-  ASS_ALLOC_TYPE(this, "Term");
-  ASS_EQ(info()._tag(), FUN);
-}
-
-void TermList::assertValid() const
-{
-  if (this->isTerm()) {
-    ASS_ALLOC_TYPE(_term, "Term");
-    ASS_EQ(_term()->info()._tag(), FUN);
-  }
-}
-
-#endif
 
 std::ostream& Kernel::operator<<(std::ostream& out, TermList const& tl)
 {

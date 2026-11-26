@@ -73,17 +73,6 @@ static OperatorType* getType(Term const* t)
 static bool mayBeShared(TermList t)
 { return !t.isSpecialVar() && (!t.isTerm() || t.term()->shared()); }
 
-/** whether a sort built out of @c t's first @c typeArity arguments may be shared */
-static bool typeArgsMayBeShared(const Term* t, unsigned typeArity)
-{
-  for(unsigned i = 0; i < typeArity; i++){
-    if(!mayBeShared(*t->nthArgument(i))){
-      return false;
-    }
-  }
-  return true;
-}
-
 /**
  * The substitution that instantiates a symbol's declared sorts at a particular term is
  * always the same shape: OperatorType::quantifiedVar(i) is simply variable i, and it goes
@@ -98,23 +87,19 @@ private:
   const Term* _t;
 };
 
-bool SortHelper::getTypeSub(const Term* t, Substitution& subst)
+void SortHelper::getTypeSub(const Term* t, Substitution& subst)
 {
   OperatorType* ot       = getType(t);
   unsigned typeArgsArity = ot->numTypeArguments();
 
-  bool resultShared = true;
   auto *typeArg = const_cast<TermList *>(t->args());
   for(unsigned i = 0; i < typeArgsArity; i++){
     TermList var = ot->quantifiedVar(i);
     ASS_REP(var.isVar(), t->toString());
-    if (!mayBeShared(*typeArg))
-      resultShared = false;
 
     subst.bindUnbound(var.var(), *typeArg);
     typeArg = typeArg->next();
   }
-  return resultShared;
 } // getTypeSub
 
 /** Instantiate @c declaredSort, one of @c t's symbol's declared sorts, at @c t. */
@@ -127,7 +112,7 @@ static TermList instantiate(TermList declaredSort, const Term* t, unsigned typeA
     return declaredSort;
   }
   TypeArgApplicator applicator(t);
-  return SubstHelper::apply(declaredSort, applicator, !typeArgsMayBeShared(t, typeArity));
+  return SubstHelper::apply(declaredSort, applicator);
 }
 
 /**
@@ -862,16 +847,9 @@ bool SortHelper::areImmediateSortsValidMono(Term* t)
  */
 bool SortHelper::allTopLevelArgsAreSorts(AtomicSort* sort)
 {
-  for(unsigned i = 0; i < sort->arity(); i++){
-    TermList arg = *sort->nthArgument(i);
-    if(arg.isVar()){
-      continue;
-    }
-    if(!arg.term()->isSort()){
-      return false;
-    }
-  }
-  return true;
+  return anyArgIter(sort).all([](TermList arg) {
+    return arg.isVar() || arg.term()->isSort();
+  });
 }
 
 TermList SortHelper::getIndexSort(TermList arraySort)

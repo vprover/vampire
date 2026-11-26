@@ -165,9 +165,9 @@ class OverlayBinder
       }
     }
 
-    TermList applyTo(TermList t, bool noSharing = false) const
+    TermList applyTo(TermList t) const
     {
-      return SubstHelper::apply(t, *this, noSharing);
+      return SubstHelper::apply(t, *this);
     }
 
     Literal* applyTo(Literal* l) const
@@ -176,10 +176,10 @@ class OverlayBinder
     }
 
     /// Like applyTo, but all unbound variables are shifted by unboundVarOffset
-    TermList applyWithUnboundVariableOffsetTo(TermList t, Var unboundVarOffset, bool noSharing = false) const
+    TermList applyWithUnboundVariableOffsetTo(TermList t, Var unboundVarOffset) const
     {
       UnboundVariableOffsetApplicator applicator(*this, unboundVarOffset);
-      return SubstHelper::apply(t, applicator, noSharing);
+      return SubstHelper::apply(t, applicator);
     }
 
   public:
@@ -369,8 +369,8 @@ bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Ap
       if (vars.find(vit2.next().var()) == vars.end()) {
 #if VDEBUG
         {
-          TermList termS = SubstHelper::apply(term, applicator, /* no sharing = */ true);
-          TermList otherS = SubstHelper::apply(other, applicator, /* no sharing = */ true);
+          TermList termS = SubstHelper::apply(term, applicator);
+          TermList otherS = SubstHelper::apply(other, applicator);
           ASS(!termS.containsAllVariablesOf(otherS));
           if (termS.isTerm()) { termS.term()->destroyNonShared(); }
           if (otherS.isTerm()) { otherS.term()->destroyNonShared(); }
@@ -383,8 +383,8 @@ bool termContainsAllVariablesOfOtherUnderSubst(TermList term, TermList other, Ap
 
 #if VDEBUG
   {
-      TermList termS = SubstHelper::apply(term, applicator, /* no sharing = */ true);
-      TermList otherS = SubstHelper::apply(other, applicator, /* no sharing = */ true);
+      TermList termS = SubstHelper::apply(term, applicator);
+      TermList otherS = SubstHelper::apply(other, applicator);
       ASS(termS.containsAllVariablesOf(otherS));
       if (termS.isTerm()) { termS.term()->destroyNonShared(); }
       if (otherS.isTerm()) { otherS.term()->destroyNonShared(); }

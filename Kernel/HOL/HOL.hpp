@@ -95,7 +95,7 @@ TermStack getAbstractionTerms(Literal* lit);
 namespace HOL::create {
   TermList app(TermList sort, TermList head, TermList arg);
   TermList app(TermList head, TermList arg);
-  TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared = true);
+  TermList app(TermList s1, TermList s2, TermList arg1, TermList arg2);
   // With head h and a stack or arguments (a1,...an) from bottom to top, we get h @ an @ ... @ a1
   // with fromTop = true, while h @ a1 @ ... @ an with fromTop = false.
   // TODO(HOL): I think due to the default fromTop==true, some call sites might be wrong, double check

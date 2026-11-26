@@ -236,11 +236,6 @@ public:
     _mayHaveXEqualsY = false;
   }
 
-#if VDEBUG
-  //debugging functions
-  void assertValid();
-#endif
-
 private:
 
   void initValues();

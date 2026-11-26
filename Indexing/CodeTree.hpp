@@ -215,7 +215,7 @@ public:
     void makeFail() { static_assert(SUCCESS_OR_FAIL==0); _content = 0; }
 
     BITFIELD(64,
-      BITFIELD_MEMBER(unsigned, _arg, _setArg, CHAR_BIT * sizeof(unsigned) - INSTRUCTION_BITS,
+      BITFIELD_MEMBER(unsigned, _arg, _setArg, CHAR_BIT * sizeof(uint64_t) - INSTRUCTION_BITS,
       BITFIELD_MEMBER(unsigned, _instruction, _setInstruction, INSTRUCTION_BITS,
       END_BITFIELD
     )))

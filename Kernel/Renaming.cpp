@@ -160,17 +160,6 @@ TermList Renaming::normalize(TermList trm)
 
 #if VDEBUG
 
-void Renaming::assertValid() const
-{
-  Set<unsigned, FnvHash> range;
-  VariableMap::Iterator mit(_data);
-  while(mit.hasNext()) {
-    unsigned to = mit.next();
-    ASS(!range.contains(to));
-    range.insert(to);
-  }
-}
-
 std::string Renaming::toString() const
 { return Output::toString(this); }
 

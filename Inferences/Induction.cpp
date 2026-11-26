@@ -1297,7 +1297,7 @@ void InductionClauseIterator::performStructInductionFreeVar(const InductionConte
     TermAlgebraConstructor* con = ta->constructor(i);
     unsigned arity = con->arity();
     TermStack argTerms(arity); // Arguments of the step case antecedent: y_1, ..., y_arity
-    argTerms.loadFromIterator(Term::Iterator(sort.term()));
+    argTerms.loadFromIterator(anyArgIter(sort.term()));
     FormulaList* hyps = FormulaList::empty();
     for (unsigned j = numTypeArgs; j < arity; j++){
       TermList y(var++, false);

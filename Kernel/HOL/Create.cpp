@@ -28,7 +28,7 @@ TermList HOL::create::app(TermList head, TermList arg) {
   return app(SortHelper::getResultSort(head.term()), head, arg);
 }
 
-TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2, bool shared) {
+TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2) {
   static TermStack args;
 
   args.reset();
@@ -38,8 +38,7 @@ TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2
   args.push(arg2);
 
   unsigned app = env.signature->getApp();
-  return TermList(shared ? Term::create(app, 4, args.begin())
-                         : Term::createNonShared(app, 4, args.begin()));
+  return TermList(Term::create(app, 4, args.begin()));
 }
 
 TermList HOL::create::app(TermList sort, TermList head, const TermStack& terms, bool fromTop) {
