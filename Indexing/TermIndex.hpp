@@ -33,13 +33,14 @@ public:
     auto uwa = opt.unificationWithAbstraction();
     auto fpi = opt.unificationWithAbstractionFixedPointIteration();
     if constexpr (higherOrder) {
-      auto it = _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.higherOrderUnifMaxWeight(), opt.functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION);
-      if (uwa != Options::UnificationWithAbstraction::OFF) {
-        return it;
+      bool funcExt = opt.functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION;
+      if (uwa == Options::UnificationWithAbstraction::OFF) {
+        // purely syntactic: no constraints, so nothing for the higher-order unifier of getUwaHOL to do;
+        // but syntactic unification also goes into lambda bodies, see RetrievalAlgorithms::keepsDBIndicesBound
+        return pvi(iterTraits(_is.getUwa(t, uwa, fpi, funcExt))
+                       .filter([t](auto const &qr) { return RetrievalAlgorithms::keepsDBIndicesBound(*qr.unifier, t, qr.data->term); }));
       }
-      // syntactic unification also goes into lambda bodies; see RetrievalAlgorithms::keepsDBIndicesBound
-      return pvi(iterTraits(std::move(it))
-                     .filter([t](auto const &qr) { return RetrievalAlgorithms::keepsDBIndicesBound(*qr.unifier, t, qr.data->term); }));
+      return _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.higherOrderUnifMaxWeight(), funcExt);
     } else {
       return _is.getUwa(t, uwa, fpi, /*funcExt=*/false);
     }
