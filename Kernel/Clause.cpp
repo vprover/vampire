@@ -635,9 +635,7 @@ static unsigned customSelectionWeight(const Clause &cl, Options::HolSelectionWei
     else {
       result += typeArgsWeight(lit);
     }
-    for (unsigned i = 0; i < lit->numTermArguments(); i++) {
-      todo->push(lit->termArg(i));
-    }
+    todo->loadFromIterator(termArgIter(lit));
 
     while (todo->isNonEmpty()) {
       TermList t = todo->pop();
@@ -646,15 +644,14 @@ static unsigned customSelectionWeight(const Clause &cl, Options::HolSelectionWei
         continue;
       }
       Term *trm = t.term();
-      if (trm->isSpecial()) { // not expected after clausification; fall back to the ordinary weight
+      if (trm->isSpecial()) {
+        ASS(false) // not expected after clausification; fall back to the ordinary weight
         result += trm->weight();
         continue;
       }
       if (!trm->isApplication()) {
         result += 1 + typeArgsWeight(trm);
-        for (unsigned i = 0; i < trm->numTermArguments(); i++) {
-          todo->push(trm->termArg(i));
-        }
+        todo->loadFromIterator(termArgIter(trm));
         continue;
       }
       // an application: walk down its whole spine h @ a1 @ ... @ an at once, as the treatment
