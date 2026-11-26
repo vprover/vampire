@@ -47,7 +47,15 @@ public:
   }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is.getUnifications(t, retrieveSubstitutions); }
+  {
+    if (!env.higherOrder()) {
+      return _is.getUnifications(t, retrieveSubstitutions);
+    }
+    // syntactic unification also goes into lambda bodies; see RetrievalAlgorithms::keepsDBIndicesBound
+    // (which needs the substitution, so it is always retrieved here)
+    return pvi(iterTraits(_is.getUnifications(t, /*retrieveSubstitutions=*/true))
+                   .filter([t](auto const &qr) { return RetrievalAlgorithms::keepsDBIndicesBound(*qr.unifier, t, qr.data->term); }));
+  }
 
   template<bool higherOrder>
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)

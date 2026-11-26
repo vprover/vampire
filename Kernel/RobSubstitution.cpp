@@ -320,7 +320,7 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     // applies in CodeTree::Matcher::doAssignVar). Special variables of the substitution trees
     // stand for subterm positions, so they may; a special variable's binding can still bring a
     // loose index into an ordinary variable's binding later, which is why retrieval post-filters
-    // with RetrievalAlgorithms::keepsDBIndicesBound.
+    // with RetrievalAlgorithms::keepsDBIndicesBound (getUnifications always, getUwa under -uwa off).
     } else if(dt1.isVar() && (dt1.term.isSpecialVar() || !dt2.term.containsLooseDBIndex()) && !occurs(dt1.varSpec(), dt2)) {
       bind(dt1.varSpec(), dt2);
 
