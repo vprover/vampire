@@ -171,7 +171,7 @@ public:
  * void _setFoo(T val);
  */
 #define BITFIELD(bits, members)\
-  static_assert(bits >= CAR(members), "bitfield must have less than " #bits "bits");\
+  static_assert(bits == CAR(members), "bitfield must have exactly " #bits " bits");\
   CDR(members)
 
 // generate code treating a whole bitfield as a pointer, masking out lower `mask` bits

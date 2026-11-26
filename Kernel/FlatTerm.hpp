@@ -70,7 +70,7 @@ public:
 
     uint64_t _content;
     BITFIELD(64,
-      BITFIELD_MEMBER(unsigned, _number, _setNumber, CHAR_BIT * sizeof(unsigned) - ENTRY_TAG_BITS,
+      BITFIELD_MEMBER(unsigned, _number, _setNumber, CHAR_BIT * sizeof(uint64_t) - ENTRY_TAG_BITS,
       BITFIELD_MEMBER(unsigned, _tag, _setTag, ENTRY_TAG_BITS,
       END_BITFIELD
     )))
