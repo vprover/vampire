@@ -49,6 +49,8 @@ Environment::Environment()
 
   //view comment in Signature.cpp
   signature->addEquality();
+  signature->addApp();
+  signature->addLam();
 } // Environment::Environment
 
 Environment::~Environment()

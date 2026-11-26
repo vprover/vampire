@@ -180,20 +180,20 @@ Signature::Signature ():
     _rationals(0),
     _reals(0),
     _arrayCon(UINT_MAX),
-    _arrowCon(UINT_MAX),
-    _appFun(UINT_MAX),
-    _lamFun(UINT_MAX),
     _choiceFun(UINT_MAX),
     _defPred(UINT_MAX),
     _termAlgebras()
 {
   ALWAYS(createDistinctGroup() == STRING_DISTINCT_GROUP);
+
+  // CAUTION: order matters!
   addInternalTypeCon(SUPER_SORT_CON, "$tType", OperatorType::getSuperType());
   addInternalTypeCon(DEFAULT_SORT_CON, "$i", OperatorType::getTypeConType(0));
   addInternalTypeCon(BOOL_SORT_CON, "$o", OperatorType::getTypeConType(0));
   addInternalTypeCon(INTEGER_SORT_CON, "$int", OperatorType::getTypeConType(0));
   addInternalTypeCon(RATIONAL_SORT_CON, "$rat", OperatorType::getTypeConType(0));
   addInternalTypeCon(REAL_SORT_CON, "$real", OperatorType::getTypeConType(0));
+  addInternalTypeCon(ARROW_SORT_CON, "vARROW", OperatorType::getTypeConType(2));
 } // Signature::Signature
 
 /* Adding equality predicate used to be carried out in the constructor.
@@ -207,6 +207,21 @@ void Signature::addEquality()
   addInterpretedPredicate(Theory::EQUAL, "=");
   ASS_EQ(predicateName(0), "="); //equality must have number 0
   _preds[0]->markSkip();
+}
+
+void Signature::addApp()
+{
+  auto tv1 = TermList::var(0);
+  auto tv2 = TermList::var(1);
+  auto arrowType = AtomicSort::arrowSort(tv1, tv2);
+  addInternalFunction(APP_FUN, "vAPP", OperatorType::getFunctionType({arrowType, tv1}, tv2, 2));
+}
+
+void Signature::addLam()
+{
+  auto tv2 = TermList::var(1);
+  auto arrowType = AtomicSort::arrowSort(TermList::var(0), tv2);
+  addInternalFunction(LAM_FUN, "vLAM", OperatorType::getFunctionType({tv2}, arrowType, 2));
 }
 
 /**
@@ -475,33 +490,6 @@ unsigned Signature::addStringConstant(const std::string& name, TermList sort)
   _funNames.insert(symbolKey,result);
   return result;
 } // addStringConstant
-
-
-unsigned Signature::getApp()
-{
-  auto tv1 = TermList::var(0);
-  auto tv2 = TermList::var(1);
-  auto arrowType = AtomicSort::arrowSort(tv1, tv2);
-
-  bool added = false;
-  unsigned app = addFunction("vAPP", OperatorType::getFunctionType({arrowType, tv1}, tv2, 2), added)->number();
-  if (added) {
-    _appFun = app;
-  }
-  return app;
-}
-
-unsigned Signature::getLam() {
-  auto tv2 = TermList::var(1);
-  auto arrowType = AtomicSort::arrowSort(TermList::var(0), tv2);
-
-  bool added = false;
-  unsigned lam = addFunction("vLAM", OperatorType::getFunctionType({tv2}, arrowType, 2), added)->number();
-  if (added) {
-    _lamFun = lam;
-  }
-  return lam;
-}
 
 unsigned Signature::getDiff() {
   auto alpha = TermList::var(0);

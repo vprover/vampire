@@ -83,9 +83,20 @@ class Signature
   static constexpr unsigned RATIONAL_SORT_CON=4;
   /** sort of reals */  
   static constexpr unsigned REAL_SORT_CON=5;
+  /** arrow sort */
+  static constexpr unsigned ARROW_SORT_CON=6;
   /** this is not a sort, it is just used to denote the first index of a user-define sort */
-  static constexpr unsigned FIRST_USER_CON=6;
-  
+  static constexpr unsigned FIRST_USER_CON=7;
+
+  /** INTERNAL FUNCTIONS */
+
+  /** application symbol for HOL */
+  static constexpr unsigned APP_FUN = 0;
+  /** lambda symbol for HOL */
+  static constexpr unsigned LAM_FUN = 1;
+  /** this is not a functor, similarly to FIRST_USER_CON */
+  static constexpr unsigned FIRST_USER_FUN = 2;
+
   class Symbol {
     friend class Signature;
   
@@ -441,8 +452,8 @@ class Signature
    */
   unsigned addStringConstant(const std::string& name, TermList sort);
   void addEquality();
-  unsigned getApp();
-  unsigned getLam();
+  void addApp();
+  void addLam();
   unsigned getDiff();
   unsigned getChoice();
   unsigned getDeBruijnIndex(int index);
@@ -679,18 +690,6 @@ class Signature
     return con == _arrayCon && _arrayCon != UINT_MAX;
   }
 
-  bool isArrowCon(unsigned con) const{
-    return con == _arrowCon && _arrowCon != UINT_MAX;
-  }
-  
-  bool isAppFun(unsigned fun) const{
-    return fun == _appFun && _appFun != UINT_MAX;
-  }
-
-  bool isLamFun(unsigned fun) const {
-    return fun == _lamFun && _lamFun != UINT_MAX;
-  }
-
   bool isChoiceFun(unsigned fun) const{
     return fun == _choiceFun && _choiceFun != UINT_MAX;
   }
@@ -755,15 +754,6 @@ class Signature
   bool isFoolConstantSymbol(bool isTrue, unsigned number){
     if(!_foolConstantsDefined) return false;
     return isTrue ? number==_foolTrue : number==_foolFalse;
-  }
-
-  unsigned getArrowConstructor(){
-    bool added = false;
-    unsigned arrow = addTypeCon("vARROW",2, added)->number();
-    if(added){
-      _arrowCon = arrow;
-    }
-    return arrow;    
   }
 
   unsigned getArrayConstructor(){
@@ -870,16 +860,23 @@ class Signature
   static bool symbolNeedsQuoting(std::string name, bool interpreted, unsigned arity);
 
 private:
-  static void registerSymbol(Stack<Symbol*>& symbols, Symbol* symbol) {
+  using SymbolStack = Stack<Symbol*>;
+  static void registerSymbol(SymbolStack& symbols, Symbol* symbol) {
     ASS_EQ(symbol->number(), symbols.size());
     symbols.push(symbol);
   }
 
-  void addInternalTypeCon(unsigned number, std::string name, OperatorType* type) {
-    registerSymbol(_typeCons, new Symbol(number, name, type, /* interpreted */ false, /* preventQuoting */ false));
+  inline void addInternalSymbol(SymbolStack& symbols, SymbolMap& symbolNames, unsigned number, std::string name, OperatorType* type) {
+    registerSymbol(symbols, new Symbol(number, name, type, /* interpreted */ false, /* preventQuoting */ false));
     auto k = key(name,type->arity());
-    ASS(!_typeConNames.find(k));
-    _typeConNames.insert(k,number);
+    ASS(!symbolNames.find(k));
+    symbolNames.insert(k,number);
+  }
+  inline void addInternalTypeCon(unsigned number, std::string name, OperatorType* type) {
+    addInternalSymbol(_typeCons, _typeConNames, number, name, type);
+  }
+  inline void addInternalFunction(unsigned number, std::string name, OperatorType* type) {
+    addInternalSymbol(_funs, _funNames, number, name, type);
   }
 
   Stack<TermList> _dividesNvalues;
@@ -946,9 +943,6 @@ private:
   unsigned _reals;
 
   unsigned _arrayCon;
-  unsigned _arrowCon;
-  unsigned _appFun;
-  unsigned _lamFun;
   unsigned _choiceFun;
   unsigned _defPred;
   DHSet<unsigned, FnvHash, IdentityHash> _fnDefPreds;

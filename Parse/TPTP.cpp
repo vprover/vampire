@@ -19,6 +19,7 @@
 #include "Debug/Assertion.hpp"
 #include "Debug/TimeProfiling.hpp"
 
+#include "Kernel/HOL/HOL.hpp"
 #include "Lib/Int.hpp"
 #include "Lib/Environment.hpp"
 
@@ -2095,7 +2096,6 @@ void TPTP::endApp()
   if(_lastPushed == FORM){
      endFormulaInsideTerm();     
   }
-  TermStack args;
   TermList rhs = _termLists.pop();
   TermList lhs = _termLists.pop();
   TermList lhsSort = sortOf(lhs);
@@ -2105,13 +2105,7 @@ void TPTP::endApp()
   }
   TermList s1 = *(lhsSort.term()->nthArgument(0));
   TermList s2 = *(lhsSort.term()->nthArgument(1));
-  args.push(s1);
-  args.push(s2);
-  args.push(lhs);
-  args.push(rhs);
-  unsigned app = env.signature->getApp();
-  
-  _termLists.push(TermList(Term::create(app, 4, args.begin())));
+  _termLists.push(HOL::create::app(s1, s2, lhs, rhs));
   _lastPushed = TM;
 }
 

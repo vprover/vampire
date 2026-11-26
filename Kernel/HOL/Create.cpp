@@ -37,8 +37,7 @@ TermList HOL::create::app(TermList s1, TermList s2, TermList arg1, TermList arg2
   args.push(arg1);
   args.push(arg2);
 
-  unsigned app = env.signature->getApp();
-  return TermList(Term::create(app, 4, args.begin()));
+  return TermList(Term::create(Signature::APP_FUN, 4, args.begin()));
 }
 
 TermList HOL::create::app(TermList sort, TermList head, const TermStack& terms, bool fromTop) {
@@ -173,15 +172,13 @@ TermList HOL::create::namelessLambda(TermList varSort, TermList termSort, TermLi
   ASS(varSort.isVar()  || varSort.term()->isSort());
   ASS(termSort.isVar() || termSort.term()->isSort());
 
-  static const unsigned lam = env.signature->getLam();
-
   static TermStack args;
   args.reset();
   args.push(varSort);
   args.push(termSort);
   args.push(term);
 
-  return TermList(Term::create(lam, 3, args.begin()));
+  return TermList(Term::create(Signature::LAM_FUN, 3, args.begin()));
 }
 
 TermList HOL::create::namelessLambda(TermList varSort, TermList term) {

@@ -340,17 +340,15 @@ Option<AbstractionOracle::AbstractionResult> funcExt(
 {
   ASS(t1.isTerm() || t2.isTerm())
 
-  auto isApp = [](auto& t) { return env.signature->isAppFun(t.functor()); };
   if ( (t1.isTerm() && t1.isSort())
     || (t2.isTerm() && t2.isSort()) ) return Option<AbstractionOracle::AbstractionResult>();
   if (t1.isTerm() && t2.isTerm()) {
-    if (isApp(t1) && isApp(t2)) {
+    if (t1.term.isApplication() && t2.term.isApplication()) {
       auto argSort1 = au->subs().derefBound(t1.typeArg(0));
       auto argSort2 = au->subs().derefBound(t2.typeArg(0));
       if (t1.isVar() || t2.isVar()
        || argSort1.isVar() || argSort2.isVar()
-       || env.signature->isArrowCon(argSort1.functor())
-       || env.signature->isArrowCon(argSort2.functor())
+       || argSort1.term.isArrowSort() || argSort2.term.isArrowSort()
        || argSort1.term.isBoolSort() || argSort2.term.isBoolSort()
        ) {
         auto arg1 = au->subs().derefBound(t1.termArg(1));

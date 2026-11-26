@@ -329,7 +329,7 @@ bool TermList::isTupleSort() const {
 }
 
 bool AtomicSort::isArrowSort() const {
-  return env.signature->isArrowCon(_functor);
+  return _functor == Signature::ARROW_SORT_CON;
 }
 
 bool AtomicSort::isBoolSort() const {
@@ -870,15 +870,15 @@ const std::string& Term::functionName() const
 }
 
 bool Term::isArrowSort() const {
-  return isSort() && env.signature->isArrowCon(_functor);
+  return isSort() && _functor == Signature::ARROW_SORT_CON;
 }
 
 bool Term::isApplication() const {
-  return !isSort() && !isLiteral() && env.signature->isAppFun(_functor);
+  return !isSort() && !isLiteral() && _functor == Signature::APP_FUN;
 }
 
 bool Term::isLambdaTerm() const {
-  return !isSort() && !isLiteral() && !isSpecial() && env.signature->isLamFun(_functor);
+  return !isSort() && !isLiteral() && !isSpecial() && _functor == Signature::LAM_FUN;
 }
 
 bool Term::isBetaRedex() const {
@@ -1208,9 +1208,7 @@ TermList AtomicSort::rationalSort(){
 }
 
 TermList AtomicSort::arrowSort(TermList s1, TermList s2) {
-  static unsigned arrow = env.signature->getArrowConstructor();
-
-  return TermList(create2(arrow, s1, s2));
+  return TermList(create2(Signature::ARROW_SORT_CON, s1, s2));
 }
 
 TermList AtomicSort::arrowSort(unsigned size, const TermList* types, TermList range) {

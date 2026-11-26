@@ -176,7 +176,7 @@ bool needsTPTPTypeDeclaration(SymbolType type, unsigned number)
   Signature& sig = *env.signature;
   switch (type) {
   case SymbolType::TYPE_CON:
-    if (sig.isArrayCon(number) || sig.isTupleCon(number) || sig.isArrowCon(number)) {
+    if (sig.isArrayCon(number) || sig.isTupleCon(number) || number == Signature::ARROW_SORT_CON) {
       return false;
     }
     if (sig.isDefaultSortCon(number) && (number != Signature::BOOL_SORT_CON || !env.options->showFOOL())) {
@@ -189,7 +189,7 @@ bool needsTPTPTypeDeclaration(SymbolType type, unsigned number)
       return false;
     }
     // app is internal to Vampire
-    if (sig.isAppFun(number)) {
+    if (number == Signature::APP_FUN) {
       return false;
     }
     unsigned dummy;
