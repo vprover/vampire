@@ -202,8 +202,10 @@ ClauseIterator produceClauses(Clause* c, bool generating, SkolemisingFormulaInde
 
               RStack<Literal*> resLits;
               for (const auto& curr : *c) {
+                // the instance has the truth value of the pi (true) or sigma (false) term it comes from
+                auto inst = HOL::create::app(argS, tS);
                 resLits->push(curr == lit
-                  ? boolEq(HOL::create::app(argS, tS), rhs)
+                  ? (positive ? eqTroo(inst) : eqFols(inst))
                   : subst.apply(curr, 1));
               }
               instCls.push(Clause::fromStack(*resLits, GeneratingInference1(InferenceRule::HEURISTIC_INSTANTIATION, c)));
