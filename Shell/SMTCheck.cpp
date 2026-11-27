@@ -651,8 +651,8 @@ static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
   const auto &br = env.proofExtra.get<Inferences::BinaryResolutionExtra>(concl);
 
   auto uwa = AbstractingUnifier::empty(AbstractionOracle(env.options->unificationWithAbstraction()));
-  Literal *selectedLeft = br.selectedLiteral.selectedLiteral;
-  Literal *selectedRight = br.otherLiteral;
+  Literal *selectedLeft = br.literals.main.literal();
+  Literal *selectedRight = br.literals.other.literal();
   for(unsigned i = 0; i < selectedLeft->arity(); i++)
     ALWAYS(uwa.unifyOnce((*selectedLeft)[i], 0, (*selectedRight)[i], 1))
   ASS_NEQ(selectedLeft->polarity(), selectedRight->polarity())
@@ -675,8 +675,8 @@ static void resolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
 static void subsumptionResolution(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
   auto [left, right] = getParents<2>(concl);
-  auto sr = env.proofExtra.get<Inferences::LiteralInferenceExtra>(concl);
-  Literal *m = sr.selectedLiteral;
+  const auto& sr = env.proofExtra.get<Inferences::LiteralInferenceExtra>(concl);
+  Literal *m = sr.selectedLiteral.literal();
 
   // reconstruct match by calling into the SATSR code
   SATSubsumption::SATSubsumptionAndResolution satSR;
@@ -693,8 +693,8 @@ static void factoring(std::ostream &out, SortMap &conclSorts, Clause *concl) {
   const auto &fact = env.proofExtra.get<Inferences::FactoringExtra>(concl);
 
   RobSubstitution subst;
-  Literal *selected = fact.selectedLiteral.selectedLiteral;
-  Literal *other = fact.otherLiteral;
+  Literal *selected = fact.literals.main.literal();
+  Literal *other = fact.literals.other.literal();
   ASS_EQ(selected->polarity(), other->polarity())
   ASS_EQ(selected->functor(), other->functor())
   ALWAYS(subst.unify(TermList(selected), 0, TermList(other), 0));
@@ -714,7 +714,7 @@ static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *c
   const auto &res = env.proofExtra.get<Inferences::EqualityResolutionExtra>(concl);
 
   RobSubstitution subst;
-  Literal *selected = res.selectedLiteral;
+  Literal *selected = res.selectedLiteral.literal();
   ASS(selected->isEquality())
   ASS(selected->isNegative())
   TermList s = selected->termArg(0), t = selected->termArg(1);
@@ -732,15 +732,17 @@ static void equalityResolution(std::ostream &out, SortMap &conclSorts, Clause *c
 static void superposition(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
   auto [left, right] = getParents<2>(concl);
-  auto sup = env.proofExtra.get<Inferences::SuperpositionExtra>(concl);
+  const auto& sup = env.proofExtra.get<Inferences::SuperpositionExtra>(concl);
 
   // compute unifier for selected literals
   RobSubstitution subst;
-  Literal *leftSelected = sup.selected.selectedLiteral.selectedLiteral;
-  Literal *rightSelected = sup.selected.otherLiteral;
-  TermList from = sup.rewrite.lhs;
+  const auto& literals = sup.literals;
+  const auto& rewrite = sup.rewrite;
+  Literal *leftSelected = literals.main.literal();
+  Literal *rightSelected = literals.other.literal();
+  TermList from = rewrite.lhs.term();
   TermList to = EqHelper::getOtherEqualitySide(rightSelected, from);
-  TermList target = sup.rewrite.rewritten;
+  TermList target = rewrite.target.term();
   ASS(rightSelected->isEquality())
   ASS(rightSelected->isPositive())
   ASS(rightSelected->termArg(0) == from || rightSelected->termArg(1) == from)
@@ -786,11 +788,11 @@ static bool isL2RDemodulatorFor(Literal *demodulator, Clause *rewritten, TermLis
 static void demodulation(std::ostream &out, SortMap &conclSorts, Clause *concl)
 {
   auto [left, right] = getParents<2>(concl);
-  auto rw = env.proofExtra.get<Inferences::RewriteInferenceExtra>(concl);
+  const auto& rw = env.proofExtra.get<Inferences::RewriteInferenceExtra>(concl);
 
   Substitution subst;
   Literal *rightLit = (*right)[0];
-  TermList target = rw.rewritten;
+  TermList target = rw.rewrite.target.term();
   TermList from = rightLit->termArg(!isL2RDemodulatorFor(rightLit, left, target, concl));
   ASS(rightLit->isEquality())
   ASS(rightLit->isPositive())

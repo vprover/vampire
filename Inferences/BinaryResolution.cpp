@@ -34,6 +34,7 @@
 
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/InferenceRecorder.hpp"
 
 #include "BinaryResolution.hpp"
 #define DEBUG_RESOLUTION(lvl, ...) if (lvl < 0) { DBG("resolution: ", __VA_ARGS__) }
@@ -205,7 +206,7 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     }
   }
 
-  if (nConstraints == 0 && parRedHandler) {
+  if (nConstraints == 0 && parRedHandler && !env.replayRecording) {
     if (!parRedHandler->handleResolution(queryCl, queryLit, resultCl, resultLit, subs.ptr())) {
       return 0;
     }
@@ -219,17 +220,22 @@ Clause* BinaryResolution::generateClause(Clause* queryCl, Literal* queryLit, Cla
     Literal* sqAnsLit = subs->applyToQuery(qAnsLit);
     Literal* srAnsLit = subs->applyToResult(rAnsLit);
     bool queryNeg = queryLit->isNegative();
-    env.proofExtra.insert(cl, new BinaryResolutionExtra(
-      queryLit,
-      resultLit,
-      queryNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit),
-      queryNeg ? sqAnsLit : srAnsLit,
-      queryNeg ? srAnsLit : sqAnsLit
-    ));
+    env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit,
+      std::make_unique<SynthesisInferenceExtra>(
+        queryNeg ? subs->applyToResult(resultLit) : subs->applyToQuery(queryLit),
+        queryNeg ? sqAnsLit : srAnsLit,
+        queryNeg ? srAnsLit : sqAnsLit)));
   } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
     env.proofExtra.insert(cl, new BinaryResolutionExtra(queryLit, resultLit));
   }
 
+  if (env.replayRecording) {
+    using Recorder = Shell::InferenceRecorder;
+    ResultApplicator querySubst(*subs, false);
+    ResultApplicator resultSubst(*subs, true);
+    Recorder::instance()->resolution(cl, queryCl, resultCl, {&querySubst, &resultSubst},
+                                     queryLit, resultLit, nConstraints);
+  }
   return cl;
 
 }

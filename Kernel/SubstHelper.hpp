@@ -33,6 +33,37 @@ struct SubstApplicator {
   virtual TermList apply(unsigned v) const = 0;
 };
 
+/** Adapt one query/result side of an index substitution. Borrows subst. */
+template<class Substitution>
+struct ResultApplicator : SubstApplicator {
+  /** Select the result side when result is true, otherwise the query side. */
+  ResultApplicator(Substitution& subst, bool result)
+    : subst(subst), result(result) {}
+  TermList apply(unsigned variable) const override
+  { return subst.apply(TermList::var(variable), result); }
+private:
+  Substitution& subst;
+  bool result;
+};
+
+/** Adapt one bank of a Robinson substitution. Borrows subst. */
+template<class Substitution>
+struct BankApplicator : SubstApplicator {
+  BankApplicator(const Substitution& subst, unsigned bank)
+    : subst(subst), bank(bank) {}
+  TermList apply(unsigned variable) const override
+  { return subst.apply(TermList::var(variable), bank); }
+private:
+  const Substitution& subst;
+  unsigned bank;
+};
+
+struct IdentityApplicator : SubstApplicator {
+  TermList apply(unsigned variable) const override
+  { return TermList::var(variable); }
+};
+
+
 /**
  * Term with a substitution applied to it lazily. This is used in the context of
  * evaluating some term in a top-down manner symbol by symbol without actually

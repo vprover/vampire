@@ -1317,6 +1317,9 @@ Options::Options ()
       "object (see Kernel/InferenceStore::ProofPropertyPrinter\n"
       "- smtcheck produces a ground SMT script for proof checking\n",
        .tag = OptionTag::OUTPUT})
+  , _replay("replay",this,false,
+      {.description = "Replay supported proof inferences and print recovered extras in native proofs or parent substitutions in TPTP inference annotations.",
+       .tag = OptionTag::OUTPUT})
   , _minimizeSatProofs("minimize_sat_proofs",this,true,
       {.short_name = "msp",
        .description = "Perform premise minimization when a sat solver finds a clause set UNSAT\n"
@@ -2219,6 +2222,8 @@ Options::Options ()
 
     _randomStrategySeed.reliesOn(_sampleStrategy.is(notEqual(std::string(""))));
     _proof.addHardConstraint(If(equal(Proof::SMTCHECK)).then(_proofExtra.is(equal(ProofExtra::FULL))));
+    _replay.onlyUsefulWith(Or(_proof.is(equal(Proof::ON)), _proof.is(equal(Proof::TPTP))));
+    _replay.addHardConstraint(If(equal(true)).then(_proof.is(notEqual(Proof::SMTCHECK))));
 
 #if VTIME_PROFILING
     _timeStatisticsFocus.onlyUsefulWith(_timeStatistics.is(equal(true)));

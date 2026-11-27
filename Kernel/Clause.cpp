@@ -189,7 +189,8 @@ void Clause::destroy()
   Clause* cl = this;
   for(;;) {
     if ((env.options->proofExtra() == Options::ProofExtra::FULL) ||
-        (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS)) {
+        (env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) ||
+        env.options->replay()) {
       env.proofExtra.remove(cl);
     }
     Inference::Iterator it = cl->_inference.iterator();

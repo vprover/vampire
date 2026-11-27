@@ -13,6 +13,8 @@
  */
 
 #include <functional>
+#include <sstream>
+#include "Inferences/ProofExtra.hpp"
 
 #include "Lib/DHMap.hpp"
 #include "Lib/DHSet.hpp"
@@ -271,8 +273,51 @@ std::ostream& InferenceStore::TPTPProofPrinter::printInference(std::ostream& out
     // Without introduced symbols we have to claim that the axiom comes from a theory.
     return out << introducedAnnotation(Origin::THEORY, tptpRuleName(rule), Output::Nothing{});
   }
-  return out << inferenceAnnotation(tptpRuleName(rule), status(unit), premises(unit));
+  return out << inferenceAnnotation(tptpRuleName(rule), annotations(unit), premises(unit));
 }
+
+namespace {
+
+std::ostream& printSubstitution(
+    std::ostream& out, const Inferences::InferenceReplayInformation* info, unsigned bank)
+{
+  auto variables = Stack<unsigned>::fromIterator(info->premises[bank]->getVariableIterator());
+  variables.sort();
+  auto bindings = iterTraits(variables.iter()).filter([&](unsigned variable) {
+    return info->substitutionForBanksSub[bank].apply(variable) != TermList::var(variable);
+  });
+  return out << unitRef(info->premises[bank]) << ','
+      << bracketed(commaSeparatedWith(bindings, [&](std::ostream& out, unsigned variable) {
+    TermList term = info->substitutionForBanksSub[bank].apply(variable);
+    out << 'b' << parenthesized(Output::deferred([&](std::ostream& out) -> std::ostream& {
+      out << 'X' << variable << ',';
+      // Generic annotations require higher-order expressions to be embedded.
+      if (env.higherOrder() && !term.isVar()) { return out << "$thf" << parenthesized(term); }
+      return out << term;
+    }));
+  }));
+}
+
+} // namespace
+
+std::ostream& InferenceStore::TPTPProofPrinter::printAnnotations(std::ostream& out, Unit* unit)
+{
+  const auto* info = replayInference(unit);
+  if (!info) { return printStatus(out, unit); }
+  std::ostringstream status;
+  printStatus(status, unit);
+  if (!status.str().empty()) { out << status.str() << ','; }
+  auto substitutions = commaSeparatedWith(range(0, info->premises.size()),
+      [&](std::ostream& out, unsigned bank) {
+    out << "subs" << parenthesized(Output::deferred(
+        [info, bank](std::ostream& out) -> std::ostream& {
+      return printSubstitution(out, info, bank);
+    }));
+  });
+  return out << "unifier" << parenthesized(bracketed(substitutions));
+}
+
+
 
 std::ostream& InferenceStore::TPTPProofPrinter::printStatus(std::ostream& out, Unit* unit)
 {

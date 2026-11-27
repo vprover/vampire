@@ -1222,6 +1222,7 @@ public:
   Statistics statistics() const { return _statistics.actualValue; }
   void setStatistics(Statistics newVal) { _statistics.actualValue=newVal; }
   Proof proof() const { return _proof.actualValue; }
+  bool replay() const { return _replay.actualValue; }
   bool minimizeSatProofs() const { return _minimizeSatProofs.actualValue; }
   ProofExtra proofExtra() const { return _proofExtra.actualValue; }
   bool traceback() const { return _traceback.actualValue; }
@@ -1839,6 +1840,7 @@ private:
   BoolOptionValue _printClausifierPremises;
   BoolOptionValue _replaceDomainElements;
   ChoiceOptionValue<Proof> _proof;
+  BoolOptionValue _replay;
   BoolOptionValue _minimizeSatProofs;
   ChoiceOptionValue<ProofExtra> _proofExtra;
   BoolOptionValue _traceback;

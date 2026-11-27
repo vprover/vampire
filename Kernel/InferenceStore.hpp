@@ -18,6 +18,7 @@
 
 #include <ostream>
 #include <set>
+#include <memory>
 
 #include "Forwards.hpp"
 
@@ -26,7 +27,11 @@
 #include "Lib/Stack.hpp"
 
 #include "Kernel/Inference.hpp"
+#include "Kernel/Ordering.hpp"
 #include "Kernel/Signature.hpp"
+
+namespace Shell { class InferenceReplayer; }
+namespace Inferences { struct InferenceReplayInformation; }
 
 namespace Kernel {
 
@@ -36,6 +41,8 @@ class InferenceStore
 {
 public:
   static InferenceStore* instance();
+
+  OrderingSP ordering;
 
   void recordSplittingNameLiteral(Unit* us, Literal* lit);
   void recordIntroducedSymbol(Unit* u, const Signature::Symbol* sym);
@@ -48,13 +55,16 @@ public:
   void outputProof(std::ostream& out, UnitList* units);
   /** Common proof scheduling, independent of any output format. */
   struct AbstractProofPrinter {
-    AbstractProofPrinter(std::ostream& out, InferenceStore* is) : _is(is), out(out) {}
-    virtual ~AbstractProofPrinter() = default;
+    AbstractProofPrinter(std::ostream& out, InferenceStore* is);
+    virtual ~AbstractProofPrinter();
 
     void scheduleForPrinting(Unit* us);
     virtual void print();
 
   protected:
+    /** Recover supported clause extras when replay is enabled. */
+    const Inferences::InferenceReplayInformation* replayInference(Unit* unit);
+    std::unique_ptr<Shell::InferenceReplayer> _replayer;
     virtual bool hideProofStep(InferenceRule rule) { return false; }
     virtual void printStep(Unit* unit) = 0;
 

@@ -37,6 +37,7 @@
 
 #include "Shell/PartialRedundancyHandler.hpp"
 #include "Shell/Options.hpp"
+#include "Shell/InferenceRecorder.hpp"
 #include "Debug/TimeProfiling.hpp"
 
 #include "Superposition.hpp"
@@ -315,7 +316,7 @@ Clause* Superposition<higherOrder>::performSuperposition(
   }
 
   const auto& parRedHandler = _salg.parRedHandler();
-  if (!unifier->usesUwa()) {
+  if (!env.replayRecording && !unifier->usesUwa()) {
     if (!parRedHandler.checkSuperposition(eqClause, eqLit, rwClause, rwLit, eqIsResult, subst.ptr())) {
       return 0;
     }
@@ -460,7 +461,8 @@ Clause* Superposition<higherOrder>::performSuperposition(
       eqClause, rwClause, rwTerm, rwTermS, tgtTermS, eqLHS, rwLitS, eqLit, comp, eqIsResult, subst.ptr());
   }
 
-  res->loadFromIterator(unifier->computeConstraintLiterals()->iter());
+  auto constraints = unifier->computeConstraintLiterals();
+  res->loadFromIterator(constraints->iter());
 
   if(hasAgeLimitStrike && passiveClauseContainer->exceedsWeightLimit(weight, numPositiveLiteralsLowerBound, inf)) {
     RSTAT_CTR_INC("superpositions skipped for weight limit after the clause was built");
@@ -473,22 +475,20 @@ Clause* Superposition<higherOrder>::performSuperposition(
   Literal *rwAnsLit, *eqAnsLit;
   if ((env.options->questionAnswering() == Options::QuestionAnsweringMode::SYNTHESIS) &&
       (rwAnsLit = rwClause->getAnswerLiteral()) && (eqAnsLit = eqClause->getAnswerLiteral())) {
-    env.proofExtra.insert(clause, new SuperpositionExtra(
-      rwLit,
-      eqLit,
-      eqLHS,
-      rwTerm,
-      subst->apply(eqLit, eqIsResult),
-      rwAnsLit ? subst->apply(rwAnsLit, !eqIsResult) : nullptr,
-      eqAnsLit ? subst->apply(eqAnsLit, eqIsResult) : nullptr
-    ));
+    env.proofExtra.insert(clause, new SuperpositionExtra(rwLit, eqLit, eqLHS, rwTerm,
+      std::make_unique<SynthesisInferenceExtra>(
+        subst->apply(eqLit, eqIsResult),
+        rwAnsLit ? subst->apply(rwAnsLit, !eqIsResult) : nullptr,
+        eqAnsLit ? subst->apply(eqAnsLit, eqIsResult) : nullptr)));
   } else if (env.options->proofExtra() == Options::ProofExtra::FULL) {
-    env.proofExtra.insert(clause, new SuperpositionExtra(
-      rwLit,
-      eqLit,
-      eqLHS,
-      rwTerm
-    ));
+    env.proofExtra.insert(clause, new SuperpositionExtra(rwLit, eqLit, eqLHS, rwTerm));
+  }
+  if(env.replayRecording){
+    using Recorder = Shell::InferenceRecorder;
+    ResultApplicator mainSubst(*subst, !eqIsResult);
+    ResultApplicator equalitySubst(*subst, eqIsResult);
+    Recorder::instance()->superposition(clause, rwClause, eqClause, {&mainSubst, &equalitySubst},
+        rwLit, eqLit, eqLHS, rwTerm, constraints->size());
   }
 
   return clause;

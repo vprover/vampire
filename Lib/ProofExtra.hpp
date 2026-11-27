@@ -20,11 +20,22 @@
 
 #include "Lib/DHMap.hpp"
 
+namespace Inferences {
+struct InferenceReplayInformation;
+struct SynthesisInferenceExtra;
+}
+
 namespace Lib {
 
-// base for extra inference information
+/** Owned proof-extra payload with debug output and optional replay and synthesis metadata. */
 struct InferenceExtra {
   virtual ~InferenceExtra() {};
+
+  /** Replay metadata, if this payload has been replayed. */
+  virtual const Inferences::InferenceReplayInformation* replayInformation() const { return nullptr; }
+
+  /** Synthesis metadata, if this inference combines answer literals. */
+  virtual const Inferences::SynthesisInferenceExtra* synthesisInformation() const { return nullptr; }
 
   // for debug printing only, specific output formats should downcast and handle individually
   virtual void output(std::ostream &out) const = 0;
@@ -41,7 +52,8 @@ inline std::ostream &operator<<(std::ostream &out, const InferenceExtra &extra) 
   return out;
 }
 
-// container for extras
+/** Own extras by proof unit. insert() requires an unused key; replace() discards
+ * the old payload. get<T>() requires a compatible payload type. */
 class ProofExtra {
   DHMap<Kernel::Unit *, std::unique_ptr<InferenceExtra>, UnitHash, UnitNumberHash> extras;
 
@@ -49,6 +61,12 @@ public:
   // associate `extra` with `unit`, taking ownership of `extra`
   void insert(Kernel::Unit *unit, InferenceExtra *extra) {
     ALWAYS(extras.insert(unit, std::unique_ptr<InferenceExtra>(extra)));
+  }
+
+  // Commit a complete replay result, replacing any existing extra for the goal.
+  void replace(Kernel::Unit *unit, std::unique_ptr<InferenceExtra> extra) {
+    ASS(extra);
+    extras.set(unit, std::move(extra));
   }
 
   // remove the extra information for this unit
@@ -69,7 +87,7 @@ public:
   T &get(Kernel::Unit *unit) {
     auto &found = extras.get(unit);
     ASS(found)
-    return static_cast<T &>(*found);
+    return static_cast<T&>(*found);
   }
 };
 }
