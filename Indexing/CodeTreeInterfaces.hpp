@@ -116,6 +116,7 @@ public:
   /* INFO: we ignore unifying the sort of the keys here */
   void handle(Data data, bool insert)
   {
+    count(data.key(), insert);
     if (insert) {
       auto ti = new Data(std::move(data));
       _ct.insert(ti);
@@ -128,12 +129,36 @@ public:
     if(_ct.isEmpty()) {
       return VirtualIterator<GenSubstitutionQR<Data>>::getEmpty();
     }
+    // a non-variable key only generalizes terms with the same top symbol
+    if (t.isTerm() && !t.term()->isSort() && !_variableKeys
+        && !_keysByTop.find(t.term()->functor())) {
+      return VirtualIterator<GenSubstitutionQR<Data>>::getEmpty();
+    }
 
     return vi( new ResultIterator<Data, typename TermCodeTree<Data>::TermMatcher>(_ct, t) );
   }
 
 private:
+  void count(TermList key, bool insert)
+  {
+    // sorts are numbered separately from functions, so they are never filtered
+    if (key.isVar() || key.term()->isSort()) {
+      if (insert) _variableKeys++; else _variableKeys--;
+      return;
+    }
+    unsigned* n;
+    _keysByTop.getValuePtr(key.term()->functor(), n, 0);
+    if (insert) {
+      (*n)++;
+    } else if (--*n == 0) {
+      _keysByTop.remove(key.term()->functor());
+    }
+  }
+
   TermCodeTree<Data> _ct;
+  /** number of keys by top symbol */
+  DHMap<unsigned, unsigned, IdentityHash, IdentityHash> _keysByTop;
+  unsigned _variableKeys = 0;
 };
 
 /**
