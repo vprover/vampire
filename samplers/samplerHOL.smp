@@ -344,6 +344,9 @@ av=on > nicw ~cat off:600,on:76
 # hol_fo_weight (new; weights are a guess, not tuned)
 > hfw ~cat off:1,on:1
 
+# hol_fo_kbo (new; weights are a guess, not tuned)
+> hfk ~cat off:1,on:1
+
 # split_at_activation
 av=on > sac ~cat off:3,on:1
 

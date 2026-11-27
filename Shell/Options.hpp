@@ -1503,6 +1503,7 @@ public:
   void setSplitting(bool value){ _splitting.actualValue=value; }
   bool nonliteralsInClauseWeight() const { return _nonliteralsInClauseWeight.actualValue; }
   bool holFoWeight() const { return _holFoWeight.actualValue; }
+  bool holFoKbo() const { return _holFoKbo.actualValue; }
   unsigned sineDepth() const { return _sineDepth.actualValue; }
   unsigned sineGeneralityThreshold() const { return _sineGeneralityThreshold.actualValue; }
   unsigned sineToAgeGeneralityThreshold() const { return _sineToAgeGeneralityThreshold.actualValue; }
@@ -1829,6 +1830,7 @@ private:
   IntOptionValue _naming;
   BoolOptionValue _nonliteralsInClauseWeight;
   BoolOptionValue _holFoWeight;
+  BoolOptionValue _holFoKbo;
   BoolOptionValue _normalize;
   BoolOptionValue _shuffleInput;
   BoolOptionValue _randomPolarities;

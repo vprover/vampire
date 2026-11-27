@@ -1269,6 +1269,13 @@ Options::Options ()
         "(they still count 1 each when the head is a variable or a de Bruijn index). "
         "Only clause selection is affected (not orderings or simplifications); when on, the early weight-limit checks of lrs are disabled.",
        .tag = OptionTag::SATURATION})
+  , _holFoKbo("hol_fo_kbo",this,false,
+      {.short_name = "hfk",
+       .description = "Make the weight of KBO first-order-like on higher-order problems: application nodes weigh 0 and the sort arguments "
+        "that the higher-order encoding adds (on applications, lambdas, de Bruijn indices, proxies and choice) are left out of the comparison "
+        "(weight, variable condition and lexicographic step), while the type arguments of (polymorphic) signature symbols still count. "
+        "So f @ a @ b weighs like f(a,b). Terms that differ only in such sorts are compared by the ordinary KBO.",
+       .tag = OptionTag::SATURATION})
   , _normalize("normalize",this,false,
       {.short_name = "norm",
        .description = "Normalize the problem so that the ordering of clauses etc does not effect proof search.",
@@ -2708,6 +2715,8 @@ Options::Options ()
 
     _holFoWeight.onlyUsefulWith(ProperSaturationAlgorithm());
     _holFoWeight.addProblemConstraint(hasHigherOrder());
+    _holFoKbo.onlyUsefulWith(Or(_termOrdering.is(equal(TermOrdering::KBO)), _termOrdering.is(equal(TermOrdering::AUTO_KBO))));
+    _holFoKbo.addProblemConstraint(hasHigherOrder());
 
 //*********************** SAT solver (used in various places)  ***********************
 #if VZ3

@@ -82,11 +82,12 @@ void TermOrderingDiagramKBO::processTermNode()
       break;
     }
     case Ordering::EQUAL: {
-      for (unsigned i = 0; i < lhs->arity(); i++) {
+      // the sorts left out of the weight are left out here too (see KBO::skippedArgs)
+      for (unsigned i = kbo.skippedArgs(lhs); i < lhs->arity(); i++) {
         auto lhsArg = *lhs->nthArgument(i);
         auto rhsArg = *rhs->nthArgument(i);
         // we mutate the original node in the first iteration
-        if (!weightAdded && i==0) {
+        if (!weightAdded && i==kbo.skippedArgs(lhs)) {
           curr->node()->lhs = lhsArg;
           curr->node()->rhs = rhsArg;
         } else {

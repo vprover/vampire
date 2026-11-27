@@ -217,6 +217,17 @@ std::string HOL::toString(const Term& term, bool mightNeedParens) {
   return toStringAux(term, mightNeedParens, st);
 }
 
+bool HOL::hasEncodingTypeArgs(const Term* t)
+{
+  if (t->isLiteral() || t->isSort() || t->isSpecial()) {
+    return false;
+  }
+  if (t->isApplication() || t->isLambdaTerm() || t->deBruijnIndex().isSome() || t->isChoice()) {
+    return true;
+  }
+  return env.signature->getFunction(t->functor())->proxy() != Proxy::NOT_PROXY;
+}
+
 bool HOL::isTypeGuard(Literal* lit)
 {
   if (!lit->isEquality() || lit->isTwoVarEquality()) {

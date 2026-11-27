@@ -37,6 +37,12 @@ inline bool isBool(TermList term) {
 }
 
 /**
+ * Whether the type arguments of @b t are added by the higher-order encoding rather than being those of a
+ * (polymorphic) signature symbol: t is an application, a lambda, a de Bruijn index, a choice term or a proxy.
+ */
+bool hasEncodingTypeArgs(const Term* t);
+
+/**
  * A type guard is a literal C(τ1,...,τn) = $true or C(τ1,...,τn) = $false (or the disequality),
  * where C is a $o-valued symbol with n >= 1 type arguments and no term arguments: what an
  * Isabelle type-class predicate becomes in a TH1 Sledgehammer export (`semiring_1 @ A`).

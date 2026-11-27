@@ -31,6 +31,7 @@
 #include "Shell/Options.hpp"
 
 #include "Formula.hpp"
+#include "HOL/HOL.hpp"
 #include "FormulaUnit.hpp"
 #include "Inference.hpp"
 #include "Term.hpp"
@@ -580,13 +581,8 @@ unsigned Clause::getNumeralWeight() const {
  * those of signature symbols do, those added by the higher-order encoding do not. */
 static bool hasSignatureTypeArgs(Term *t)
 {
-  if (t->isLiteral()) {
-    return true; // equality is handled by the caller
-  }
-  if (t->isApplication() || t->isLambdaTerm() || t->deBruijnIndex().isSome() || t->isChoice()) {
-    return false;
-  }
-  return env.signature->getFunction(t->functor())->proxy() == Proxy::NOT_PROXY;
+  // the type arguments of a literal: equality is handled by the caller
+  return t->isLiteral() || !HOL::hasEncodingTypeArgs(t);
 }
 
 /** A rigid head is a symbol: anything but a variable, a de Bruijn index or a lambda (a beta-redex). */

@@ -28,6 +28,7 @@
 #include "Term.hpp"
 
 #include "KBO.hpp"
+#include "Kernel/HOL/HOL.hpp"
 
 #define COLORED_WEIGHT_BOOST 0x10000
 
@@ -145,7 +146,7 @@ void KBO::State::traverse(KBO const& kbo, AppliedTerm tt)
     unsigned arg;
   };
   static Stack<State> recState;
-  recState.push(State{ tt, 0 });
+  recState.push(State{ tt, kbo.skippedArgs(tt.term.term()) });
 
   if constexpr (!varsOnly) {
     _weightDiff += kbo.symbolWeight(tt.term.term()) * coef;
@@ -169,11 +170,11 @@ void KBO::State::traverse(KBO const& kbo, AppliedTerm tt)
 
     if constexpr (varsOnly) {
       if (!t.term.term()->ground()) {
-        recState.push(State{ t, 0 });
+        recState.push(State{ t, kbo.skippedArgs(t.term.term()) });
       }
     } else {
       _weightDiff += kbo.symbolWeight(t.term.term()) * coef;
-      recState.push(State{ t, 0 });
+      recState.push(State{ t, kbo.skippedArgs(t.term.term()) });
     }
   }
 }
@@ -193,8 +194,8 @@ Ordering::Result KBO::State::traverseLexBidir(KBO const& kbo, AppliedTerm tl1, A
 
   static Stack<pair<const TermList*,bool>> stack(32);
   stack.reset();
-  stack.push(make_pair(t1->args(),tl1.aboveVar));
-  stack.push(make_pair(t2->args(),tl2.aboveVar));
+  stack.push(make_pair(kbo.comparedArgs(t1),tl1.aboveVar));
+  stack.push(make_pair(kbo.comparedArgs(t2),tl2.aboveVar));
   while(!stack.isEmpty()) {
     auto [tt,ttAboveVar] = stack.pop(); // tl2 subterm
     auto [ss,ssAboveVar] = stack.pop(); // tl1 subterm
@@ -225,8 +226,8 @@ Ordering::Result KBO::State::traverseLexBidir(KBO const& kbo, AppliedTerm tl1, A
       ASS(s.term.isTerm());
       ASS(t.term.isTerm());
       ASS(s.term.term()->arity());
-      stack.push(make_pair(s.term.term()->args(),s.aboveVar));
-      stack.push(make_pair(t.term.term()->args(),t.aboveVar));
+      stack.push(make_pair(kbo.comparedArgs(s.term.term()),s.aboveVar));
+      stack.push(make_pair(kbo.comparedArgs(t.term.term()),t.aboveVar));
       depth++;
     } else {
       traverse<1,/*unidirectional=*/false>(kbo, s);
@@ -253,8 +254,8 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
 
   static Stack<pair<const TermList*,bool>> stack(32);
   stack.reset();
-  stack.push(make_pair(t1->args(),tl1.aboveVar));
-  stack.push(make_pair(t2->args(),tl2.aboveVar));
+  stack.push(make_pair(kbo.comparedArgs(t1),tl1.aboveVar));
+  stack.push(make_pair(kbo.comparedArgs(t2),tl2.aboveVar));
   while(!stack.isEmpty()) {
     auto [tt,ttAboveVar] = stack.pop(); // tl2 subterm
     auto [ss,ssAboveVar] = stack.pop(); // tl1 subterm
@@ -318,8 +319,8 @@ Ordering::Result KBO::State::traverseLexUnidir(KBO const& kbo, AppliedTerm tl1, 
           break;
         }
         case Ordering::EQUAL: {
-          stack.push(make_pair(s.term.term()->args(),s.aboveVar));
-          stack.push(make_pair(t.term.term()->args(),t.aboveVar));
+          stack.push(make_pair(kbo.comparedArgs(s.term.term()),s.aboveVar));
+          stack.push(make_pair(kbo.comparedArgs(t.term.term()),t.aboveVar));
           break;
         }
         default: ASSERTION_VIOLATION;
@@ -716,6 +717,8 @@ KBO::KBO(Problem& prb, const Options& opts, bool qkbo)
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
  , _predWeights(weightsFromOpts<PredSigTraits>(opts,_predicatePrecedences))
 #endif
+ , _foLikeWeight(opts.holFoKbo() && prb.isHigherOrder())
+ , _skipEncodingSorts(_foLikeWeight)
  , _state(new State())
 {
   if (opts.kboMaxZero()) {
@@ -815,6 +818,12 @@ Ordering::Result KBO::compare(AppliedTerm tl1, AppliedTerm tl2) const
 #if VDEBUG
   _state = std::move(__state);
 #endif
+  if (res == EQUAL && _skipEncodingSorts) {
+    // the terms differ only in sorts the comparison leaves out (e.g. ^[x:a].x and ^[x:b].x): ordinary KBO decides
+    _skipEncodingSorts = false;
+    res = compare(tl1, tl2);
+    _skipEncodingSorts = true;
+  }
   return res;
 }
 
@@ -881,6 +890,12 @@ Ordering::Result KBO::compareUnidirectional(AppliedTerm tl1, AppliedTerm tl2) co
 #if VDEBUG
   _state = std::move(__state);
 #endif
+  if (res == EQUAL && _skipEncodingSorts) {
+    // as in compare
+    _skipEncodingSorts = false;
+    res = compareUnidirectional(tl1, tl2);
+    _skipEncodingSorts = true;
+  }
   return res;
 }
 
@@ -900,7 +915,15 @@ int KBO::symbolWeight(const Term* t) const
     //For now just give all type constructors minimal weight
     return _funcWeights._specialWeights._variableWeight;
   }
+  if (_skipEncodingSorts && t->isApplication()) {
+    return 0; // f @ a @ b weighs like f(a,b)
+  }
   return _funcWeights.symbolWeight(t);
+}
+
+unsigned KBO::skippedArgs(const Term* t) const
+{
+  return _skipEncodingSorts && HOL::hasEncodingTypeArgs(t) ? t->numTypeArguments() : 0;
 }
 
 unsigned KBO::computeWeight(AppliedTerm tt) const
@@ -908,7 +931,8 @@ unsigned KBO::computeWeight(AppliedTerm tt) const
   if (tt.term.isVar()) {
     return _funcWeights._specialWeights._variableWeight;
   }
-  const bool useCache = (tryGetGlobalOrdering() == this);
+  // the cache holds the weights of the configured variant (see compare for the other one)
+  const bool useCache = (tryGetGlobalOrdering() == this) && _skipEncodingSorts == _foLikeWeight;
 
   if (!tt.aboveVar && useCache && tt.term.term()->kboWeight(this)!=-1) {
     return tt.term.term()->kboWeight(this);
@@ -920,7 +944,7 @@ unsigned KBO::computeWeight(AppliedTerm tt) const
     unsigned weight;
   };
   static Stack<State> recState;
-  recState.push(State{ tt, 0, (unsigned)symbolWeight(tt.term.term()) });
+  recState.push(State{ tt, skippedArgs(tt.term.term()), (unsigned)symbolWeight(tt.term.term()) });
 
   while (recState.isNonEmpty()) {
     auto& curr = recState.top();
@@ -932,7 +956,7 @@ unsigned KBO::computeWeight(AppliedTerm tt) const
       } else if (!t.aboveVar && useCache && t.term.term()->kboWeight(this)!=-1) {
         curr.weight += t.term.term()->kboWeight(this);
       } else {
-        recState.push(State{ t, 0, (unsigned)symbolWeight(t.term.term()) });
+        recState.push(State{ t, skippedArgs(t.term.term()), (unsigned)symbolWeight(t.term.term()) });
       }
 
     } else {

@@ -178,12 +178,24 @@ protected:
   // int functionSymbolWeight(unsigned fun) const;
   int symbolWeight(const Term* t) const;
 
+  /** The number of leading arguments of @b t left out of the comparison: under -hol_fo_kbo, the sort
+   * arguments the higher-order encoding adds (see HOL::hasEncodingTypeArgs), otherwise none. */
+  unsigned skippedArgs(const Term* t) const;
+  /** The first argument of @b t that takes part in the comparison (see skippedArgs) */
+  const TermList* comparedArgs(const Term* t) const { return t->args() - skippedArgs(t); }
+
 private:
 
   KboWeightMap<FuncSigTraits> _funcWeights;
 #if __KBO__CUSTOM_PREDICATE_WEIGHTS__
   KboWeightMap<PredSigTraits> _predWeights;
 #endif
+
+  /** -hol_fo_kbo on a higher-order problem */
+  bool _foLikeWeight = false;
+  /** whether the encoding's sorts are left out right now: _foLikeWeight, except while comparing
+   * two terms that coincide without them by the ordinary KBO (see compare) */
+  mutable bool _skipEncodingSorts = false;
 
   template<class SigTraits> const KboWeightMap<SigTraits>& getWeightMap() const;
   template<class SigTraits> KboWeightMap<SigTraits> weightsFromOpts(const Options& opts, const DArray<int>& rawPrecedence) const;
