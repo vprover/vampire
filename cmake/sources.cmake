@@ -129,6 +129,7 @@ set(UNIT_TESTS
     UnitTests/HOL/tHOL_BetaReduction.cpp
     UnitTests/HOL/tHOL_EtaReduction.cpp
     UnitTests/HOL/tHOL_TermShifter.cpp
+    UnitTests/HOL/tHOL_TypeGuards.cpp
     UnitTests/HOL/tHOL_SubtermReplacer.cpp
     UnitTests/HOL/tHOL_Unifier.cpp
 )

@@ -17,6 +17,7 @@
 
 #include "SubtermReplacer.hpp"
 #include "TermShifter.hpp"
+#include "Kernel/Clause.hpp"
 #include "Kernel/Formula.hpp"
 #include "Kernel/TermIterators.hpp"
 
@@ -214,6 +215,34 @@ std::string HOL::toString(const Term& term, bool mightNeedParens) {
   IndexVarStack st;
 
   return toStringAux(term, mightNeedParens, st);
+}
+
+bool HOL::isTypeGuard(Literal* lit)
+{
+  if (!lit->isEquality() || lit->isTwoVarEquality()) {
+    return false;
+  }
+  auto [lhs, rhs] = lit->eqArgs();
+  TermList atom = isBool(rhs) ? lhs : isBool(lhs) ? rhs : TermList::empty();
+  if (atom.isEmpty() || !atom.isTerm() || atom.term()->isSort() || atom.term()->isSpecial()) {
+    return false;
+  }
+  auto sym = env.signature->getFunction(atom.term()->functor());
+  return sym->numTypeArguments() > 0 && sym->numTermArguments() == 0 && sym->proxy() == Proxy::NOT_PROXY
+      && sym->type()->result().isBoolSort();
+}
+
+bool HOL::isTypeClassClause(Kernel::Clause* cl)
+{
+  if (cl->isEmpty()) {
+    return false;
+  }
+  for (Literal* l : cl->iterLits()) {
+    if (!isTypeGuard(l)) {
+      return false;
+    }
+  }
+  return true;
 }
 
 TermList HOL::matrix(TermList t) {

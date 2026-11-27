@@ -36,6 +36,16 @@ inline bool isBool(TermList term) {
   return isTrue(term) || isFalse(term);
 }
 
+/**
+ * A type guard is a literal C(τ1,...,τn) = $true or C(τ1,...,τn) = $false (or the disequality),
+ * where C is a $o-valued symbol with n >= 1 type arguments and no term arguments: what an
+ * Isabelle type-class predicate becomes in a TH1 Sledgehammer export (`semiring_1 @ A`).
+ */
+bool isTypeGuard(Literal* lit);
+
+/** Whether every literal of @b cl is a type guard (a type-class axiom, such as tcon_/subcl_/tfree_). */
+bool isTypeClassClause(Kernel::Clause* cl);
+
 std::string toString(const Term &term, bool mightNeedParens);
 
 TermList matrix(TermList t);

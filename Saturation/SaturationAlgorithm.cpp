@@ -26,6 +26,7 @@
 #include "Kernel/LiteralSelector.hpp"
 #include "Kernel/Problem.hpp"
 #include "Kernel/Unit.hpp"
+#include "Kernel/HOL/HOL.hpp"
 
 #include "Inferences/InterpretedEvaluation.hpp"
 #include "Inferences/PolynomialEvaluation.hpp"
@@ -603,6 +604,10 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
 
   bool sosForTheory = _opt.sos() == Options::Sos::THEORY && _opt.sosTheoryLimit() == 0;
 
+  // the type-class axioms (not the goal, even if it is a class membership)
+  bool sosForClasses = _opt.sos() == Options::Sos::TYPE_CLASSES && env.higherOrder()
+      && cl->goalAffinity() < GoalAffinity::CONJECTURE && HOL::isTypeClassClause(cl);
+
   if (_opt.sineToAge()) {
     unsigned level = cl->getSineLevel();
     // cout << "Adding " << cl->toString() << " level " << level;
@@ -614,7 +619,7 @@ void SaturationAlgorithm::addInputClause(Clause* cl)
     cl->setAge(level);
   }
 
-  if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory)) {
+  if (sosForAxioms || (cl->isPureTheoryDescendant() && sosForTheory) || sosForClasses) {
     addInputSOSClause(cl);
   }
   else {
@@ -649,7 +654,8 @@ LiteralSelector& SaturationAlgorithm::getSosLiteralSelector()
  */
 void SaturationAlgorithm::addInputSOSClause(Clause* cl)
 {
-  ASS(cl->isPureTheoryDescendant() || cl->goalAffinity() < _opt.sosAffinityThreshold());
+  ASS(cl->isPureTheoryDescendant() || cl->goalAffinity() < _opt.sosAffinityThreshold() ||
+      (cl->goalAffinity() < GoalAffinity::CONJECTURE && HOL::isTypeClassClause(cl)));
 
   // we add an extra reference until the clause is added to some container, so that
   // it won't get deleted during some code e.g. in the onNewClause handler

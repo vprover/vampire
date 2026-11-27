@@ -32,6 +32,7 @@
 #include "RndLiteralSelector.hpp"
 
 #include "LiteralComparators.hpp"
+#include "Kernel/HOL/HOL.hpp"
 
 #undef LOGGING
 #define LOGGING 0
@@ -67,6 +68,9 @@ int LiteralSelector::getSelectionPriority(Literal* l) const
   const Signature::Symbol* psym=env.signature->getPredicate(l->functor());
   if(psym->label() || psym->answerPredicate() || (env.higherOrder() && l->isFlexFlexConstraint())) {
     return -2;
+  }
+  if (_opt.typeGuardSelection() && env.higherOrder() && !l->ground() && HOL::isTypeGuard(l)) {
+    return -1;
   }
   return 0;
 }

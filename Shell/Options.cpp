@@ -1652,11 +1652,13 @@ Options::Options ()
        .description = "Like sine_tolerance but influences sine_to_age, sine_to_pred_levels, and sine_level_split_queue rather than sine_selection."
     " Has special value of -1.0, but otherwise must be greater or equal 1.0.",
        .tag = OptionTag::SATURATION})
-  , _sos("sos",this,Sos::OFF,{"off","on","theory"},
+  , _sos("sos",this,Sos::OFF,{"off","on","theory","type_classes"},
       {.short_name = "sos",
        .description = "Set of support strategy. The set-of-support clauses are put directly among active clauses, without performing any inferences between them."
     " If on, these are the input clauses below sos_affinity_threshold (by default, those not derived from hypotheses or the conjecture)."
-    " If theory, these are the input clauses derived from theory axioms introduced by vampire only (see also sos_theory_limit).",
+    " If theory, these are the input clauses derived from theory axioms introduced by vampire only (see also sos_theory_limit)."
+    " If type_classes (higher-order), these are the input clauses below conjecture affinity consisting of type guards only, i.e. of literals C(T1,...,Tn) = $true/$false"
+    " with C a $o-valued symbol with only type arguments, as the type-class axioms of Sledgehammer's TH1 exports.",
        .tag = OptionTag::PREPROCESSING})
   , _sosTotalSelection("sos_total_selection",this,false,
       {.short_name = "sosts",
@@ -1980,6 +1982,14 @@ Options::Options ()
     " 1666  - Incomplete version of 666\n"
     "Or negated, which means that reversePolarity is true i.e. for selection we treat all negative non-equality literals as "
     "positive and vice versa (can only apply to non-equality literals).\n",
+       .tag = OptionTag::SATURATION})
+  , _typeGuardSelection("type_guard_selection",this,false,
+      {.short_name = "tgs",
+       .description = "Postpone the selection of non-ground type guards (higher-order): a literal C(T1,...,Tn) = $true/$false "
+        "with C a $o-valued symbol with only type arguments (the type-class predicates of Sledgehammer's TH1 exports) and "
+        "some T_i non-ground is only selected if no other literal of the clause can be. Selecting such a guard instantiates "
+        "the type through the class axioms, once for every instance of the class. "
+        "This overrides the selection function and is incomplete.",
        .tag = OptionTag::SATURATION})
   , _inputFile("input_file",this,"",
       {.description = "Problem file to be solved (if not specified, standard input is used)",
@@ -2332,6 +2342,8 @@ Options::Options ()
     _fmbUseSimplifyingSolver.onlyUsefulWith(_saturationAlgorithm.is(equal(SaturationAlgorithm::FINITE_MODEL_BUILDING)));
     _fmbUseSimplifyingSolver.onlyUsefulWith(_satSolver.is(equal(SatSolver::MINISAT)));
     _selection.onlyUsefulWith2(ProperSaturationAlgorithm());
+    _typeGuardSelection.onlyUsefulWith(ProperSaturationAlgorithm());
+    _typeGuardSelection.addProblemConstraint(hasHigherOrder());
 
     _lookaheadDelay.onlyUsefulWith(_selection.isLookAheadSelection());
 
