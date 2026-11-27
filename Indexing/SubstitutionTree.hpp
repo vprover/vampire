@@ -1200,6 +1200,37 @@ public:
 
       using DefaultVarBanks = VarBanksN<0>;
 
+      /**
+       * For higher-order syntactic unification (RobSubstitution::unify, so getUnifications and, under
+       * -uwa off, getUwa): true unless @b unifier binds a variable of @b query (query bank) or of
+       * @b result (internal bank) to a term with a loose de Bruijn index, i.e. lets a bound variable
+       * escape its lambda. RobSubstitution::unify refuses such bindings only for terms it sees whole;
+       * inside a substitution tree a binding can still be completed later through special variables,
+       * so the final unifier has to be checked as well.
+       */
+      template <class Query, class Result>
+      bool keepsDBIndicesBound(AbstractingUnifier const &unifier, Query query, Result result)
+      {
+        auto allBound = [&](auto t, unsigned bank) {
+          return iterTraits(VariableIterator(t)).all([&](TermList v) {
+            return !unifier.subs().apply(v, bank).containsLooseDBIndex();
+          });
+        };
+        return allBound(query, DefaultVarBanks::query) && allBound(result, DefaultVarBanks::internal);
+      }
+
+      /** The same check for the unifiers that RobUnification (getUnifications) retrieves. */
+      template <class Query, class Result>
+      bool keepsDBIndicesBound(ResultSubstitution &unifier, Query query, Result result)
+      {
+        auto allBound = [&](auto t, bool inResult) {
+          return iterTraits(VariableIterator(t)).all([&](TermList v) {
+            return !(inResult ? unifier.applyToResult(v) : unifier.applyToQuery(v)).containsLooseDBIndex();
+          });
+        };
+        return allBound(query, /*inResult=*/false) && allBound(result, /*inResult=*/true);
+      }
+
       template<class LD>
       static typename SubstitutionTree<LD>::NodeIterator __selectPotentiallyUnifiableChildren(typename SubstitutionTree<LD>::IntermediateNode* n, RobSubstitution& subs, unsigned normInternalBank)
       {

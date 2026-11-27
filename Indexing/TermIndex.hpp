@@ -33,14 +33,29 @@ public:
     auto uwa = opt.unificationWithAbstraction();
     auto fpi = opt.unificationWithAbstractionFixedPointIteration();
     if constexpr (higherOrder) {
-      return _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.higherOrderUnifMaxWeight(), opt.functionExtensionality()==Options::FunctionExtensionality::ABSTRACTION);
+      bool funcExt = opt.functionExtensionality() == Options::FunctionExtensionality::ABSTRACTION;
+      if (uwa == Options::UnificationWithAbstraction::OFF) {
+        // purely syntactic: no constraints, so nothing for the higher-order unifier of getUwaHOL to do;
+        // but syntactic unification also goes into lambda bodies, see RetrievalAlgorithms::keepsDBIndicesBound
+        return pvi(iterTraits(_is.getUwa(t, uwa, fpi, funcExt))
+                       .filter([t](auto const &qr) { return RetrievalAlgorithms::keepsDBIndicesBound(*qr.unifier, t, qr.data->term); }));
+      }
+      return _is.getUwaHOL(t, uwa, fpi, opt.higherOrderUnifDepth(), opt.higherOrderUnifMaxWeight(), funcExt);
     } else {
       return _is.getUwa(t, uwa, fpi, /*funcExt=*/false);
     }
   }
 
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getUnifications(TypedTermList t, bool retrieveSubstitutions = true)
-  { return _is.getUnifications(t, retrieveSubstitutions); }
+  {
+    if (!env.higherOrder()) {
+      return _is.getUnifications(t, retrieveSubstitutions);
+    }
+    // syntactic unification also goes into lambda bodies; see RetrievalAlgorithms::keepsDBIndicesBound
+    // (which needs the substitution, so it is always retrieved here)
+    return pvi(iterTraits(_is.getUnifications(t, /*retrieveSubstitutions=*/true))
+                   .filter([t](auto const &qr) { return RetrievalAlgorithms::keepsDBIndicesBound(*qr.unifier, t, qr.data->term); }));
+  }
 
   template<bool higherOrder>
   VirtualIterator<QueryRes<ResultSubstitutionSP, Data>> getInstances(TypedTermList t, bool retrieveSubstitutions = true)

@@ -315,15 +315,22 @@ bool RobSubstitution::unify(TermSpec s, TermSpec t)
     // Deal with the case where eithe rare variables
     // Do an occurs-check and note that the variable 
     // cannot be currently bound as we already dereferenced
-    } else if(dt1.isVar() && !occurs(dt1.varSpec(), dt2)) {
+    // Inside a lambda body, an ordinary variable must not be bound to a term with a loose
+    // de Bruijn index: it stands for a term outside the binder (the rule code-tree matching
+    // applies in CodeTree::Matcher::doAssignVar). Special variables of the substitution trees
+    // stand for subterm positions, so they may; a special variable's binding can still bring a
+    // loose index into an ordinary variable's binding later, which is why retrieval post-filters
+    // with RetrievalAlgorithms::keepsDBIndicesBound (getUnifications always, getUwa under -uwa off).
+    } else if(dt1.isVar() && (dt1.term.isSpecialVar() || !dt2.term.containsLooseDBIndex()) && !occurs(dt1.varSpec(), dt2)) {
       bind(dt1.varSpec(), dt2);
 
-    } else if(dt2.isVar() && !occurs(dt2.varSpec(), dt1)) {
+    } else if(dt2.isVar() && (dt2.term.isSpecialVar() || !dt1.term.containsLooseDBIndex()) && !occurs(dt2.varSpec(), dt1)) {
       bind(dt2.varSpec(), dt1);
 
-    // TODO remove check for lambda term once HOL unification is properly done
-    } else if(dt1.isTerm() && dt2.isTerm() 
-           && dt1.functor() == dt2.functor() && !dt1.term.isLambdaTerm()) {
+    // decomposing lambdas (into their sorts and body) is first-order unification of the
+    // bodies; the loose-index check above keeps it sound
+    } else if(dt1.isTerm() && dt2.isTerm()
+           && dt1.functor() == dt2.functor()) {
 
       for (auto c : dt1.allArgs().zip(dt2.allArgs())) {
         pushTodo(make_pair(std::move(c.first), std::move(c.second)));

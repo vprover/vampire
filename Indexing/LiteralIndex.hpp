@@ -29,10 +29,21 @@ class NonGeneralizingLiteralIndex
 {
 public:
   auto getUnifications(Literal* lit, bool complementary, bool retrieveSubstitutions = true)
-  { return _is.getUnifications(lit, complementary, retrieveSubstitutions); }
+  {
+    // in higher-order logic, syntactic unification also goes into lambda bodies; see RetrievalAlgorithms::keepsDBIndicesBound
+    // (which needs the substitution, so it is always retrieved then)
+    bool check = env.higherOrder();
+    return iterTraits(_is.getUnifications(lit, complementary, retrieveSubstitutions || check))
+        .filter([lit, check](auto const &qr) { return !check || RetrievalAlgorithms::keepsDBIndicesBound(*qr.unifier, lit, qr.data->literal); });
+  }
 
   auto getUwa(Literal* lit, bool complementary, Options::UnificationWithAbstraction uwa, bool fixedPointIteration)
-  { return _is.getUwa(lit, complementary, uwa, fixedPointIteration); }
+  {
+    // in higher-order logic, syntactic unification also goes into lambda bodies; see RetrievalAlgorithms::keepsDBIndicesBound
+    bool check = env.higherOrder() && uwa == Options::UnificationWithAbstraction::OFF;
+    return iterTraits(_is.getUwa(lit, complementary, uwa, fixedPointIteration))
+        .filter([lit, check](auto const &qr) { return !check || RetrievalAlgorithms::keepsDBIndicesBound(*qr.unifier, lit, qr.data->literal); });
+  }
 
   template<bool higherOrder>
   auto getInstances(Literal* lit, bool complementary, bool retrieveSubstitutions = true)

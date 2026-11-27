@@ -3742,6 +3742,14 @@ void Options::resolveAwayAutoValues(const Problem& prb)
     } else {
       setUWA(Options::UnificationWithAbstraction::OFF);
     }
+  } else if (unificationWithAbstraction() == Options::UnificationWithAbstraction::HOL && !prb.isHigherOrder()) {
+    // the hol oracle expects the higher-order encoding (application via @), which a thf problem
+    // that turns out to be first-order (e.g., one only quantifying over $o) does not use
+    if (outputAllowed()) {
+      addCommentSignForSZS(std::cout);
+      std::cout << "WARNING: ignoring unification_with_abstraction=hol as problem is first-order" << std::endl;
+    }
+    setUWA(Options::UnificationWithAbstraction::OFF);
   }
 }
 

@@ -466,6 +466,9 @@ check_szs_status Unsatisfiable -qa synthesis synthesis/ex2-inverse_of_ixopiy.smt
 check_szs_status Theorem hol/hol1.p
 check_szs_status Theorem hol/hol2.p
 check_szs_status Theorem hol/hol-bool-ext.p
+# syntactic unification inside lambda bodies, as -uwa off needs it
+check_szs_status Theorem -fde none -uwa off hol/hol-uwa-off-lambda.p
+check_szs_status Theorem -uwa off hol/hol-uwa-off-lambda-poly.p
 check_rejected 'distinct objects are not supported in higher-order problems' \
 	--input_syntax tptp hol/hol-distinct-object.p
 
