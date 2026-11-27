@@ -77,9 +77,13 @@ intent=unsat > sa ~cat lrs:600,discount:572,otter:236
 intent=sat > sa ~cat otter:60,discount:28
 
 # set_of_support
-intent=unsat > sos ~cat off:80,on:27
+intent=unsat > sos ~cat off:80,on:27,type_classes:20
 sos=on > sosts ~cat off:17,on:10
+sos=type_classes > sosts ~cat off:1,on:2
 sos=on > sosat ~cat assumption:3,conjecture:1,axiom:1
+
+# type_guard_selection (new; weights are a guess, not tuned)
+> tgs ~cat off:1,on:1
 
 # lrs_first_time_check
 > $lftc ~cat N:5,Y:1

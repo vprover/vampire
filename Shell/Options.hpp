@@ -796,7 +796,8 @@ public:
   enum class Sos : unsigned int{
     OFF = 0,
     ON = 1,
-    THEORY = 2
+    THEORY = 2,
+    TYPE_CLASSES = 3
   };
 
   /** The goal affinities (see Kernel::GoalAffinity) at which a goal-directed heuristic
@@ -1341,6 +1342,7 @@ public:
   SaturationAlgorithm saturationAlgorithm() const { return _saturationAlgorithm.actualValue; }
   void setSaturationAlgorithm(SaturationAlgorithm newVal) { _saturationAlgorithm.actualValue = newVal; }
   int selection() const { return _selection.actualValue; }
+  bool typeGuardSelection() const { return _typeGuardSelection.actualValue; }
   void setSelection(int v) { _selection.actualValue=v;}
   LiteralComparisonMode literalComparisonMode() const { return _literalComparisonMode.actualValue; }
   bool forwardSubsumptionResolution() const { return _forwardSubsumptionResolution.actualValue; }
@@ -1972,6 +1974,7 @@ private:
   ChoiceOptionValue<GoalAffinityThreshold> _nonGoalWeightAffinityThreshold;
 
   SelectionOptionValue _selection;
+  BoolOptionValue _typeGuardSelection;
 
   InputFileOptionValue _inputFile;
 

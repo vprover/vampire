@@ -469,6 +469,9 @@ check_szs_status Theorem hol/hol-bool-ext.p
 # syntactic unification inside lambda bodies, as -uwa off needs it
 check_szs_status Theorem -fde none -uwa off hol/hol-uwa-off-lambda.p
 check_szs_status Theorem -uwa off hol/hol-uwa-off-lambda-poly.p
+# type-class axioms kept in active (sos=type_classes) are only usable through backward chaining
+check_szs_status Theorem -sa otter -sos type_classes -sosts on hol/hol-type-classes.p
+check_szs_status Theorem -sa otter -sos type_classes -sosts on -tgs on hol/hol-type-classes.p
 check_rejected 'distinct objects are not supported in higher-order problems' \
 	--input_syntax tptp hol/hol-distinct-object.p
 
