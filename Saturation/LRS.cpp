@@ -136,16 +136,18 @@ bool LRS::shouldUpdateLimits(unsigned popsElapsed)
   openTraceFiles();
 
   _leftoverPops += popsElapsed;
+  ++_unprocessedLoops;
 
   if (replaying()) {
     // Replay must not consult the clock, the instruction counter or the budget:
     // that is the whole point of the trace, and it is what lets a run recorded
-    // under one limit be replayed under another. The recorded pop counts are the
-    // only thing driving the cadence here.
+    // under one limit be replayed under another. Count every loop, including
+    // empty ones: the maintenance budget can delay an update until a loop that
+    // adds no pops, so a pop count alone does not identify the update point.
     if (_traceExhausted || !readNextRecord()) {
       return false;
     }
-    if (_leftoverPops < _nextRecordPops) {
+    if (_unprocessedLoops < _nextRecordLoop) {
       return false;
     }
     _leftoverPops = 0;
@@ -163,7 +165,6 @@ bool LRS::shouldUpdateLimits(unsigned popsElapsed)
       // first opportunity once the budget allows rather than after a further 50 pops.
       return false;
     }
-    _popsAtFire = _leftoverPops;
     _leftoverPops = 0;
     return true;
   }
@@ -171,7 +172,7 @@ bool LRS::shouldUpdateLimits(unsigned popsElapsed)
 }
 
 /**
- * Ensure _nextRecordPops/_nextRecordResult hold the next unconsumed trace record.
+ * Ensure _nextRecordLoop/_nextRecordResult hold the next unconsumed trace record.
  *
  * Returns false once the file runs out, after which no further updates are made:
  * finishing a replay on the live (clock-driven) logic would silently stop
@@ -182,7 +183,7 @@ bool LRS::readNextRecord()
   if (_haveNextRecord) {
     return true;
   }
-  if (*_loadTrace >> _nextRecordPops >> _nextRecordResult) {
+  if (*_loadTrace >> _nextRecordLoop >> _nextRecordResult) {
     _haveNextRecord = true;
     return true;
   }
@@ -215,6 +216,9 @@ void LRS::openTraceFiles()
   const std::string& save = _opt.lrsSaveTraceFile();
   if (!save.empty()) {
     _saveTrace = std::make_unique<std::ofstream>(save.c_str());
+    if (!*_saveTrace) {
+      USER_ERROR("Cannot write LRS trace file " + save);
+    }
   }
 }
 
@@ -288,7 +292,7 @@ long long LRS::estimatedReachableCount()
   finish:
 
   if (_saveTrace) {
-    (*_saveTrace) << _popsAtFire << " " << result << std::endl;
+    (*_saveTrace) << _unprocessedLoops << " " << result << std::endl;
   }
 
   return result;
