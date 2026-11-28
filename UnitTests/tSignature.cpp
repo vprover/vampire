@@ -162,3 +162,15 @@ TEST_FUN(allSymbolKindsStoreTheirNumber)
     ASS_EQ(sig.getTypeCon(n)->number(), n);
   }
 }
+
+TEST_FUN(emptySymbolNames)
+{
+  auto& sig = *env.signature;
+  auto type = OperatorType::getConstantsType(AtomicSort::defaultSort());
+  auto f = sig.addFunction("", type);
+  auto p = sig.addPredicate("", OperatorType::getPredicateType({}));
+  auto tc = sig.addTypeCon("", 0);
+  ASS_EQ(sig.addFunction("", type)->number(), f->number());
+  ASS_EQ(sig.addPredicate("", p->type())->number(), p->number());
+  ASS_EQ(sig.addTypeCon("", 0)->number(), tc->number());
+}

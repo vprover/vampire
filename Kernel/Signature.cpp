@@ -916,7 +916,7 @@ bool Signature::isProtectedName(std::string name)
  */
 bool Signature::symbolNeedsQuoting(std::string name, bool interpreted, unsigned arity)
 {
-  ASS_G(name.length(),0);
+  // SMT-LIB permits the empty quoted symbol ||.
 
   //we don't want to quote these type constructors, but we
   //also don't want them to be treated as interpreted symbols
