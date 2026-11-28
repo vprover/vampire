@@ -98,6 +98,7 @@ set(UNIT_TESTS
     UnitTests/tIterator.cpp
     UnitTests/tKBO.cpp
     UnitTests/tLPO.cpp
+    UnitTests/tLRS.cpp
     UnitTests/tList.cpp
     UnitTests/tMap.cpp
     UnitTests/tOption.cpp

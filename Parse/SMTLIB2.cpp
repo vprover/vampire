@@ -1644,10 +1644,10 @@ void SMTLIB2::parseMatchEnd(LExpr *exp)
   LOG2("CASE matched ", matchedTerm.toString());
 
   std::map<unsigned, TermAlgebraConstructor *> ctorFunctors;
-  TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTermSort);
-  if (ta == nullptr) {
+  if (!env.signature->isTermAlgebraSort(matchedTermSort)) {
     USER_ERROR_EXPR("Match term '" + matchedTerm.toString() + "' is not of a term algebra type in expression '" + exp->toString() + "'");
   }
+  TermAlgebra *ta = env.signature->getTermAlgebraOfSort(matchedTermSort);
   for (unsigned int i = 0; i < ta->nConstructors(); i++) {
     ctorFunctors.insert({ ta->constructor(i)->functor(), ta->constructor(i) });
   }
